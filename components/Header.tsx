@@ -34,7 +34,7 @@ function Header() {
 
   return (
     <header className="border-b border-purple-200/70 bg-purple-100/90 text-slate-900 backdrop-blur dark:border-white/10 dark:bg-slate-950/90 dark:text-white">
-      <div className="mx-auto flex lg:max-w-6xl items-center justify-between px-6 py-4">
+      <div className="mx-auto flex lg:max-w-7xl items-center justify-between px-6 py-4">
         <Link
           href="/"
           className="flex items-center gap-3 text-lg font-semibold"
@@ -101,11 +101,7 @@ function Header() {
               className=" text-slate-900 ml-2 text-2xl transition dark:border-white/10  dark:text-white lg:hidden"
               onClick={() => setIsMobileMenuOpen((open) => !open)}
             >
-              {isMobileMenuOpen ? (
-                <FiX  />
-              ) : (
-                <FiMenu  />
-              )}
+              {isMobileMenuOpen ? <FiX /> : <FiMenu />}
             </button>
           </nav>
         </div>
@@ -113,47 +109,41 @@ function Header() {
 
       {/* Mobile dropdown menu */}
       {isMobileMenuOpen ? (
-        <div
-          className="lg:hidden border-t border-purple-200/70 dark:border-white/10"
-        >
-          
-            <div className="bg-purple-200 p-4 text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-white">
-              <ul className="flex list-none flex-col gap-3 text-sm font-semibold" onClick={handleMenuToggle}>
-              
-                  <Link
-                    href="/"
-                    className="block rounded-lg px-3 py-2 transition hover:bg-purple-100 dark:hover:bg-white/10"
-                  >
-                    Home
-                  </Link>
-               
-              
-                  <Link
-                    href="/events"
-                    className="block rounded-lg px-3 py-2 transition hover:bg-purple-100 dark:hover:bg-white/10"
-                  >
-                    Events
-                  </Link>
-               
-              
-                  <Link
-                    href="/organizer/dashboard"
-                    className="block rounded-lg px-3 py-2 transition hover:bg-purple-100 dark:hover:bg-white/10"
-                  >
-                    Login
-                  </Link>
-               
-              
-                  <Link
-                    href="/admin/dashboard"
-                    className="block rounded-lg bg-purple-600 px-3 py-2 font-bold text-white transition hover:bg-purple-700"
-                  >
-                    Admin
-                  </Link>
-               
-              </ul>
-            </div>
-       
+        <div className="lg:hidden border-t border-purple-200/70 dark:border-white/10">
+          <div className="bg-purple-200 p-4 text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-white">
+            <ul
+              className="flex list-none flex-col gap-3 text-sm font-semibold"
+              onClick={handleMenuToggle}
+            >
+              <Link
+                href="/"
+                className="block rounded-lg px-3 py-2 transition hover:bg-purple-100 dark:hover:bg-white/10"
+              >
+                Home
+              </Link>
+
+              <Link
+                href="/events"
+                className="block rounded-lg px-3 py-2 transition hover:bg-purple-100 dark:hover:bg-white/10"
+              >
+                Events
+              </Link>
+
+              <Link
+                href="/organizer/dashboard"
+                className="block rounded-lg px-3 py-2 transition hover:bg-purple-100 dark:hover:bg-white/10"
+              >
+                Login
+              </Link>
+
+              <Link
+                href="/admin/dashboard"
+                className="block rounded-lg bg-purple-600 px-3 py-2 font-bold text-white transition hover:bg-purple-700"
+              >
+                Admin
+              </Link>
+            </ul>
+          </div>
         </div>
       ) : null}
     </header>

@@ -1,6 +1,12 @@
-import Header from "@/components/Header";
+import Hero from "@/components/Hero";
+import Stat from "@/components/Stat";
 
 const Home = () => {
-  return <div></div>;
+  return (
+    <div>
+      <Hero />
+      <Stat />
+    </div>
+  );
 };
 export default Home;
