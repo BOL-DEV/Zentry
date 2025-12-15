@@ -9,7 +9,7 @@ function Hero() {
     // const {} = props
 
     return (
-      <section className="bg-purple-100 dark:bg-slate-950/90 flex lg:gap-15  items-center justify-center px-6 py-20">
+      <section className="bg-purple-100 dark:bg-slate-950/90 flex flex-col lg:flex-row lg:gap-15 gap-7 items-center justify-center px-6 py-40">
         <div className="flex flex-col gap-8">
           <h1 className="flex items-center gap-3 text-md font-semibold bg-purple-300 rounded-2xl px-5 py-1.5 text-purple-900 w-fit">
             <span>
@@ -27,14 +27,14 @@ function Hero() {
             creating memorable experiences.
           </p>
 
-          <div className="flex items-center gap-4">
-            <button className="flex items-center gap-2 rounded-lg bg-purple-600 px-6 py-3 text-white font-semibold transition hover:bg-purple-700 w-fit">
+          <div className="flex flex-col lg:flex-row gap-4  items-center">
+            <button className="flex items-center gap-2 rounded-lg bg-purple-600 px-6 py-3 text-white font-semibold transition hover:bg-purple-700 lg:w-fit w-full justify-center">
               Browse Events
               <span>
                 <IoArrowForward />
               </span>
             </button>
-            <button className="flex items-center gap-2 font-semibold rounded-lg border-2 border-purple-600 px-6 py-3 text-purple-600 transition hover:bg-purple-700 hover:text-white w-fit">
+            <button className="flex items-center gap-2 font-semibold rounded-lg border-2 border-purple-600 px-6 py-3 text-purple-600 transition hover:bg-purple-700 hover:text-white lg:w-fit w-full justify-center">
               Oraganize an Event
             </button>
           </div>
