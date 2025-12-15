@@ -33,7 +33,7 @@ function Header() {
   };
 
   return (
-    <header className="border-b border-purple-200/70 bg-purple-100/90 text-slate-900 backdrop-blur dark:border-white/10 dark:bg-slate-950/90 dark:text-white fixed top-0 w-full z-50">
+    <header className="border-b border-purple-200/70 bg-purple-100/90 text-slate-900 backdrop-blur dark:border-white/10 dark:bg-slate-950/95 dark:text-white fixed top-0 w-full z-50">
       <div className="mx-auto flex lg:max-w-7xl items-center justify-between px-6 py-4">
         <Link
           href="/"

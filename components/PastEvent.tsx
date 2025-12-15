@@ -49,7 +49,7 @@ function PastEvent() {
 
     return (
       <section className="flex flex-col gap-8 py-20 p-5 bg-purple-100  dark:bg-slate-950/90">
-        <div className="flex flex-col gap-2 lg:pl-90">
+        <div className="flex flex-col gap-2 lg:pl-80">
           <h1 className="text-4xl font-bold dark:text-white">
             Past Events Gallery
           </h1>
