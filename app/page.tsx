@@ -1,3 +1,4 @@
+import Footer from "@/components/Footer";
 import Hero from "@/components/Hero";
 import Offer from "@/components/Offer";
 import PastEvent from "@/components/PastEvent";
@@ -10,6 +11,7 @@ const Home = () => {
       <Stat />
       <PastEvent />
       <Offer />
+      <Footer />
     </div>
   );
 };
