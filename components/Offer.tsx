@@ -17,7 +17,7 @@ export interface OfferProps {
 function Offer() {
 
     return (
-      <section className="mx-auto flex flex-col items-center justify-center px-6 py-20 text-center bg-white dark:bg-slate-950/95">
+      <section className="flex flex-col items-center justify-center px-6 py-20 text-center bg-white dark:bg-slate-950/95">
         <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-4xl">
           Everything You Need
         </h2>

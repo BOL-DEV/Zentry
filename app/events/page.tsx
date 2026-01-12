@@ -1,11 +1,12 @@
+import Events from "@/components/Events";
 import React from "react";
 
-// interface Props {}
-
 function Page() {
-  // const {} = props
-
-  return <div>Events</div>;
+  return (
+    <main className="  bg-purple-100 dark:bg-slate-950/90">
+      <Events />
+    </main>
+  );
 }
 
 export default Page;
