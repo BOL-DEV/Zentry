@@ -12,9 +12,7 @@ function Header() {
 
   const handleMenuToggle = () => {
     setIsMobileMenuOpen((prev) => !prev);
-  }
-
- 
+  };
 
   const handleThemeToggle = () => {
     const html = document.documentElement;
@@ -67,7 +65,7 @@ function Header() {
               </li>
               <li>
                 <Link
-                  href="/organizer/dashboard"
+                  href="/login/organizer"
                   className="font-semibold transition hover:text-purple-700 dark:hover:text-white"
                 >
                   Login
@@ -75,7 +73,7 @@ function Header() {
               </li>
               <li>
                 <Link
-                  href="/admin/dashboard"
+                  href="/login/admin"
                   className="rounded-lg bg-purple-600 p-3 font-bold text-white transition hover:bg-purple-700"
                 >
                   Admin
