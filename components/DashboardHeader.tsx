@@ -58,7 +58,6 @@ function DashboardHeader({ role, email}: Props) {
                 {email}
               </span>
 
-            
                 <Link
                   href="/"
                   className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-purple-700"
