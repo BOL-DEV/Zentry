@@ -1,9 +1,16 @@
-import Link from "next/link";
-
+﻿import Link from "next/link";
 import MobileMenuToggle from "./MobileMenuToggle";
 import ThemeToggle from "./ThemeToggle";
 
-function Header() {
+type DashboardRole = "admin" | "organizer";
+
+interface Props {
+  role: DashboardRole;
+  email: string;
+}
+
+function DashboardHeader({ role, email}: Props) {
+
   return (
     <header className="border-b border-purple-200/70 bg-purple-100/90 text-slate-900 backdrop-blur dark:border-white/10 dark:bg-slate-950/95 dark:text-white fixed top-0 w-full z-50">
       <div className="mx-auto flex lg:max-w-7xl items-center justify-between px-6 py-4">
@@ -19,7 +26,6 @@ function Header() {
 
         <div className="flex items-center gap-3">
           <nav className="flex items-center">
-            {/* Desktop links */}
             <ul className="hidden list-none items-center gap-8 pr-6 text-xs font-medium uppercase tracking-[0.3em] text-slate-700 dark:text-slate-300 lg:flex">
               <li>
                 <Link
@@ -39,29 +45,36 @@ function Header() {
               </li>
               <li>
                 <Link
-                  href="/login/organizer"
+                href={`/dashboard/${role}` }
                   className="font-semibold transition hover:text-purple-700 dark:hover:text-white"
                 >
-                  Login
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/login/admin"
-                  className="rounded-lg bg-purple-600 p-3 font-bold text-white transition hover:bg-purple-700"
-                >
-                  Admin
+                  {role}
                 </Link>
               </li>
             </ul>
 
-            <ThemeToggle />
+            <div className="hidden lg:flex items-center gap-4 pr-4 border-l border-purple-200/70 dark:border-white/10 pl-4">
+              <span className="text-sm text-slate-600 dark:text-slate-300 max-w-55 truncate">
+                {email}
+              </span>
+
+            
+                <Link
+                  href="/"
+                  className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-purple-700"
+                >
+                  Logout
+                </Link>
+            
+            </div>
+
+         <ThemeToggle/>
+            <MobileMenuToggle role={role} />
           </nav>
-          <MobileMenuToggle />
         </div>
       </div>
     </header>
   );
 }
 
-export default Header;
+export default DashboardHeader;

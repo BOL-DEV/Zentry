@@ -1,15 +1,17 @@
-import React from 'react'
+import DashboardHeader from "@/components/DashboardHeader";
+import React from "react";
 
 // interface Props {}
 
 function Page() {
-    // const {} = props
+  // const {} = props
 
-    return (
-        <div>
-            Dashboard Organizer Page
-        </div>
-    )
+  return (
+    <div>
+      <DashboardHeader role="organizer" email="organizer@example.com" />
+      Dashboard Organizer Page
+    </div>
+  );
 }
 
-export default Page
+export default Page;
