@@ -1,6 +1,7 @@
 import DashboardHeader from "@/components/DashboardHeader";
 import DashboardHero from "@/components/DashboardHero";
 import DashboardStatsGrid from "@/components/DashboardStatsGrid";
+import OrganizerEventsSection from "@/components/OrganizerEventsSection";
 import { LuTrendingUp, LuUsers, LuChartColumnIncreasing } from "react-icons/lu";
 import { TbCoin } from "react-icons/tb";
 
@@ -29,6 +30,7 @@ function Page() {
       <DashboardHeader role="organizer" email="organizer@example.com" />
       <DashboardHero />
       <DashboardStatsGrid items={items} />
+      <OrganizerEventsSection />
     </div>
   );
 }
