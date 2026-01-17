@@ -1,27 +1,14 @@
-import {  useState } from "react";
+"use client";
+
+import { useState } from "react";
 import { LuChevronRight } from "react-icons/lu";
 import TicketSalesStat from "./TicketSalesStat";
-import {formatNumber } from "./TicketSalesStat";
+import { formatCurrency, formatNumber } from "@/helpers/format";
 import { OrganizerEvent } from "./OrganizerEventsSection";
 import TicketTypeBreakdown from "./TicketTypeBreakdown";
 
-
-export function formatCurrency(value: number) {
-  try {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      maximumFractionDigits: 0,
-    }).format(value);
-  } catch {
-    return `$${Math.round(value).toLocaleString()}`;
-  }
-}
-
 function OrganizerEventCard({ event }: { event: OrganizerEvent }) {
   const [open, setOpen] = useState(false);
-
-
 
   return (
     <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-slate-950">
@@ -39,7 +26,7 @@ function OrganizerEventCard({ event }: { event: OrganizerEvent }) {
             {event.dateTimeText}
           </p>
 
-          <div className="mt-5 grid grid-cols-1 gap-6 lg:gap-60 lg:grid-cols-4">
+          <div className="mt-5 grid grid-cols-1 gap-6 md:grid-cols-2 lg:gap-60 lg:grid-cols-4">
             <TicketSalesStat
               sold={event.capacitySold}
               total={event.capacityTotal}
@@ -84,9 +71,7 @@ function OrganizerEventCard({ event }: { event: OrganizerEvent }) {
         </span>
       </button>
 
-      {open ? (
-       <TicketTypeBreakdown ticketTypes={event.ticketTypes} />
-      ) : null}
+      {open ? <TicketTypeBreakdown ticketTypes={event.ticketTypes} /> : null}
     </article>
   );
 }

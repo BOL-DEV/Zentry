@@ -1,17 +1,4 @@
-
-function clampPercent(value: number) {
-  return Math.max(0, Math.min(100, value));
-}
-export function percent(sold: number, total: number) {
-  if (!Number.isFinite(total) || total <= 0) return 0;
-  return clampPercent(Math.round((sold / total) * 100));
-}
-
-
-
-export function formatNumber(value: number) {
-  return Math.round(value).toLocaleString();
-}
+import { formatNumber, percent } from "@/helpers/format";
 
 function TicketSalesStat({ sold, total }: { sold: number; total: number }) {
   const pct = percent(sold, total);

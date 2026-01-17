@@ -1,6 +1,6 @@
 'use client';
 import OrganizerEventCard from './OrganizerEventCard';
-
+import { organizerDemoEvents } from "@/data/demo";
 
 export type TicketTypeBreak = {
   name: string;
@@ -21,53 +21,7 @@ export type OrganizerEvent = {
   ticketTypes: TicketTypeBreak[];
 };
 
-
-const demoEvents: OrganizerEvent[] = [
-  {
-    id: 'tech-summit-2025',
-    title: 'Tech Summit 2025',
-    dateTimeText: 'June 15, 2025 at 09:00 AM',
-    capacitySold: 1045,
-    capacityTotal: 1600,
-    revenue: 196_455,
-    checkIns: 470,
-    ticketTypesCount: 3,
-    ticketTypes: [
-      { name: 'VIP Pass', price: 299, sold: 45, total: 100 },
-      { name: 'Early Bird', price: 149, sold: 320, total: 500 },
-      { name: 'Regular', price: 199, sold: 680, total: 1000 },
-    ],
-  },
-  {
-    id: 'design-workshop',
-    title: 'Design Workshop',
-    dateTimeText: 'May 20, 2025 at 02:00 PM',
-    capacitySold: 622,
-    capacityTotal: 850,
-    revenue: 102_128,
-    checkIns: 279,
-    ticketTypesCount: 3,
-    ticketTypes: [
-      { name: 'VIP Pass', price: 199, sold: 22, total: 50 },
-      { name: 'Early Bird', price: 99, sold: 240, total: 350 },
-      { name: 'Regular', price: 149, sold: 360, total: 450 },
-    ],
-  },
-  {
-    id: 'startup-networking-mixer',
-    title: 'Startup Networking Mixer',
-    dateTimeText: 'May 10, 2025 at 06:00 PM',
-    capacitySold: 425,
-    capacityTotal: 575,
-    revenue: 22_175,
-    checkIns: 191,
-    ticketTypesCount: 2,
-    ticketTypes: [
-      { name: 'VIP Pass', price: 79, sold: 30, total: 75 },
-      { name: 'Regular', price: 49, sold: 395, total: 500 },
-    ],
-  },
-];
+const demoEvents: OrganizerEvent[] = organizerDemoEvents as OrganizerEvent[];
 
 
 

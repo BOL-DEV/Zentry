@@ -1,4 +1,3 @@
-import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { LuCalendar, LuMapPin } from "react-icons/lu";
@@ -35,16 +34,16 @@ function getSoldPercent(remaining: number, total: number) {
 }
 
 function EventCard(events: EventCardProps) {
-    const {
-      imageUrl,
-      title,
-      description,
-      dateTimeText,
-      locationText,
-      dressCode,
-      policies = [],
-      ticketTypes,
-    } = events;
+  const {
+    imageUrl,
+    title,
+    description,
+    dateTimeText,
+    locationText,
+    dressCode,
+    policies = [],
+    ticketTypes,
+  } = events;
 
   return (
     <section className="w-full  overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-md dark:border-white/10 dark:bg-slate-950">
@@ -120,7 +119,10 @@ function EventCard(events: EventCardProps) {
 
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               {ticketTypes.map((ticket) => {
-                const soldPercent = getSoldPercent(ticket.remaining, ticket.total);
+                const soldPercent = getSoldPercent(
+                  ticket.remaining,
+                  ticket.total
+                );
 
                 return (
                   <div

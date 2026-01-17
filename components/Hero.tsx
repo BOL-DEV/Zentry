@@ -1,4 +1,3 @@
-import React from 'react'
 import Image from 'next/image'
 import { IoArrowForward } from "react-icons/io5";
 import { LuSparkles } from "react-icons/lu";

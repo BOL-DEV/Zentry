@@ -1,4 +1,3 @@
-import React from 'react'
 import PastEventCard from './PastEventCard';
 
 export interface pastEvent {

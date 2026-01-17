@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 import { LuDownload } from "react-icons/lu";
-import { percent, formatNumber } from "./TicketSalesStat";
-import { formatCurrency } from "./OrganizerEventCard";
+import { formatCurrency, formatNumber, percent } from "@/helpers/format";
 import {TicketTypeBreak} from './OrganizerEventsSection';
 
 interface Props {

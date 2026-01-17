@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { formatCurrency } from "@/helpers/format";
 
 type Props = {
   title: string;
@@ -8,16 +9,14 @@ type Props = {
 
 function DashboardStatCard({ title, value, icon }: Props) {
   return (
-    <div
-      className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-slate-950" 
-    >
+    <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-slate-950">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
             {title}
           </p>
-          <div className="mt-3 text-4xl font-bold tracking-tight text-slate-900 dark:text-white">
-            {value}
+          <div className="mt-3 text-4xl font-bold  text-purple-900 ">
+            {title === "Total Revenue" ? formatCurrency(value) : value}
           </div>
         </div>
 
