@@ -45,7 +45,7 @@ function DashboardHeader({ role, email}: Props) {
               </li>
               <li>
                 <Link
-                href={`/dashboard/${role}` }
+                  href={`/dashboard/${role}`}
                   className="font-semibold transition hover:text-purple-700 dark:hover:text-white"
                 >
                   {role}
@@ -58,17 +58,16 @@ function DashboardHeader({ role, email}: Props) {
                 {email}
               </span>
 
-                <Link
-                  href="/"
-                  className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-purple-700"
-                >
-                  Logout
-                </Link>
-            
+              <Link
+                href="/"
+                className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-purple-700"
+              >
+                Logout
+              </Link>
             </div>
 
-         <ThemeToggle/>
-            <MobileMenuToggle role={role} />
+            <ThemeToggle />
+            <MobileMenuToggle menuData={[]} />
           </nav>
         </div>
       </div>
