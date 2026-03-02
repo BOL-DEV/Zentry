@@ -11,7 +11,7 @@ function OrganizerEventCard({ event }: { event: OrganizerEvent }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-slate-950">
+    <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/5">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}

@@ -46,7 +46,7 @@ function EventCard(events: EventCardProps) {
   } = events;
 
   return (
-    <section className="w-full  overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-md dark:border-white/10 dark:bg-slate-950">
+    <section className="w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-md dark:border-white/10 dark:bg-white/5">
       <div className="flex flex-col lg:flex-row">
         <div className="relative h-72 w-full lg:h-auto lg:w-[44%]">
           <Image
@@ -121,13 +121,13 @@ function EventCard(events: EventCardProps) {
               {ticketTypes.map((ticket) => {
                 const soldPercent = getSoldPercent(
                   ticket.remaining,
-                  ticket.total
+                  ticket.total,
                 );
 
                 return (
                   <div
                     key={ticket.name}
-                    className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-900"
+                    className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-white/10"
                   >
                     <div className="flex flex-col gap-1">
                       <h3 className="text-base font-semibold text-slate-900 dark:text-white">

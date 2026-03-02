@@ -23,11 +23,11 @@ export type OrganizerEvent = {
 
 const demoEvents: OrganizerEvent[] = organizerDemoEvents as OrganizerEvent[];
 
-
-
-
-
-function OrganizerEventsSection({ events = demoEvents }: { events?: OrganizerEvent[] }) {
+function OrganizerEventsSection({
+  events = demoEvents,
+}: {
+  events?: OrganizerEvent[];
+}) {
   return (
     <section className="bg-white dark:bg-slate-950">
       <div className="mx-auto lg:max-w-7xl px-6 pb-14">

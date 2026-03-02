@@ -44,16 +44,18 @@ function AdminOrganizersSection({ organizers = demoOrganizers }: Props) {
           </h2>
         </div>
 
-        <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-slate-950">
+        <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/5">
           <div className="overflow-x-auto">
             <table className="min-w-full text-left text-sm">
-              <thead className="bg-slate-50 text-slate-600 dark:bg-white/5 dark:text-slate-300">
+              <thead className="bg-slate-50 text-slate-600 dark:bg-white/10 dark:text-slate-300">
                 <tr>
                   <th className="px-6 py-4 font-semibold">Organizer</th>
                   <th className="px-6 py-4 font-semibold">Email</th>
                   <th className="px-6 py-4 font-semibold">Events</th>
                   <th className="px-6 py-4 font-semibold">Status</th>
-                  <th className="px-6 py-4 font-semibold text-right">Actions</th>
+                  <th className="px-6 py-4 font-semibold text-right">
+                    Actions
+                  </th>
                 </tr>
               </thead>
 
@@ -64,7 +66,9 @@ function AdminOrganizersSection({ organizers = demoOrganizers }: Props) {
                     <td className="px-6 py-5 text-slate-600 dark:text-slate-300">
                       {org.email}
                     </td>
-                    <td className="px-6 py-5 font-semibold">{org.eventsCount}</td>
+                    <td className="px-6 py-5 font-semibold">
+                      {org.eventsCount}
+                    </td>
                     <td className="px-6 py-5">
                       <StatusPill status={org.status} />
                     </td>

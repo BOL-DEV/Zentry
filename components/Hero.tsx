@@ -10,7 +10,7 @@ function Hero() {
     return (
       <section className="bg-purple-100 dark:bg-slate-950/90 flex flex-col lg:flex-row lg:gap-15 gap-7 items-center justify-center px-6 py-40">
         <div className="flex flex-col gap-8">
-          <h1 className="flex items-center gap-3 text-md font-semibold bg-purple-300 rounded-2xl px-5 py-1.5 text-purple-900 w-fit">
+          <h1 className="flex w-fit items-center gap-3 rounded-2xl bg-purple-300 px-5 py-1.5 text-md font-semibold text-purple-900 dark:bg-white/10 dark:text-purple-200">
             <span>
               <LuSparkles />
             </span>
@@ -33,7 +33,7 @@ function Hero() {
                 <IoArrowForward />
               </span>
             </button>
-            <button className="flex items-center gap-2 font-semibold rounded-lg border-2 border-purple-600 px-6 py-3 text-purple-600 transition hover:bg-purple-700 hover:text-white lg:w-fit w-full justify-center">
+            <button className="flex items-center justify-center gap-2 rounded-lg border-2 border-purple-600 px-6 py-3 font-semibold text-purple-600 transition hover:bg-purple-700 hover:text-white dark:border-purple-400 dark:text-purple-300 dark:hover:bg-purple-500/15 dark:hover:text-white lg:w-fit w-full">
               Oraganize an Event
             </button>
           </div>

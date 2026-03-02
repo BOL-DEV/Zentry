@@ -18,7 +18,7 @@ function EventManagementCard(props: Props) {
     return (
       <article
         key={event.id}
-        className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-slate-950"
+        className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/5"
       >
         <div className="flex items-start justify-between gap-6 p-6">
           <div className="min-w-0 flex-1">

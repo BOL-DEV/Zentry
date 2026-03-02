@@ -34,7 +34,7 @@ function Login(props: Props) {
           </p>
         </header>
 
-        <div className="w-full rounded-2xl border border-purple-200/70 bg-white p-8 shadow-md md:p-8 dark:border-white/10 dark:bg-slate-950">
+        <div className="w-full rounded-2xl border border-purple-200/70 bg-white p-8 shadow-md md:p-8 dark:border-white/10 dark:bg-white/5">
           <form className="space-y-5" onSubmit={handleSubmit}>
             <div className="space-y-2">
               <label
