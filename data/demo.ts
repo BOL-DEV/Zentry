@@ -1,15 +1,22 @@
-import type { EventCardProps } from "@/components/EventCard";
+import type { EventCardProps } from "@/helpers/type";
 import { demoDateText, demoDateTimeText } from "@/helpers/date";
 
 // Public / marketing events list
 export const publicDemoEvents: EventCardProps[] = [
   {
+    id: "startup-networking-mixer",
     imageUrl:
       "https://v0-event-web-app-prototype.vercel.app/networking-event-elegant-venue.jpg",
     title: "Startup Networking Mixer",
     description:
       "Connect with fellow entrepreneurs and investors in a relaxed atmosphere.",
-    dateTimeText: demoDateTimeText({ year: 2025, month: 5, day: 10, hour: 18, minute: 0 }),
+    dateTimeText: demoDateTimeText({
+      year: 2025,
+      month: 5,
+      day: 10,
+      hour: 18,
+      minute: 0,
+    }),
     locationText: "Downtown Innovation Hub",
     dressCode: "Business Casual",
     policies: [
@@ -24,7 +31,7 @@ export const publicDemoEvents: EventCardProps[] = [
         price: 79,
         remaining: 30,
         total: 75,
-        buyHref: "#",
+        buyHref: "/events/startup-networking-mixer/checkout",
       },
       {
         name: "Regular",
@@ -32,16 +39,23 @@ export const publicDemoEvents: EventCardProps[] = [
         price: 49,
         remaining: 120,
         total: 500,
-        buyHref: "#",
+        buyHref: "/events/startup-networking-mixer/checkout",
       },
     ],
   },
   {
+    id: "product-design-meetup",
     imageUrl:
       "https://v0-event-web-app-prototype.vercel.app/networking-event-elegant-venue.jpg",
     title: "Product Design Meetup",
     description: "Lightning talks + portfolio feedback with other designers.",
-    dateTimeText: demoDateTimeText({ year: 2025, month: 6, day: 2, hour: 17, minute: 30 }),
+    dateTimeText: demoDateTimeText({
+      year: 2025,
+      month: 6,
+      day: 2,
+      hour: 17,
+      minute: 30,
+    }),
     locationText: "Riverside Co-Work",
     dressCode: "Smart Casual",
     policies: ["Bring your laptop", "Respect the time limits"],
@@ -52,7 +66,7 @@ export const publicDemoEvents: EventCardProps[] = [
         price: 19,
         remaining: 12,
         total: 100,
-        buyHref: "#",
+        buyHref: "/events/product-design-meetup/checkout",
       },
       {
         name: "Standard",
@@ -60,17 +74,24 @@ export const publicDemoEvents: EventCardProps[] = [
         price: 29,
         remaining: 67,
         total: 300,
-        buyHref: "#",
+        buyHref: "/events/product-design-meetup/checkout",
       },
     ],
   },
   {
+    id: "ai-builders-night",
     imageUrl:
       "https://v0-event-web-app-prototype.vercel.app/networking-event-elegant-venue.jpg",
     title: "AI Builders Night",
     description:
       "Show what you’re building, meet collaborators, and learn from demos.",
-    dateTimeText: demoDateTimeText({ year: 2025, month: 6, day: 21, hour: 19, minute: 0 }),
+    dateTimeText: demoDateTimeText({
+      year: 2025,
+      month: 6,
+      day: 21,
+      hour: 19,
+      minute: 0,
+    }),
     locationText: "Tech Park Auditorium",
     dressCode: "Casual",
     policies: [
@@ -84,7 +105,7 @@ export const publicDemoEvents: EventCardProps[] = [
         price: 39,
         remaining: 8,
         total: 60,
-        buyHref: "#",
+        buyHref: "/events/ai-builders-night/checkout",
       },
       {
         name: "Audience",
@@ -92,16 +113,23 @@ export const publicDemoEvents: EventCardProps[] = [
         price: 25,
         remaining: 210,
         total: 400,
-        buyHref: "#",
+        buyHref: "/events/ai-builders-night/checkout",
       },
     ],
   },
   {
+    id: "founders-breakfast",
     imageUrl:
       "https://v0-event-web-app-prototype.vercel.app/networking-event-elegant-venue.jpg",
     title: "Founders Breakfast",
     description: "Small-table conversations with founders over breakfast.",
-    dateTimeText: demoDateTimeText({ year: 2025, month: 7, day: 5, hour: 9, minute: 0 }),
+    dateTimeText: demoDateTimeText({
+      year: 2025,
+      month: 7,
+      day: 5,
+      hour: 9,
+      minute: 0,
+    }),
     locationText: "Skyline Cafe",
     dressCode: "Business Casual",
     policies: ["Arrive on time", "No hard selling"],
@@ -112,7 +140,7 @@ export const publicDemoEvents: EventCardProps[] = [
         price: 15,
         remaining: 5,
         total: 30,
-        buyHref: "#",
+        buyHref: "/events/founders-breakfast/checkout",
       },
       {
         name: "Waitlist",
@@ -124,11 +152,18 @@ export const publicDemoEvents: EventCardProps[] = [
     ],
   },
   {
+    id: "community-tech-talks",
     imageUrl:
       "https://v0-event-web-app-prototype.vercel.app/networking-event-elegant-venue.jpg",
     title: "Community Tech Talks",
     description: "Short talks from local builders + open networking after.",
-    dateTimeText: demoDateTimeText({ year: 2025, month: 8, day: 12, hour: 18, minute: 30 }),
+    dateTimeText: demoDateTimeText({
+      year: 2025,
+      month: 8,
+      day: 12,
+      hour: 18,
+      minute: 30,
+    }),
     locationText: "Main Library Hall",
     dressCode: "Casual",
     policies: ["Be kind", "No harassment", "Ask before taking photos"],
@@ -139,7 +174,7 @@ export const publicDemoEvents: EventCardProps[] = [
         price: 10,
         remaining: 160,
         total: 250,
-        buyHref: "#",
+        buyHref: "/events/community-tech-talks/checkout",
       },
       {
         name: "Supporter",
@@ -147,7 +182,7 @@ export const publicDemoEvents: EventCardProps[] = [
         price: 25,
         remaining: 40,
         total: 80,
-        buyHref: "#",
+        buyHref: "/events/community-tech-talks/checkout",
       },
     ],
   },
@@ -160,7 +195,7 @@ export const organizerDemoEvents = [
     title: "Tech Summit 2025",
     dateTimeText: demoDateTimeText(
       { year: 2025, month: 6, day: 15, hour: 9, minute: 0 },
-      { month: "long" }
+      { month: "long" },
     ),
     capacitySold: 1045,
     capacityTotal: 1600,
@@ -178,7 +213,7 @@ export const organizerDemoEvents = [
     title: "Design Workshop",
     dateTimeText: demoDateTimeText(
       { year: 2025, month: 5, day: 20, hour: 14, minute: 0 },
-      { month: "long" }
+      { month: "long" },
     ),
     capacitySold: 622,
     capacityTotal: 850,
@@ -196,7 +231,7 @@ export const organizerDemoEvents = [
     title: "Startup Networking Mixer",
     dateTimeText: demoDateTimeText(
       { year: 2025, month: 5, day: 10, hour: 18, minute: 0 },
-      { month: "long" }
+      { month: "long" },
     ),
     capacitySold: 425,
     capacityTotal: 575,

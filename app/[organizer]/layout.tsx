@@ -1,25 +1,25 @@
-import type { Metadata } from "next";
-// import Footer from "@/components/Footer";
+import React from "react";
+import Footer from "@/components/Footer";
 import OrganizerHeader from "@/components/OrganizerHeader";
+import OrganizerFooterMenu from "@/components/OrganizerFooterMenu";
 
-
-export const metadata: Metadata = {
-  title: "PulseEvent",
-  description: "A minimal workspace to sketch ideas fast.",
-};
-
-export default function OrganizerLayout({
-  children,
-}: Readonly<{
+interface Props {
   children: React.ReactNode;
-}>) {
+}
+
+function OrganizerLayout(props: Props) {
+  const { children } = props;
+
   return (
-      <div
-        className={`min-h-screen antialiased flex flex-col`}
-      >
-        <OrganizerHeader />
-        <main className="flex-1">{children}</main>
-        {/* <Footer /> */}
-      </div>
+    <div className={`min-h-screen antialiased flex flex-col`}>
+      <OrganizerHeader />
+      <main className="flex-1">{children}</main>
+
+      <Footer>
+        <OrganizerFooterMenu />
+      </Footer>
+    </div>
   );
 }
+
+export default OrganizerLayout;

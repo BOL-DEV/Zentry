@@ -1,27 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { LuCalendar, LuMapPin } from "react-icons/lu";
-
-export type TicketType = {
-  name: string;
-  description?: string;
-  price: number;
-  remaining: number;
-  total: number;
-  buyHref?: string;
-  buttonLabel?: string;
-};
-
-export type EventCardProps = {
-  imageUrl: string;
-  title: string;
-  description?: string;
-  dateTimeText: string;
-  locationText: string;
-  dressCode?: string;
-  policies?: string[];
-  ticketTypes: TicketType[];
-};
+import { EventCardProps } from "@/helpers/type";
 
 function clampPercent(value: number) {
   return Math.max(0, Math.min(100, value));
