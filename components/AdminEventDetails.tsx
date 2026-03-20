@@ -32,9 +32,25 @@ function getSoldPercent(remaining: number, total: number) {
 }
 
 function splitDateAndTime(dateTimeText: string) {
-  const parts = dateTimeText.split("•").map((p) => p.trim());
-  if (parts.length >= 2) return { dateText: parts[0], timeText: parts.slice(1).join(" • ") };
-  return { dateText: dateTimeText, timeText: "" };
+  const trimmed = dateTimeText.trim();
+
+  const bulletParts = trimmed.split("•").map((p) => p.trim()).filter(Boolean);
+  if (bulletParts.length >= 2) {
+    return {
+      dateText: bulletParts[0],
+      timeText: bulletParts.slice(1).join(" • "),
+    };
+  }
+
+  const atParts = trimmed.split(/\s+at\s+/i).map((p) => p.trim()).filter(Boolean);
+  if (atParts.length >= 2) {
+    return {
+      dateText: atParts[0],
+      timeText: atParts.slice(1).join(" at "),
+    };
+  }
+
+  return { dateText: trimmed, timeText: "" };
 }
 
 function TicketCard({
