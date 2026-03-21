@@ -71,7 +71,12 @@ function OrganizerEventCard({ event }: { event: OrganizerEvent }) {
         </span>
       </button>
 
-      {open ? <TicketTypeBreakdown ticketTypes={event.ticketTypes} /> : null}
+      {open ? (
+        <TicketTypeBreakdown
+          ticketTypes={event.ticketTypes}
+          eventId={event.id}
+        />
+      ) : null}
     </article>
   );
 }
