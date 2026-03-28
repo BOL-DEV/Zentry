@@ -1,4 +1,4 @@
-import OrganizerDashboardClient from "@/components/OrganizerDashboardClient";
+import OrganizerPaymentCallbackClient from "@/components/OrganizerPaymentCallbackClient";
 
 type Props = {
   params: Promise<{ organizer: string }>;
@@ -7,7 +7,7 @@ type Props = {
 async function Page({ params }: Props) {
   const { organizer } = await params;
 
-  return <OrganizerDashboardClient organizer={organizer} />;
+  return <OrganizerPaymentCallbackClient organizer={organizer} />;
 }
 
 export default Page;

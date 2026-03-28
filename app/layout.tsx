@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import ReactQueryProvider from "@/components/ReactQueryProvider";
 import "./globals.css";
 
 
@@ -28,7 +29,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} min-h-screen antialiased flex flex-col bg-purple-100 text-slate-900 dark:bg-slate-950 dark:text-white`}
       >
-        <div className="flex-1">{children}</div>
+        <ReactQueryProvider>
+          <div className="flex-1">{children}</div>
+        </ReactQueryProvider>
       </body>
     </html>
   );

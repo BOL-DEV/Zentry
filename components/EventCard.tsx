@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { LuCalendar, LuMapPin } from "react-icons/lu";
+import { formatCurrency } from "@/helpers/format";
 import { EventCardProps } from "@/helpers/type";
 
 function clampPercent(value: number) {
@@ -122,7 +123,7 @@ function EventCard(events: EventCardProps) {
 
                     <div className="mt-3 flex items-baseline gap-1">
                       <span className="text-2xl font-bold text-purple-600">
-                        ${ticket.price}
+                        {formatCurrency(ticket.price)}
                       </span>
                     </div>
 

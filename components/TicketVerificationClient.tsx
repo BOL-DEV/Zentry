@@ -1,11 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { LuCircleCheck, LuPercent, LuQrCode, LuTicket } from "react-icons/lu";
 
 import Card from "@/components/Card";
 import { formatNumber } from "@/helpers/format";
-import { isValidTicketCode, parseTicketInput } from "@/helpers/ticket";
+import { verifyTicketCode } from "@/helpers/organizer-api";
+import { parseTicketInput } from "@/helpers/ticket";
 
 type Mode = "scan" | "manual";
 
@@ -49,14 +51,13 @@ function StatCard({
 function TicketVerificationClient({ eventId, totalSold }: Props) {
   const [mode, setMode] = useState<Mode>("manual");
   const [ticketInput, setTicketInput] = useState("");
-  const [verifiedCodes, setVerifiedCodes] = useState<Set<string>>(() => new Set());
+  const [verifiedCount, setVerifiedCount] = useState(0);
   const [message, setMessage] = useState<
     | { type: "success"; text: string }
     | { type: "error"; text: string }
     | null
   >(null);
 
-  const verifiedCount = verifiedCodes.size;
   const verificationRate = useMemo(() => {
     if (!Number.isFinite(totalSold) || totalSold <= 0) return 0;
     return Math.min(100, Math.round((verifiedCount / totalSold) * 100));
@@ -64,6 +65,35 @@ function TicketVerificationClient({ eventId, totalSold }: Props) {
 
   const inputStyles =
     "h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-purple-600 focus:ring-4 focus:ring-purple-600/15 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-slate-500 dark:focus:border-purple-400 dark:focus:ring-purple-400/20";
+
+  const verifyMutation = useMutation({
+    mutationFn: verifyTicketCode,
+    onSuccess: (ticket) => {
+      if (ticket.eventId !== eventId) {
+        setMessage({
+          type: "error",
+          text: "This ticket belongs to a different event.",
+        });
+        return;
+      }
+
+      setVerifiedCount((count) => count + 1);
+      setMessage({
+        type: "success",
+        text: `Verified: ${ticket.ticketCode}`,
+      });
+      setTicketInput("");
+    },
+    onError: (error) => {
+      setMessage({
+        type: "error",
+        text:
+          error instanceof Error
+            ? error.message
+            : "We couldn't verify that ticket.",
+      });
+    },
+  });
 
   const handleVerify = () => {
     const parsed = parseTicketInput(ticketInput);
@@ -88,35 +118,7 @@ function TicketVerificationClient({ eventId, totalSold }: Props) {
       return;
     }
 
-    if (!isValidTicketCode(code)) {
-      setMessage({
-        type: "error",
-        text: "Invalid ticket code. Use the code from the ticket QR payload.",
-      });
-      return;
-    }
-
-    if (verifiedCodes.has(code)) {
-      setMessage({ type: "error", text: "Ticket already verified." });
-      return;
-    }
-
-    if (totalSold > 0 && verifiedCount >= totalSold) {
-      setMessage({
-        type: "error",
-        text: "All sold tickets are already verified.",
-      });
-      return;
-    }
-
-    setVerifiedCodes((prev) => {
-      const next = new Set(prev);
-      next.add(code);
-      return next;
-    });
-
-    setMessage({ type: "success", text: `Verified: ${code}` });
-    setTicketInput("");
+    verifyMutation.mutate(code);
   };
 
   return (
@@ -142,7 +144,7 @@ function TicketVerificationClient({ eventId, totalSold }: Props) {
         />
       </section>
 
-      <Card className="p-0 overflow-hidden">
+      <Card className="overflow-hidden p-0">
         <div className="flex items-center justify-between gap-4 border-b border-slate-200 p-6 dark:border-white/10">
           <div>
             <h2 className="text-xl font-bold text-slate-900 dark:text-white">
@@ -190,7 +192,7 @@ function TicketVerificationClient({ eventId, totalSold }: Props) {
                 Point your device at the QR code
               </p>
               <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                The ticket ID will automatically appear below
+                The ticket payload will automatically appear below
               </p>
             </div>
           ) : null}
@@ -217,9 +219,10 @@ function TicketVerificationClient({ eventId, totalSold }: Props) {
           <button
             type="button"
             onClick={handleVerify}
-            className="mt-5 inline-flex h-12 w-full items-center justify-center rounded-xl bg-purple-600 px-4 text-sm font-semibold text-white transition hover:bg-purple-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-purple-600/30 dark:focus-visible:ring-purple-400/30"
+            disabled={verifyMutation.isPending}
+            className="mt-5 inline-flex h-12 w-full items-center justify-center rounded-xl bg-purple-600 px-4 text-sm font-semibold text-white transition hover:bg-purple-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-purple-600/30 disabled:cursor-not-allowed disabled:opacity-70 dark:focus-visible:ring-purple-400/30"
           >
-            Verify Ticket
+            {verifyMutation.isPending ? "Verifying..." : "Verify Ticket"}
           </button>
 
           {message ? (
@@ -240,9 +243,9 @@ function TicketVerificationClient({ eventId, totalSold }: Props) {
               TIPS
             </p>
             <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-slate-600 dark:text-slate-300">
-              <li>Scanner auto-focuses on the input field</li>
+              <li>Paste the raw QR payload or ticket code</li>
               <li>Press Enter to verify quickly</li>
-              <li>Tickets can only be verified once per event</li>
+              <li>Checked-in tickets will be rejected by the backend</li>
             </ul>
           </div>
         </div>

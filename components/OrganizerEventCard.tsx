@@ -4,7 +4,7 @@ import { useState } from "react";
 import { LuChevronRight } from "react-icons/lu";
 import TicketSalesStat from "./TicketSalesStat";
 import { formatCurrency, formatNumber } from "@/helpers/format";
-import { OrganizerEvent } from "./OrganizerEventsSection";
+import type { OrganizerEvent } from "@/helpers/type";
 import TicketTypeBreakdown from "./TicketTypeBreakdown";
 
 function OrganizerEventCard({ event }: { event: OrganizerEvent }) {
