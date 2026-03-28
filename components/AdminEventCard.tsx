@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { LuCalendar, LuMapPin } from "react-icons/lu";
 import { publicDemoEvents as events } from "@/data/demo";
+import { formatCurrency } from "@/helpers/format";
 
 interface Props {
   event: typeof events[0];
@@ -61,7 +62,7 @@ function AdminEventCard(props: Props) {
         <div className="mt-5 h-px w-full bg-slate-200 dark:bg-white/10" />
 
         <p className="mt-4 text-lg font-semibold text-purple-700 dark:text-purple-400">
-          Starting ${startingPrice}
+          Starting {formatCurrency(startingPrice)}
         </p>
 
         <Link

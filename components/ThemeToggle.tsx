@@ -4,21 +4,24 @@ import { useEffect, useState } from "react";
 import { FaRegMoon } from "react-icons/fa";
 import { IoSunnyOutline } from "react-icons/io5";
 
+function resolveThemePreference() {
+  const preferredTheme = localStorage.getItem("theme");
+  const systemPrefersDark = window.matchMedia?.(
+    "(prefers-color-scheme: dark)",
+  ).matches;
+
+  return preferredTheme ? preferredTheme === "dark" : Boolean(systemPrefersDark);
+}
+
 function ThemeToggle() {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return resolveThemePreference();
+  });
 
   useEffect(() => {
-    const preferredTheme = localStorage.getItem("theme");
-    const systemPrefersDark = window.matchMedia?.(
-      "(prefers-color-scheme: dark)",
-    ).matches;
-
-    const shouldUseDark = preferredTheme
-      ? preferredTheme === "dark"
-      : Boolean(systemPrefersDark);
-
+    const shouldUseDark = resolveThemePreference();
     document.documentElement.classList.toggle("dark", shouldUseDark);
-    setIsDarkMode(shouldUseDark);
   }, []);
 
   const handleThemeToggle = () => {

@@ -1,33 +1,9 @@
-'use client';
-import OrganizerEventCard from './OrganizerEventCard';
-import { organizerDemoEvents } from "@/data/demo";
+"use client";
 
-export type TicketTypeBreak = {
-  name: string;
-  price: number;
-  sold: number;
-  total: number;
-};
+import OrganizerEventCard from "@/components/OrganizerEventCard";
+import type { OrganizerEvent } from "@/helpers/type";
 
-export type OrganizerEvent = {
-  id: string;
-  title: string;
-  dateTimeText: string;
-  capacitySold: number;
-  capacityTotal: number;
-  revenue: number;
-  checkIns: number;
-  ticketTypesCount: number;
-  ticketTypes: TicketTypeBreak[];
-};
-
-const demoEvents: OrganizerEvent[] = organizerDemoEvents as OrganizerEvent[];
-
-function OrganizerEventsSection({
-  events = demoEvents,
-}: {
-  events?: OrganizerEvent[];
-}) {
+function OrganizerEventsSection({ events }: { events: OrganizerEvent[] }) {
   return (
     <section className="bg-white dark:bg-slate-950">
       <div className="mx-auto lg:max-w-7xl px-6 pb-14">

@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { LuArrowLeft, LuCalendar, LuClock, LuMapPin, LuUser } from "react-icons/lu";
+import { formatCurrency } from "@/helpers/format";
 import type { EventCardProps, TicketType } from "@/helpers/type";
 
 type OrganizerInfo = {
@@ -62,7 +63,10 @@ function TicketCard({
 }) {
   const sold = getSoldCount(ticket.remaining, ticket.total);
   const soldPercent = getSoldPercent(ticket.remaining, ticket.total);
-  const buyHref = buyHrefOverride ?? ticket.buyHref;
+  const buyHref =
+    buyHrefOverride && ticket.id
+      ? `${buyHrefOverride}?ticketTypeId=${ticket.id}`
+      : buyHrefOverride ?? ticket.buyHref;
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm dark:border-white/10 dark:bg-white/5">
@@ -73,7 +77,7 @@ function TicketCard({
       </div>
 
       <p className="mt-2 text-4xl font-bold tracking-tight text-purple-600 dark:text-purple-400">
-        ${ticket.price}
+        {formatCurrency(ticket.price)}
       </p>
 
       <p className="mt-4 text-sm text-slate-600 dark:text-slate-300">

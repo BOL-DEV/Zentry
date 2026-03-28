@@ -1,9 +1,11 @@
+"use client";
+
 import { useMemo } from "react";
 import Link from "next/link";
 import { LuDownload } from "react-icons/lu";
 import { formatCurrency, formatNumber, percent } from "@/helpers/format";
-import { TicketTypeBreak } from "./OrganizerEventsSection";
 import { useParams } from "next/navigation";
+import type { TicketTypeBreak } from "@/helpers/type";
 
 interface Props {
   ticketTypes: TicketTypeBreak[];

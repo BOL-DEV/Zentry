@@ -13,12 +13,12 @@ export function formatNumber(value: number) {
 
 export function formatCurrency(value: number) {
   try {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat("en-NG", {
       style: "currency",
-      currency: "USD",
+      currency: "NGN",
       maximumFractionDigits: 0,
     }).format(value);
   } catch {
-    return `$${Math.round(value).toLocaleString()}`;
+    return `NGN ${Math.round(value).toLocaleString()}`;
   }
 }
