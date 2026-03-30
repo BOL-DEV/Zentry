@@ -6,7 +6,7 @@ import { LuCircleCheck, LuPercent, LuQrCode, LuTicket } from "react-icons/lu";
 
 import Card from "@/components/Card";
 import { formatNumber } from "@/helpers/format";
-import { verifyTicketCode } from "@/helpers/organizer-api";
+import { verifyDashboardTicket } from "@/helpers/organizer-api";
 import { parseTicketInput } from "@/helpers/ticket";
 
 type Mode = "scan" | "manual";
@@ -14,6 +14,7 @@ type Mode = "scan" | "manual";
 type Props = {
   eventId: string;
   totalSold: number;
+  initialVerifiedCount?: number;
 };
 
 function StatCard({
@@ -48,10 +49,14 @@ function StatCard({
   );
 }
 
-function TicketVerificationClient({ eventId, totalSold }: Props) {
+function TicketVerificationClient({
+  eventId,
+  totalSold,
+  initialVerifiedCount = 0,
+}: Props) {
   const [mode, setMode] = useState<Mode>("manual");
   const [ticketInput, setTicketInput] = useState("");
-  const [verifiedCount, setVerifiedCount] = useState(0);
+  const [verifiedCount, setVerifiedCount] = useState(initialVerifiedCount);
   const [message, setMessage] = useState<
     | { type: "success"; text: string }
     | { type: "error"; text: string }
@@ -67,7 +72,7 @@ function TicketVerificationClient({ eventId, totalSold }: Props) {
     "h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-purple-600 focus:ring-4 focus:ring-purple-600/15 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-slate-500 dark:focus:border-purple-400 dark:focus:ring-purple-400/20";
 
   const verifyMutation = useMutation({
-    mutationFn: verifyTicketCode,
+    mutationFn: (ticketCode: string) => verifyDashboardTicket(eventId, ticketCode),
     onSuccess: (ticket) => {
       if (ticket.eventId !== eventId) {
         setMessage({

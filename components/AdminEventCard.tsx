@@ -1,28 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { LuCalendar, LuMapPin } from "react-icons/lu";
-import { publicDemoEvents as events } from "@/data/demo";
-import { formatCurrency } from "@/helpers/format";
+import type { AdminEventListItem } from "@/helpers/type";
 
 interface Props {
-  event: typeof events[0];
+  event: AdminEventListItem;
 }
 
 function AdminEventCard(props: Props) {
   const { event } = props;
-
-  const slug = "pulse-events";
-
-  function getStartingPrice(ticketTypes: { price: number }[]) {
-    const paidTickets = ticketTypes
-      .map((t) => t.price)
-      .filter((price) => Number.isFinite(price) && price > 0);
-
-    if (paidTickets.length === 0) return 0;
-    return Math.min(...paidTickets);
-  }
-
-  const startingPrice = getStartingPrice(event.ticketTypes);
 
   return (
     <article
@@ -61,16 +47,22 @@ function AdminEventCard(props: Props) {
 
         <div className="mt-5 h-px w-full bg-slate-200 dark:bg-white/10" />
 
-        <p className="mt-4 text-lg font-semibold text-purple-700 dark:text-purple-400">
-          Starting {formatCurrency(startingPrice)}
+        <p className="mt-4 text-sm text-slate-600 dark:text-slate-300">
+          {event.organizerName}
         </p>
 
-        <Link
-          href={`${slug}/events/${event.id}`}
-          className="mt-5 inline-flex h-11 w-full items-center justify-center rounded-lg bg-purple-600 px-4 text-sm font-semibold text-white transition hover:bg-purple-700"
-        >
-          View Details
-        </Link>
+        {event.slug ? (
+          <Link
+            href={`/${event?.slug}/events/${event.id}`}
+            className="mt-5 inline-flex h-11 w-full items-center justify-center rounded-lg bg-purple-600 px-4 text-sm font-semibold text-white transition hover:bg-purple-700"
+          >
+            View Details
+          </Link>
+        ) : (
+          <div className="mt-5 inline-flex h-11 w-full items-center justify-center rounded-lg bg-slate-100 px-4 text-sm font-semibold text-slate-500 dark:bg-white/10 dark:text-slate-300">
+            Event details unavailable
+          </div>
+        )}
       </div>
     </article>
   );

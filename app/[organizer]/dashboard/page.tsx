@@ -7,6 +7,8 @@ type Props = {
 async function Page({ params }: Props) {
   const { organizer } = await params;
 
+  console.log("Rendering dashboard for organizer:", organizer);
+
   return <OrganizerDashboardClient organizer={organizer} />;
 }
 

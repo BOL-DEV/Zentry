@@ -1,12 +1,17 @@
 import { formatDateText, formatDateTimeText } from "@/helpers/date";
-import { apiFetch } from "@/helpers/api";
+import { apiFetch, resolveUrl } from "@/helpers/api";
 import type {
+  AdminEventListItem,
+  ApiAuthResponse,
+  ApiDashboardEventStat,
+  ApiDashboardSummary,
   ApiEvent,
   ApiGalleryItem,
   ApiOrganizer,
   ApiOrder,
   ApiOrderItem,
   ApiPaymentInitialization,
+  ApiScannerSummary,
   ApiTicket,
   ApiTicketType,
   EventCardProps,
@@ -23,6 +28,17 @@ import type {
 type OrganizerWithTickets = {
   organizer: Pick<ApiOrganizer, "_id" | "name" | "slug" | "heroTitle">;
   events: Array<ApiEvent & { ticketTypes: ApiTicketType[] }>;
+};
+
+type ApiPublicEventListItem = ApiEvent & {
+  organizer?: {
+    _id?: string;
+    id?: string;
+    name?: string;
+    slug?: string;
+  };
+  organizerName?: string;
+  organizerSlug?: string;
 };
 
 function titleCase(value: string) {
@@ -179,6 +195,14 @@ async function fetchOrganizerEvents(slug: string) {
   return response.data;
 }
 
+async function fetchAllEvents() {
+  const response = await apiFetch<{
+    events: ApiPublicEventListItem[];
+  }>(`/events`);
+
+  return response.data.events;
+}
+
 async function fetchOrganizerLandingEvents(slug: string) {
   const response = await apiFetch<{
     featuredEvent: ApiEvent | null;
@@ -332,6 +356,28 @@ export async function getOrganizerEventsPageData(slug: string) {
   );
 }
 
+export async function getAllPublicEventsData(): Promise<AdminEventListItem[]> {
+  const events = await fetchAllEvents();
+
+  return events
+    .slice()
+    .sort(
+      (left, right) =>
+        new Date(left.date).getTime() - new Date(right.date).getTime(),
+    )
+    .map((event) => ({
+      id: event._id,
+      title: event.title,
+      imageUrl: event.posterUrl,
+      dateTimeText: formatDateTimeText(new Date(event.date)),
+      locationText: event.location,
+      organizerId: event.organizerId,
+      organizerName:
+        event.organizer?.name || event.organizerName || "Organizer",
+      organizerSlug: event.organizer?.slug || event.organizerSlug,
+    }));
+}
+
 export async function getOrganizerEventDetails(
   slug: string,
   eventId: string,
@@ -361,25 +407,35 @@ export async function getOrganizerEventDetails(
 export async function getOrganizerDashboardData(
   slug: string,
 ): Promise<OrganizerDashboardData> {
-  const [organizer, organizerEventsWithTickets] = await Promise.all([
-    fetchOrganizer(slug),
-    fetchOrganizerEventsWithTickets(slug),
-  ]);
+  const [organizer, summaryResponse, dashboardEventsResponse, organizerEventsWithTickets] =
+    await Promise.all([
+      fetchOrganizer(slug),
+      apiFetch<{ summary: ApiDashboardSummary }>(
+        `/organizer/dashboard/summary`,
+        { auth: true },
+      ),
+      apiFetch<{ events: ApiDashboardEventStat[] }>(
+        `/organizer/dashboard/events`,
+        { auth: true },
+      ),
+      fetchOrganizerEventsWithTickets(slug),
+    ]);
 
-  const events = organizerEventsWithTickets.events.map((event) =>
-    mapOrganizerEvent(event, event.ticketTypes),
+  const dashboardStatsById = new Map(
+    dashboardEventsResponse.data.events.map((event) => [event.id, event]),
   );
 
-  const totals = events.reduce(
-    (sum, event) => {
-      sum.activeEvents += 1;
-      sum.ticketsSold += event.capacitySold;
-      sum.revenue += event.revenue;
-      sum.checkIns += event.checkIns;
-      return sum;
-    },
-    { activeEvents: 0, ticketsSold: 0, revenue: 0, checkIns: 0 },
-  );
+  const events = organizerEventsWithTickets.events.map((event) => {
+    const base = mapOrganizerEvent(event, event.ticketTypes);
+    const dashboardStats = dashboardStatsById.get(event._id);
+
+    return {
+      ...base,
+      capacitySold: dashboardStats?.ticketsSold ?? base.capacitySold,
+      revenue: dashboardStats?.revenue ?? base.revenue,
+      checkIns: 0,
+    };
+  });
 
   const now = Date.now();
   const nextEvent =
@@ -394,10 +450,47 @@ export async function getOrganizerDashboardData(
       slug: organizer.slug,
     },
     events,
-    totals,
+    totals: {
+      activeEvents: summaryResponse.data.summary.totalEvents,
+      ticketsSold: summaryResponse.data.summary.totalTicketsSold,
+      revenue: summaryResponse.data.summary.totalRevenue,
+      checkIns: 0,
+    },
     nextEvent: nextEvent
       ? mapOrganizerEvent(nextEvent, nextEvent.ticketTypes)
       : null,
+  };
+}
+
+export async function getOrganizerStaffWorkspaceData(
+  slug: string,
+): Promise<{
+  organizer: Pick<ApiOrganizer, "_id" | "name" | "slug">;
+  events: OrganizerEvent[];
+  totals: {
+    events: number;
+    ticketsSold: number;
+  };
+}> {
+  const organizerEventsWithTickets = await fetchOrganizerEventsWithTickets(slug);
+
+  const events = organizerEventsWithTickets.events.map((event) =>
+    mapOrganizerEvent(event, event.ticketTypes),
+  );
+
+  const ticketsSold = events.reduce((sum, event) => sum + event.capacitySold, 0);
+
+  return {
+    organizer: {
+      _id: organizerEventsWithTickets.organizer._id,
+      name: organizerEventsWithTickets.organizer.name,
+      slug: organizerEventsWithTickets.organizer.slug,
+    },
+    events,
+    totals: {
+      events: events.length,
+      ticketsSold,
+    },
   };
 }
 
@@ -466,4 +559,54 @@ export async function getOrganizerGalleryData(
     .slice()
     .sort((left, right) => left.displayOrder - right.displayOrder)
     .map(mapGalleryItem);
+}
+
+export async function loginDashboardUser(input: {
+  email: string;
+  password: string;
+}) {
+  const response = await fetch(resolveUrl(`/auth/login`), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(input),
+  });
+
+  const payload = (await response.json()) as ApiAuthResponse | { message?: string };
+
+  if (!response.ok || !("token" in payload)) {
+    throw new Error(
+      ("message" in payload && payload.message) || "Unable to sign in.",
+    );
+  }
+
+  return payload;
+}
+
+export async function getOrganizerScannerSummary(eventId: string) {
+  const response = await apiFetch<{
+    event: { id: string; title: string; date: string; location: string };
+    scannerSummary: ApiScannerSummary;
+  }>(`/organizer/dashboard/events/${eventId}/scanner-summary`, {
+    auth: true,
+  });
+
+  return response.data;
+}
+
+export async function verifyDashboardTicket(
+  eventId: string,
+  ticketCode: string,
+): Promise<ApiTicket> {
+  const response = await apiFetch<{ ticket: ApiTicket }>(
+    `/organizer/dashboard/events/${eventId}/verify-ticket`,
+    {
+      method: "POST",
+      body: JSON.stringify({ ticketCode }),
+      auth: true,
+    },
+  );
+
+  return response.data.ticket;
 }

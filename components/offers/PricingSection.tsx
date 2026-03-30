@@ -36,7 +36,7 @@ function PricingSection() {
             </ul>
 
             <Link
-              href="/login/organizer"
+              href="/login"
               className="mt-8 flex w-full items-center justify-center rounded-lg border-2 border-purple-600 px-6 py-3 font-semibold text-purple-600 transition hover:bg-purple-700 hover:text-white focus:outline-none focus-visible:ring-4 focus-visible:ring-purple-600/20 dark:focus-visible:ring-purple-400/20"
             >
               Start Free
@@ -72,7 +72,7 @@ function PricingSection() {
             </ul>
 
             <Link
-              href="/login/organizer"
+              href="/login"
               className="mt-8 flex w-full items-center justify-center rounded-lg bg-purple-600 px-6 py-3 font-semibold text-white transition hover:bg-purple-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-purple-600/30 dark:focus-visible:ring-purple-400/30"
             >
               Upgrade to Pro
