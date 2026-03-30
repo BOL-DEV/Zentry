@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { LuUsers } from "react-icons/lu";
-import { adminDemoOrganizers } from "@/data/demo";
 
 export type OrganizerRow = {
   id: string;
@@ -11,7 +10,32 @@ export type OrganizerRow = {
   manageHref?: string;
 };
 
-const demoOrganizers: OrganizerRow[] = adminDemoOrganizers as unknown as OrganizerRow[];
+const demoOrganizers: OrganizerRow[] = [
+  {
+    id: "org-pulse-events",
+    name: "Pulse Events",
+    email: "hello@pulseevents.com",
+    eventsCount: 8,
+    status: "Active",
+    manageHref: "/pulse-events/dashboard",
+  },
+  {
+    id: "org-zentry-live",
+    name: "Zentry Live",
+    email: "team@zentrylive.com",
+    eventsCount: 5,
+    status: "Active",
+    manageHref: "/zentry-live/dashboard",
+  },
+  {
+    id: "org-city-rhythm",
+    name: "City Rhythm",
+    email: "bookings@cityrhythm.com",
+    eventsCount: 3,
+    status: "Inactive",
+    manageHref: "/city-rhythm/dashboard",
+  },
+];
 
 type Props = {
   organizers?: OrganizerRow[];
