@@ -3,7 +3,6 @@
 import Link from "next/link";
 import {  LuPlus } from "react-icons/lu";
 import EventManagementCard from "./EventManagementCard";
-import { adminDemoEvents } from "@/data/demo";
 
 export type AdminEventSummary = {
   id: string;
@@ -14,9 +13,32 @@ export type AdminEventSummary = {
   revenue: number;
 };
 
-
-
-const demoEvents: AdminEventSummary[] = adminDemoEvents as AdminEventSummary[];
+const demoEvents: AdminEventSummary[] = [
+  {
+    id: "manage-product-design-meetup",
+    title: "Product Design Meetup",
+    dateText: "April 18, 2026",
+    locationText: "Victoria Island, Lagos",
+    ticketsSold: 82,
+    revenue: 536000,
+  },
+  {
+    id: "manage-afrobeats-rooftop",
+    title: "Afrobeats Rooftop Night",
+    dateText: "May 2, 2026",
+    locationText: "Lekki Phase 1, Lagos",
+    ticketsSold: 121,
+    revenue: 1425000,
+  },
+  {
+    id: "manage-tech-builders-summit",
+    title: "Tech Builders Summit",
+    dateText: "May 22, 2026",
+    locationText: "Ikoyi, Lagos",
+    ticketsSold: 204,
+    revenue: 2248000,
+  },
+];
 
 type Props = {
   events?: AdminEventSummary[];
