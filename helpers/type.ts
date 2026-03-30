@@ -144,6 +144,16 @@ export type ApiScannerSummary = {
   checkInPercentage: number;
 };
 
+export type ApiEventAttendee = {
+  id: string;
+  buyerName: string;
+  buyerEmail: string;
+  ticketCode: string;
+  status: "valid" | "checked-in";
+  ticketType: string;
+  purchasedAt: string;
+};
+
 export type TicketType = {
   id?: string;
   name: string;
@@ -223,6 +233,7 @@ export type OrganizerEvent = {
   capacityTotal: number;
   revenue: number;
   checkIns: number;
+  checkInPercentage: number;
   ticketTypesCount: number;
   ticketTypes: TicketTypeBreak[];
 };
@@ -235,6 +246,7 @@ export type OrganizerDashboardData = {
     ticketsSold: number;
     revenue: number;
     checkIns: number;
+    checkInPercentage: number;
   };
   nextEvent: OrganizerEvent | null;
 };

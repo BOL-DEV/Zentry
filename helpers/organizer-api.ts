@@ -3,9 +3,9 @@ import { apiFetch, resolveUrl } from "@/helpers/api";
 import type {
   AdminEventListItem,
   ApiAuthResponse,
-  ApiDashboardEventStat,
   ApiDashboardSummary,
   ApiEvent,
+  ApiEventAttendee,
   ApiGalleryItem,
   ApiOrganizer,
   ApiOrder,
@@ -173,6 +173,7 @@ function mapOrganizerEvent(event: ApiEvent, ticketTypes: ApiTicketType[]): Organ
     capacityTotal,
     revenue,
     checkIns: 0,
+    checkInPercentage: 0,
     ticketTypesCount: ticketBreakdown.length,
     ticketTypes: ticketBreakdown,
   };
@@ -407,35 +408,51 @@ export async function getOrganizerEventDetails(
 export async function getOrganizerDashboardData(
   slug: string,
 ): Promise<OrganizerDashboardData> {
-  const [organizer, summaryResponse, dashboardEventsResponse, organizerEventsWithTickets] =
+  const [organizer, summaryResponse, organizerEventsWithTickets] =
     await Promise.all([
       fetchOrganizer(slug),
       apiFetch<{ summary: ApiDashboardSummary }>(
         `/organizer/dashboard/summary`,
         { auth: true },
       ),
-      apiFetch<{ events: ApiDashboardEventStat[] }>(
-        `/organizer/dashboard/events`,
-        { auth: true },
-      ),
       fetchOrganizerEventsWithTickets(slug),
     ]);
 
-  const dashboardStatsById = new Map(
-    dashboardEventsResponse.data.events.map((event) => [event.id, event]),
+  const scannerSummaryEntries = await Promise.all(
+    organizerEventsWithTickets.events.map(async (event) => {
+      try {
+        const scannerSummary = await getOrganizerScannerSummary(event._id);
+        return [event._id, scannerSummary.scannerSummary] as const;
+      } catch {
+        return [event._id, null] as const;
+      }
+    }),
   );
+
+  const scannerSummaryByEventId = new Map(scannerSummaryEntries);
 
   const events = organizerEventsWithTickets.events.map((event) => {
     const base = mapOrganizerEvent(event, event.ticketTypes);
-    const dashboardStats = dashboardStatsById.get(event._id);
+    const scannerSummary = scannerSummaryByEventId.get(event._id);
 
     return {
       ...base,
-      capacitySold: dashboardStats?.ticketsSold ?? base.capacitySold,
-      revenue: dashboardStats?.revenue ?? base.revenue,
-      checkIns: 0,
+      checkIns: scannerSummary?.totalCheckedIn ?? base.checkIns,
+      checkInPercentage: scannerSummary?.checkInPercentage ?? 0,
     };
   });
+
+  const totalCheckedIn = events.reduce((sum, event) => sum + event.checkIns, 0);
+  const totalCheckInPercentage =
+    summaryResponse.data.summary.totalTicketsSold > 0
+      ? Math.min(
+          100,
+          Math.round(
+            (totalCheckedIn / summaryResponse.data.summary.totalTicketsSold) *
+              100,
+          ),
+        )
+      : 0;
 
   const now = Date.now();
   const nextEvent =
@@ -454,10 +471,12 @@ export async function getOrganizerDashboardData(
       activeEvents: summaryResponse.data.summary.totalEvents,
       ticketsSold: summaryResponse.data.summary.totalTicketsSold,
       revenue: summaryResponse.data.summary.totalRevenue,
-      checkIns: 0,
+      checkIns: totalCheckedIn,
+      checkInPercentage: totalCheckInPercentage,
     },
     nextEvent: nextEvent
-      ? mapOrganizerEvent(nextEvent, nextEvent.ticketTypes)
+      ? events.find((event) => event.id === nextEvent._id) ??
+        mapOrganizerEvent(nextEvent, nextEvent.ticketTypes)
       : null,
   };
 }
@@ -561,6 +580,25 @@ export async function getOrganizerGalleryData(
     .map(mapGalleryItem);
 }
 
+export async function createOrganizerGalleryItem(
+  input: {
+    imageUrl: string;
+    caption?: string;
+    altText?: string;
+    displayOrder?: number;
+  },
+) {
+  const response = await apiFetch<{
+    galleryItem: ApiGalleryItem;
+  }>(`/organizer/dashboard/gallery`, {
+    method: "POST",
+    body: JSON.stringify(input),
+    auth: true,
+  });
+
+  return response.data.galleryItem;
+}
+
 export async function loginDashboardUser(input: {
   email: string;
   password: string;
@@ -593,6 +631,59 @@ export async function getOrganizerScannerSummary(eventId: string) {
   });
 
   return response.data;
+}
+
+export async function getOrganizerEventAttendees(eventId: string) {
+  const response = await apiFetch<{
+    event: { id: string; title: string };
+    attendees: ApiEventAttendee[];
+  }>(`/organizer/dashboard/events/${eventId}/attendees`, {
+    auth: true,
+  });
+
+  return response.data;
+}
+
+export async function createOrganizerDashboardEvent(input: {
+  title: string;
+  description: string;
+  date: string;
+  location: string;
+  posterUrl: string;
+  dressCode?: string;
+  policies?: string;
+}) {
+  const response = await apiFetch<{
+    event: ApiEvent;
+  }>(`/organizer/dashboard/events`, {
+    method: "POST",
+    body: JSON.stringify(input),
+    auth: true,
+  });
+
+  return response.data.event;
+}
+
+export async function createOrganizerDashboardTicketType(
+  eventId: string,
+  input: {
+    name: string;
+    description?: string;
+    price: number;
+    quantityAvailable: number;
+    displayOrder?: number;
+  },
+) {
+  const response = await apiFetch<{
+    event: { id: string; title: string };
+    ticketType: ApiTicketType;
+  }>(`/organizer/dashboard/events/${eventId}/ticket-types`, {
+    method: "POST",
+    body: JSON.stringify(input),
+    auth: true,
+  });
+
+  return response.data.ticketType;
 }
 
 export async function verifyDashboardTicket(

@@ -18,7 +18,7 @@ export function createTicketPayload(eventId: string, code: string) {
 }
 
 export function isValidTicketCode(code: string) {
-  return /^EVT-[A-Z0-9]{6}$/.test(code);
+  return /^[A-Z0-9][A-Z0-9-]{3,63}$/.test(code.trim().toUpperCase());
 }
 
 export function parseTicketInput(input: string): ParsedTicketInput {
@@ -46,7 +46,7 @@ export function parseTicketInput(input: string): ParsedTicketInput {
   }
 
   const normalized = trimmed.toUpperCase();
-  if (normalized.startsWith("EVT-")) {
+  if (isValidTicketCode(normalized)) {
     return { kind: "code", code: normalized, raw };
   }
 

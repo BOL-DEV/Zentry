@@ -10,6 +10,7 @@ import {
 } from "react-icons/lu";
 
 import Card from "@/components/Card";
+import FullPageLoader from "@/components/FullPageLoader";
 import { getAuthToken, getAuthUser } from "@/helpers/auth";
 import { formatNumber } from "@/helpers/format";
 import { getOrganizerStaffWorkspaceData } from "@/helpers/organizer-api";
@@ -46,15 +47,10 @@ function OrganizerStaffDashboardClient({ organizer }: { organizer: string }) {
 
   if (isLoading) {
     return (
-      <main className="bg-purple-100 dark:bg-slate-950/90">
-        <div className="mx-auto max-w-6xl px-6 pt-28 pb-16">
-          <Card>
-            <p className="text-sm text-slate-600 dark:text-slate-300">
-              Loading staff workspace...
-            </p>
-          </Card>
-        </div>
-      </main>
+      <FullPageLoader
+        title="Loading staff workspace"
+        description="We are preparing your assigned events and verification tools."
+      />
     );
   }
 

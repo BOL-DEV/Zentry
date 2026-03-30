@@ -12,6 +12,7 @@ import {
 import { TbCoin } from "react-icons/tb";
 
 import Card from "@/components/Card";
+import FullPageLoader from "@/components/FullPageLoader";
 import OrganizerEventsSection from "@/components/OrganizerEventsSection";
 import { getAuthToken, getAuthUser } from "@/helpers/auth";
 import { formatCurrency, formatNumber } from "@/helpers/format";
@@ -21,10 +22,12 @@ function StatCard({
   title,
   value,
   icon,
+  helper,
 }: {
   title: string;
   value: string;
   icon: React.ReactNode;
+  helper?: string;
 }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-white/5">
@@ -36,6 +39,11 @@ function StatCard({
           <div className="mt-3 text-4xl font-bold tracking-tight text-purple-900 dark:text-purple-200">
             {value}
           </div>
+          {helper ? (
+            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+              {helper}
+            </p>
+          ) : null}
         </div>
 
         <div className="text-purple-700 dark:text-purple-400">{icon}</div>
@@ -52,8 +60,6 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
     queryFn: () => getOrganizerDashboardData(organizer),
     enabled: Boolean(token) && authUser?.role !== "staff",
   });
-
-  console.log(organizer);
 
   if (!token) {
     return (
@@ -97,15 +103,10 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
 
   if (isLoading) {
     return (
-      <main className="bg-purple-100 dark:bg-slate-950/90">
-        <div className="mx-auto lg:max-w-7xl px-6 pt-28 pb-10">
-          <Card>
-            <p className="text-sm text-slate-600 dark:text-slate-300">
-              Loading dashboard...
-            </p>
-          </Card>
-        </div>
-      </main>
+      <FullPageLoader
+        title="Building your dashboard"
+        description="We are pulling sales, check-ins, and event activity for this organizer."
+      />
     );
   }
 
@@ -154,6 +155,20 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
                 className="inline-flex h-11 items-center justify-center rounded-lg bg-purple-600 px-5 text-sm font-semibold text-white transition hover:bg-purple-700"
               >
                 Open Dashboard
+              </Link>
+
+              <Link
+                href={`/${organizer}/dashboard/create`}
+                className="inline-flex h-11 items-center justify-center rounded-lg bg-emerald-600 px-5 text-sm font-semibold text-white transition hover:bg-emerald-700"
+              >
+                Create Event
+              </Link>
+
+              <Link
+                href={`/${organizer}/dashboard/gallery/create`}
+                className="inline-flex h-11 items-center justify-center rounded-lg bg-amber-500 px-5 text-sm font-semibold text-slate-950 transition hover:bg-amber-400"
+              >
+                Add Gallery Image
               </Link>
 
               <Link
@@ -254,12 +269,13 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
           <StatCard
             title="Check-ins"
             value={formatNumber(data.totals.checkIns)}
+            helper={`${formatNumber(data.totals.checkInPercentage)}% checked in`}
             icon={<LuUsers size={20} />}
           />
         </div>
       </section>
 
-      <OrganizerEventsSection events={data.events} />
+      <OrganizerEventsSection events={data.events} organizer={organizer} />
     </main>
   );
 }

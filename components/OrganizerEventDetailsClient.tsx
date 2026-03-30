@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import AdminEventDetails from "@/components/AdminEventDetails";
 import Card from "@/components/Card";
+import FullPageLoader from "@/components/FullPageLoader";
 import { getOrganizerEventDetails } from "@/helpers/organizer-api";
 
 function OrganizerEventDetailsClient({
@@ -20,15 +21,10 @@ function OrganizerEventDetailsClient({
 
   if (isLoading) {
     return (
-      <main className="bg-purple-100 dark:bg-slate-950/90">
-        <div className="mx-auto max-w-6xl px-6 pt-28 pb-16">
-          <Card>
-            <p className="text-sm text-slate-600 dark:text-slate-300">
-              Loading event details...
-            </p>
-          </Card>
-        </div>
-      </main>
+      <FullPageLoader
+        title="Loading event details"
+        description="We are fetching tickets, policies, and event information."
+      />
     );
   }
 

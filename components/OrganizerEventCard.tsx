@@ -1,20 +1,25 @@
 "use client";
 
-import { useState } from "react";
 import { LuChevronRight } from "react-icons/lu";
 import TicketSalesStat from "./TicketSalesStat";
 import { formatCurrency, formatNumber } from "@/helpers/format";
 import type { OrganizerEvent } from "@/helpers/type";
 import TicketTypeBreakdown from "./TicketTypeBreakdown";
 
-function OrganizerEventCard({ event }: { event: OrganizerEvent }) {
-  const [open, setOpen] = useState(false);
-
+function OrganizerEventCard({
+  event,
+  open,
+  onToggle,
+}: {
+  event: OrganizerEvent;
+  open: boolean;
+  onToggle: () => void;
+}) {
   return (
     <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/5">
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={onToggle}
         className="flex w-full items-start justify-between gap-6 p-6 text-left"
         aria-expanded={open}
       >
@@ -47,6 +52,9 @@ function OrganizerEventCard({ event }: { event: OrganizerEvent }) {
               </div>
               <div className="mt-1 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
                 {formatNumber(event.checkIns)}
+              </div>
+              <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                {formatNumber(event.checkInPercentage)}% checked in
               </div>
             </div>
 

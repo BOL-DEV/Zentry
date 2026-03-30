@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import Card from "@/components/Card";
 import EventCard from "@/components/EventCard";
 import EventPageTitle from "@/components/EventPageTitle";
+import FullPageLoader from "@/components/FullPageLoader";
 import { getOrganizerEventsPageData } from "@/helpers/organizer-api";
 
 function OrganizerEventsPageClient({ organizer }: { organizer: string }) {
@@ -19,13 +20,10 @@ function OrganizerEventsPageClient({ organizer }: { organizer: string }) {
         <EventPageTitle />
 
         {isLoading ? (
-          <div className="mt-10">
-            <Card>
-              <p className="text-sm text-slate-600 dark:text-slate-300">
-                Loading events...
-              </p>
-            </Card>
-          </div>
+          <FullPageLoader
+            title="Loading events"
+            description="We are gathering every event published by this organizer."
+          />
         ) : error || !data ? (
           <div className="mt-10">
             <Card>
