@@ -1,4 +1,5 @@
 import type { ApiEnvelope } from "@/helpers/type";
+import { getAuthToken } from "@/helpers/auth";
 
 const configuredApiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -12,7 +13,7 @@ function normalizeApiBaseUrl(value?: string) {
 
 export const API_BASE_URL = normalizeApiBaseUrl(configuredApiBaseUrl);
 
-function resolveUrl(path: string) {
+export function resolveUrl(path: string) {
   if (/^https?:\/\//i.test(path)) return path;
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
   return `${API_BASE_URL}${normalizedPath}`;
@@ -20,13 +21,15 @@ function resolveUrl(path: string) {
 
 export async function apiFetch<T>(
   path: string,
-  init?: RequestInit,
+  init?: RequestInit & { auth?: boolean },
 ): Promise<ApiEnvelope<T>> {
+  const token = init?.auth ? getAuthToken() : "";
   const response = await fetch(resolveUrl(path), {
     ...init,
     cache: "no-store",
     headers: {
       "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(init?.headers ?? {}),
     },
   });

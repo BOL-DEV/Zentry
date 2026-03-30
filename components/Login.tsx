@@ -3,20 +3,47 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { FiEye, FiEyeOff } from "react-icons/fi";
+import { setAuthToken, setAuthUser } from "@/helpers/auth";
+import { loginDashboardUser } from "@/helpers/organizer-api";
 
 interface Props {
-  role: "Admin" | "Organizer";
-  redirectTo: string;
+  redirectTo?: string;
 }
 
 function Login(props: Props) {
-  const { role, redirectTo } = props;
+  const { redirectTo } = props;
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    router.push(redirectTo);
+    setError(null);
+    setIsSubmitting(true);
+
+    try {
+      const response = await loginDashboardUser({ email, password });
+      setAuthToken(response.token);
+      setAuthUser(response.data.user);
+
+      const fallbackRoute =
+        response.data.user.role === "staff"
+          ? `/${response.data.user.organizerSlug}/staff`
+          : `/${response.data.user.organizerSlug}/dashboard`;
+
+      router.push(redirectTo || fallbackRoute);
+    } catch (submitError) {
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : "Unable to sign in.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const inputStyles =
@@ -27,10 +54,10 @@ function Login(props: Props) {
       <div className="mx-auto flex w-full max-w-md flex-col items-center">
         <header className="mb-8 text-center flex flex-col gap-2">
           <h1 className="text-3xl font-semibold tracking-tight text-slate-900 md:text-4xl dark:text-white">
-            {role} Login
+            Dashboard Login
           </h1>
           <p className="mt-2 text-md text-slate-600 dark:text-slate-300">
-            Sign in to manage your events
+            Sign in as an organizer or staff member
           </p>
         </header>
 
@@ -48,7 +75,8 @@ function Login(props: Props) {
                 id="email"
                 name="email"
                 autoComplete="email"
-                defaultValue="demo@example.com"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
                 required
                 className={inputStyles}
               />
@@ -67,7 +95,8 @@ function Login(props: Props) {
                   id="password"
                   name="password"
                   autoComplete="current-password"
-                  defaultValue="demo123"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
                   required
                   className={inputStyles}
                 />
@@ -82,31 +111,38 @@ function Login(props: Props) {
               </div>
             </div>
 
+            {error ? (
+              <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-200">
+                {error}
+              </div>
+            ) : null}
+
             <button
               type="submit"
+              disabled={isSubmitting}
               className="mt-2 h-12 w-full rounded-lg bg-purple-600 font-semibold text-white transition hover:bg-purple-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-purple-600/30 hover:dark:bg-purple-500 dark:focus-visible:ring-purple-400/30 hover:dark:ring-purple-400/40 hover:cursor-pointer"
             >
-              Sign In
+              {isSubmitting ? "Signing In..." : "Sign In"}
             </button>
 
             <div className="pt-2">
               <div className="my-4 h-px w-full bg-purple-200/70 dark:bg-white/10" />
               <p className="text-center text-xs text-slate-600 dark:text-slate-300">
-                Demo credentials (any email/password)
+                Use a valid dashboard account from the backend
               </p>
               <div className="mt-4 rounded-lg border border-purple-200/70 bg-purple-50 p-4 text-xs text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
                 <ul className="list-disc space-y-1 pl-4">
                   <li>
                     <span className="text-slate-900 dark:text-white">
-                      Email:
+                      Organizer:
                     </span>
-                    demo@example.com
+                    routed to the organizer dashboard
                   </li>
                   <li>
                     <span className="text-slate-900 dark:text-white">
-                      Password:
+                      Staff:
                     </span>
-                    demo123
+                    routed to the organizer staff workspace
                   </li>
                 </ul>
               </div>

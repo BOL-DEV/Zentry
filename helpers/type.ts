@@ -9,6 +9,21 @@ export type ApiEnvelope<T> = {
   message?: string;
 };
 
+export type ApiAuthResponse = {
+  status: string;
+  token: string;
+  data: {
+    user: {
+      id: string;
+      fullName: string;
+      email: string;
+      role: "organizer" | "staff";
+      organizerId: string;
+      organizerSlug: string;
+    };
+  };
+};
+
 export type ApiOrganizer = {
   _id: string;
   name: string;
@@ -103,6 +118,30 @@ export type ApiPaymentInitialization = {
   authorizationUrl: string;
   accessCode: string;
   reference: string;
+};
+
+export type ApiDashboardSummary = {
+  totalEvents: number;
+  totalOrders: number;
+  totalTicketsSold: number;
+  totalRevenue: number;
+};
+
+export type ApiDashboardEventStat = {
+  id: string;
+  title: string;
+  date: string;
+  location: string;
+  ticketsSold: number;
+  revenue: number;
+  totalOrders: number;
+};
+
+export type ApiScannerSummary = {
+  totalTicketsSold: number;
+  totalCheckedIn: number;
+  totalUnchecked: number;
+  checkInPercentage: number;
 };
 
 export type TicketType = {
@@ -213,4 +252,15 @@ export type OrganizerGalleryItem = {
   description: string;
   altText: string;
   dateText: string;
+};
+
+export type AdminEventListItem = {
+  id: string;
+  title: string;
+  imageUrl: string;
+  dateTimeText: string;
+  locationText: string;
+  organizerId: string;
+  organizerName: string;
+  slug?: string;
 };

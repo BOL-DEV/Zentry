@@ -13,6 +13,7 @@ import { TbCoin } from "react-icons/tb";
 
 import Card from "@/components/Card";
 import OrganizerEventsSection from "@/components/OrganizerEventsSection";
+import { getAuthToken, getAuthUser } from "@/helpers/auth";
 import { formatCurrency, formatNumber } from "@/helpers/format";
 import { getOrganizerDashboardData } from "@/helpers/organizer-api";
 
@@ -44,10 +45,55 @@ function StatCard({
 }
 
 function OrganizerDashboardClient({ organizer }: { organizer: string }) {
+  const token = getAuthToken();
+  const authUser = getAuthUser();
   const { data, isLoading, error } = useQuery({
     queryKey: ["organizer-dashboard", organizer],
     queryFn: () => getOrganizerDashboardData(organizer),
+    enabled: Boolean(token) && authUser?.role !== "staff",
   });
+
+  console.log(organizer);
+
+  if (!token) {
+    return (
+      <main className="bg-purple-100 dark:bg-slate-950/90">
+        <div className="mx-auto lg:max-w-7xl px-6 pt-28 pb-10">
+          <Card>
+            <p className="text-sm text-slate-600 dark:text-slate-300">
+              Sign in to access the organizer dashboard.
+            </p>
+            <Link
+              href={`/login?next=/${organizer}/dashboard`}
+              className="mt-4 inline-flex h-11 items-center justify-center rounded-lg bg-purple-600 px-5 text-sm font-semibold text-white transition hover:bg-purple-700"
+            >
+              Go to Login
+            </Link>
+          </Card>
+        </div>
+      </main>
+    );
+  }
+
+  if (authUser?.role === "staff") {
+    return (
+      <main className="bg-purple-100 dark:bg-slate-950/90">
+        <div className="mx-auto lg:max-w-7xl px-6 pt-28 pb-10">
+          <Card>
+            <p className="text-sm text-slate-600 dark:text-slate-300">
+              Staff accounts use the staff workspace for ticket verification.
+            </p>
+            <Link
+              href={`/${organizer}/staff`}
+              className="mt-4 inline-flex h-11 items-center justify-center rounded-lg bg-purple-600 px-5 text-sm font-semibold text-white transition hover:bg-purple-700"
+            >
+              Open Staff Workspace
+            </Link>
+          </Card>
+        </div>
+      </main>
+    );
+  }
 
   if (isLoading) {
     return (

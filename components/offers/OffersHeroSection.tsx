@@ -14,7 +14,7 @@ function OffersHeroSection() {
 
         <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:justify-center">
           <Link
-            href="/login/organizer"
+            href="/login"
             className="flex items-center justify-center rounded-lg bg-purple-600 px-6 py-3 font-semibold text-white transition hover:bg-purple-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-purple-600/30 dark:focus-visible:ring-purple-400/30"
           >
             Create Your Event
