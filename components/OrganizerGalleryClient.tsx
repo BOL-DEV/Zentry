@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useQuery } from "@tanstack/react-query";
 
 import Card from "@/components/Card";
+import FullPageLoader from "@/components/FullPageLoader";
 import { getOrganizerGalleryData } from "@/helpers/organizer-api";
 import type { OrganizerGalleryItem } from "@/helpers/type";
 
@@ -59,11 +60,10 @@ function OrganizerGalleryClient({ organizer }: { organizer: string }) {
 
         {isLoading ? (
           <section className="mt-10">
-            <Card>
-              <p className="text-sm text-slate-600 dark:text-slate-300">
-                Loading gallery...
-              </p>
-            </Card>
+            <FullPageLoader
+              title="Loading gallery"
+              description="We are bringing in the latest event moments for this organizer."
+            />
           </section>
         ) : error || !data ? (
           <section className="mt-10">

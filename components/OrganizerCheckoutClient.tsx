@@ -7,6 +7,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { LuArrowLeft } from "react-icons/lu";
 
 import Card from "@/components/Card";
+import FullPageLoader from "@/components/FullPageLoader";
 import { formatCurrency } from "@/helpers/format";
 import {
   createPurchase,
@@ -110,15 +111,10 @@ function OrganizerCheckoutClient({
 
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-purple-100 dark:bg-slate-950/90">
-        <div className="mx-auto max-w-4xl px-6 pt-28 pb-14">
-          <Card>
-            <p className="text-sm text-slate-600 dark:text-slate-300">
-              Loading checkout...
-            </p>
-          </Card>
-        </div>
-      </main>
+      <FullPageLoader
+        title="Loading checkout"
+        description="We are preparing this event and ticket options for purchase."
+      />
     );
   }
 

@@ -2,12 +2,21 @@
 
 import { useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { LuCircleCheck, LuPercent, LuQrCode, LuTicket } from "react-icons/lu";
+import {
+  LuCircleCheck,
+  LuMail,
+  LuPercent,
+  LuQrCode,
+  LuTicket,
+  LuUser,
+  LuX,
+} from "react-icons/lu";
 
 import Card from "@/components/Card";
 import { formatNumber } from "@/helpers/format";
 import { verifyDashboardTicket } from "@/helpers/organizer-api";
 import { parseTicketInput } from "@/helpers/ticket";
+import type { ApiTicket } from "@/helpers/type";
 
 type Mode = "scan" | "manual";
 
@@ -15,6 +24,7 @@ type Props = {
   eventId: string;
   totalSold: number;
   initialVerifiedCount?: number;
+  onVerifiedSuccess?: () => void;
 };
 
 function StatCard({
@@ -49,10 +59,33 @@ function StatCard({
   );
 }
 
+function SuccessDetail({
+  label,
+  value,
+  icon,
+}: {
+  label: string;
+  value: string;
+  icon: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white/70 p-4 dark:border-white/10 dark:bg-white/5">
+      <div className="flex items-center gap-2 text-xs font-semibold tracking-wide text-slate-500 dark:text-slate-400">
+        <span className="text-purple-600 dark:text-purple-300">{icon}</span>
+        {label}
+      </div>
+      <p className="mt-2 text-sm font-semibold text-slate-900 dark:text-white">
+        {value}
+      </p>
+    </div>
+  );
+}
+
 function TicketVerificationClient({
   eventId,
   totalSold,
   initialVerifiedCount = 0,
+  onVerifiedSuccess,
 }: Props) {
   const [mode, setMode] = useState<Mode>("manual");
   const [ticketInput, setTicketInput] = useState("");
@@ -62,6 +95,7 @@ function TicketVerificationClient({
     | { type: "error"; text: string }
     | null
   >(null);
+  const [verifiedTicket, setVerifiedTicket] = useState<ApiTicket | null>(null);
 
   const verificationRate = useMemo(() => {
     if (!Number.isFinite(totalSold) || totalSold <= 0) return 0;
@@ -72,9 +106,10 @@ function TicketVerificationClient({
     "h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-purple-600 focus:ring-4 focus:ring-purple-600/15 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-slate-500 dark:focus:border-purple-400 dark:focus:ring-purple-400/20";
 
   const verifyMutation = useMutation({
-    mutationFn: (ticketCode: string) => verifyDashboardTicket(eventId, ticketCode),
+    mutationFn: (ticketCode: string) =>
+      verifyDashboardTicket(eventId, ticketCode),
     onSuccess: (ticket) => {
-      if (ticket.eventId !== eventId) {
+      if (ticket.eventId && ticket.eventId !== eventId) {
         setMessage({
           type: "error",
           text: "This ticket belongs to a different event.",
@@ -82,12 +117,17 @@ function TicketVerificationClient({
         return;
       }
 
-      setVerifiedCount((count) => count + 1);
+      setVerifiedCount((count) => {
+        const nextCount = count + 1;
+        return totalSold > 0 ? Math.min(totalSold, nextCount) : nextCount;
+      });
+      setVerifiedTicket(ticket);
       setMessage({
         type: "success",
-        text: `Verified: ${ticket.ticketCode}`,
+        text: `${ticket.buyerName} checked in successfully.`,
       });
       setTicketInput("");
+      onVerifiedSuccess?.();
     },
     onError: (error) => {
       setMessage({
@@ -127,7 +167,68 @@ function TicketVerificationClient({
   };
 
   return (
-    <div className="mt-10 space-y-8">
+    <>
+      {verifiedTicket ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-white/10 dark:bg-slate-900">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-300">
+                  <LuCircleCheck size={24} />
+                </div>
+                <h3 className="mt-4 text-2xl font-bold text-slate-900 dark:text-white">
+                  Ticket Verified
+                </h3>
+                <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                  The attendee has been checked in successfully.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setVerifiedTicket(null)}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
+                aria-label="Close verification modal"
+              >
+                <LuX size={20} />
+              </button>
+            </div>
+
+            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+              <SuccessDetail
+                label="Attendee"
+                value={verifiedTicket.buyerName}
+                icon={<LuUser size={14} />}
+              />
+              <SuccessDetail
+                label="Email"
+                value={verifiedTicket.buyerEmail}
+                icon={<LuMail size={14} />}
+              />
+              <SuccessDetail
+                label="Ticket Code"
+                value={verifiedTicket.ticketCode}
+                icon={<LuTicket size={14} />}
+              />
+              <SuccessDetail
+                label="Status"
+                value={verifiedTicket.status}
+                icon={<LuCircleCheck size={14} />}
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setVerifiedTicket(null)}
+              className="mt-6 inline-flex h-12 w-full items-center justify-center rounded-xl bg-purple-600 px-4 text-sm font-semibold text-white transition hover:bg-purple-700"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="mt-10 space-y-8">
       <section className="grid gap-6 lg:grid-cols-3">
         <StatCard
           title="Verified"
@@ -150,21 +251,21 @@ function TicketVerificationClient({
       </section>
 
       <Card className="overflow-hidden p-0">
-        <div className="flex items-center justify-between gap-4 border-b border-slate-200 p-6 dark:border-white/10">
-          <div>
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+        <div className="flex flex-col gap-4 border-b border-slate-200 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6 dark:border-white/10">
+          <div className="min-w-0">
+            <h2 className="text-lg font-bold leading-tight text-slate-900 sm:text-xl dark:text-white">
               Scan or Enter Ticket
             </h2>
-            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+            <p className="mt-1 text-sm leading-5 text-slate-600 dark:text-slate-300">
               QR Code or Barcode
             </p>
           </div>
 
-          <div className="inline-flex items-center rounded-xl border border-slate-200 bg-white p-1 shadow-sm dark:border-white/10 dark:bg-white/5">
+          <div className="inline-flex w-full items-center rounded-xl border border-slate-200 bg-white p-1 shadow-sm sm:w-auto dark:border-white/10 dark:bg-white/5">
             <button
               type="button"
               onClick={() => setMode("scan")}
-              className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition ${
+              className={`inline-flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition sm:flex-none sm:px-4 ${
                 mode === "scan"
                   ? "bg-purple-600 text-white"
                   : "text-slate-700 hover:bg-purple-50 dark:text-slate-200 dark:hover:bg-white/10"
@@ -176,7 +277,7 @@ function TicketVerificationClient({
             <button
               type="button"
               onClick={() => setMode("manual")}
-              className={`inline-flex items-center rounded-lg px-4 py-2 text-sm font-semibold transition ${
+              className={`inline-flex flex-1 items-center justify-center rounded-lg px-3 py-2 text-sm font-semibold transition sm:flex-none sm:px-4 ${
                 mode === "manual"
                   ? "bg-purple-600 text-white"
                   : "text-slate-700 hover:bg-purple-50 dark:text-slate-200 dark:hover:bg-white/10"
@@ -209,7 +310,7 @@ function TicketVerificationClient({
             <input
               value={ticketInput}
               onChange={(event) => setTicketInput(event.target.value)}
-              placeholder="Scan QR code here..."
+              placeholder="Paste or scan ticket code"
               className={inputStyles}
               autoFocus
               onKeyDown={(event) => {
@@ -248,14 +349,15 @@ function TicketVerificationClient({
               TIPS
             </p>
             <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-slate-600 dark:text-slate-300">
-              <li>Paste the raw QR payload or ticket code</li>
+              <li>Paste the raw QR payload or the backend ticket code</li>
               <li>Press Enter to verify quickly</li>
               <li>Checked-in tickets will be rejected by the backend</li>
             </ul>
           </div>
         </div>
       </Card>
-    </div>
+      </div>
+    </>
   );
 }
 

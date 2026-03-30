@@ -14,6 +14,7 @@ import {
 } from "react-icons/lu";
 
 import Card from "@/components/Card";
+import FullPageLoader from "@/components/FullPageLoader";
 import { formatCurrency, formatNumber } from "@/helpers/format";
 import { getOrganizerOverview } from "@/helpers/organizer-api";
 
@@ -35,15 +36,10 @@ function OrganizerHomeClient({ organizer }: { organizer: string }) {
 
   if (isLoading) {
     return (
-      <main className="bg-purple-100 dark:bg-slate-950/90">
-        <div className="mx-auto max-w-6xl px-6 pt-28 pb-16">
-          <Card>
-            <p className="text-sm text-slate-600 dark:text-slate-300">
-              Loading organizer profile...
-            </p>
-          </Card>
-        </div>
-      </main>
+      <FullPageLoader
+        title="Loading organizer profile"
+        description="We are preparing this organizer page and event overview."
+      />
     );
   }
 
