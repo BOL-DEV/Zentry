@@ -24,13 +24,13 @@ function OrganizerEventsSection({
 
           <Link
             href={`/${organizer}/dashboard/create`}
-            className="inline-flex h-11 items-center justify-center rounded-xl bg-purple-700 px-4 text-sm font-semibold text-white transition hover:bg-purple-800"
+            className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-purple-700 px-5 text-sm font-semibold text-white transition hover:bg-purple-800 sm:h-11 sm:w-auto"
           >
             Add Event
           </Link>
         </div>
 
-        <div className="mt-6 space-y-6">
+        <div className="mt-6 space-y-5 sm:space-y-6">
           {events.map((event) => (
             <OrganizerEventCard
               key={event.id}

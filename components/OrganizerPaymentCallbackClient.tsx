@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import Card from "@/components/Card";
+import { getOrderByPaymentReference } from "@/helpers/organizer-api";
 
 function OrganizerPaymentCallbackClient({
   organizer,
@@ -13,52 +14,55 @@ function OrganizerPaymentCallbackClient({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [message] = useState(() => {
-    if (typeof window === "undefined") return "Finalizing your payment...";
-
-    const reference =
-      new URLSearchParams(window.location.search).get("reference") ||
-      new URLSearchParams(window.location.search).get("trxref") ||
-      "";
-    const lastOrderId = sessionStorage.getItem("eventflow:lastOrderId");
-    const lastEventId = sessionStorage.getItem("eventflow:lastEventId");
-    const lastPaymentReference = sessionStorage.getItem(
-      "eventflow:lastPaymentReference",
-    );
-
-    if (!lastOrderId || !lastEventId) {
-      return "We couldn't recover your order details from this browser session. Please return to your events page and refresh your order status there.";
-    }
-
-    if (reference && lastPaymentReference && reference !== lastPaymentReference) {
-      return "The payment reference from Paystack doesn't match the last checkout in this browser session, so we couldn't auto-open the order.";
-    }
-
-    return "Finalizing your payment...";
-  });
+  const [message, setMessage] = useState("We are confirming your payment...");
 
   useEffect(() => {
-    const reference =
-      searchParams.get("reference") || searchParams.get("trxref") || "";
+    let cancelled = false;
 
-    if (typeof window === "undefined") return;
+    async function finalizePayment() {
+      if (typeof window === "undefined") return;
 
-    const lastOrderId = sessionStorage.getItem("eventflow:lastOrderId");
-    const lastEventId = sessionStorage.getItem("eventflow:lastEventId");
-    const lastPaymentReference = sessionStorage.getItem(
-      "eventflow:lastPaymentReference",
-    );
+      const reference =
+        searchParams.get("reference") || searchParams.get("trxref") || "";
+      const fallbackOrderId = sessionStorage.getItem("zentry:lastOrderId");
+      const fallbackEventId = sessionStorage.getItem("zentry:lastEventId");
 
-    if (!lastOrderId || !lastEventId) {
-      return;
+      let orderId = fallbackOrderId || "";
+      let eventId = fallbackEventId || "";
+
+      if (reference) {
+        try {
+          const lookup = await getOrderByPaymentReference(reference);
+          orderId = lookup.order.id;
+          eventId = lookup.order.eventId;
+
+          sessionStorage.setItem("zentry:lastOrderId", orderId);
+          sessionStorage.setItem("zentry:lastEventId", eventId);
+          sessionStorage.setItem("zentry:lastPaymentReference", reference);
+        } catch {
+          // Fall back to the last local checkout details.
+        }
+      }
+
+      if (!orderId || !eventId) {
+        if (!cancelled) {
+          setMessage(
+            "We could not find your payment details yet. Please return to your events page and try again in a moment.",
+          );
+        }
+        return;
+      }
+
+      router.replace(
+        `/${organizer}/events/${eventId}/checkout/success?orderId=${encodeURIComponent(orderId)}${reference ? `&reference=${encodeURIComponent(reference)}` : ""}`,
+      );
     }
 
-    if (reference && lastPaymentReference && reference !== lastPaymentReference) {
-      return;
-    }
+    finalizePayment();
 
-    const successUrl = `/${organizer}/events/${lastEventId}/checkout/success?orderId=${encodeURIComponent(lastOrderId)}${reference ? `&reference=${encodeURIComponent(reference)}` : ""}`;
-    router.replace(successUrl);
+    return () => {
+      cancelled = true;
+    };
   }, [organizer, router, searchParams]);
 
   return (
@@ -66,7 +70,7 @@ function OrganizerPaymentCallbackClient({
       <div className="mx-auto max-w-2xl px-6 pt-28 pb-16">
         <Card>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-            Payment Callback
+            Payment Processing
           </h1>
           <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
             {message}

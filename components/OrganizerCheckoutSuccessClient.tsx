@@ -9,6 +9,8 @@ import { LuCheck, LuDownload, LuRefreshCw, LuX } from "react-icons/lu";
 
 import Card from "@/components/Card";
 import {
+  getOrderByPaymentReference,
+  getOrderStatus,
   getOrderTickets,
   getOrganizerEventDetails,
 } from "@/helpers/organizer-api";
@@ -76,28 +78,75 @@ async function triggerPngDownload(filename: string, svgContent: string) {
 }
 
 function OrganizerCheckoutSuccessClient({ organizer }: { organizer: string }) {
-  const [orderId] = useState(() => {
-    if (typeof window === "undefined") return "";
+  const [callbackContext] = useState(() => {
+    if (typeof window === "undefined") {
+      return {
+        orderId: "",
+        paymentReference: "",
+        fallbackEventId: "",
+      };
+    }
 
     const params = new URLSearchParams(window.location.search);
-    const fromQuery = params.get("orderId");
-    const fromStorage = sessionStorage.getItem("eventflow:lastOrderId");
-    return fromQuery || fromStorage || "";
+    return {
+      orderId:
+        params.get("orderId") || sessionStorage.getItem("zentry:lastOrderId") || "",
+      paymentReference:
+        params.get("reference") ||
+        params.get("trxref") ||
+        sessionStorage.getItem("zentry:lastPaymentReference") ||
+        "",
+      fallbackEventId: sessionStorage.getItem("zentry:lastEventId") || "",
+    };
   });
 
-  const { data, isLoading, error, refetch, isFetching } = useQuery({
-    queryKey: ["order-tickets", orderId],
-    queryFn: () => getOrderTickets(orderId),
-    enabled: Boolean(orderId),
+  const orderLookupQuery = useQuery({
+    queryKey: ["order-by-payment-reference", callbackContext.paymentReference],
+    queryFn: () => getOrderByPaymentReference(callbackContext.paymentReference),
+    enabled: !callbackContext.orderId && Boolean(callbackContext.paymentReference),
+    retry: false,
+  });
+
+  const resolvedOrderId = callbackContext.orderId || orderLookupQuery.data?.order.id || "";
+  const resolvedEventId =
+    orderLookupQuery.data?.order.eventId || callbackContext.fallbackEventId;
+
+  const orderStatusQuery = useQuery({
+    queryKey: ["order-status", resolvedOrderId],
+    queryFn: () => getOrderStatus(resolvedOrderId),
+    enabled: Boolean(resolvedOrderId),
     retry: false,
     refetchInterval: (query) => {
-      if (!orderId) return false;
-      if (query.state.data?.tickets?.length) return false;
-      return 5000;
+      if (!resolvedOrderId) return false;
+      if (query.state.data?.orderStatus?.isPaid) return false;
+      if (query.state.data?.orderStatus?.paymentStatus === "cancelled") return false;
+      return 4000;
     },
   });
 
-  const eventId = data?.tickets?.[0]?.eventId ?? "";
+  const ticketsQuery = useQuery({
+    queryKey: ["order-tickets", resolvedOrderId],
+    queryFn: () => getOrderTickets(resolvedOrderId),
+    enabled:
+      Boolean(resolvedOrderId) &&
+      (orderStatusQuery.data?.orderStatus.isPaid ||
+        (!orderStatusQuery.isLoading && orderStatusQuery.isError)),
+    retry: false,
+    refetchInterval: (query) => {
+      if (!resolvedOrderId) return false;
+      if (!orderStatusQuery.data?.orderStatus.isPaid) return false;
+      if (query.state.data?.tickets?.length) return false;
+      return 3000;
+    },
+  });
+
+  const data = ticketsQuery.data;
+  const isLoading =
+    orderLookupQuery.isLoading ||
+    (Boolean(resolvedOrderId) && orderStatusQuery.isLoading && !data);
+  const error = orderLookupQuery.error || orderStatusQuery.error || ticketsQuery.error;
+
+  const eventId = data?.tickets?.[0]?.eventId ?? resolvedEventId;
   const { data: eventDetails } = useQuery({
     queryKey: ["success-event-details", organizer, eventId],
     queryFn: () => getOrganizerEventDetails(organizer, eventId),
@@ -146,7 +195,7 @@ function OrganizerCheckoutSuccessClient({ organizer }: { organizer: string }) {
     if (!qrCodeSrc || !data) return;
 
     const eventTitle = escapeSvgText(
-      eventDetails?.event.title ?? "EventFlow Ticket",
+      eventDetails?.event.title ?? "Zentry Ticket",
     );
     const ticketType = escapeSvgText(
       ticketTypeById.get(ticket.ticketTypeId) ?? "Ticket",
@@ -169,7 +218,7 @@ function OrganizerCheckoutSuccessClient({ organizer }: { organizer: string }) {
   </defs>
   <rect width="1080" height="1350" fill="url(#bg)" />
   <rect x="90" y="90" width="900" height="1170" rx="34" fill="#232638" stroke="#3c415d" stroke-width="2" />
-  <text x="140" y="170" fill="#93a0bb" font-size="28" font-family="Arial, sans-serif">EVENTFLOW TICKET</text>
+  <text x="140" y="170" fill="#93a0bb" font-size="28" font-family="Arial, sans-serif">ZENTRY TICKET</text>
   <circle cx="858" cy="156" r="10" fill="#14d991" />
   <rect x="810" y="126" width="120" height="56" rx="28" fill="#123e38" />
   <text x="870" y="162" text-anchor="middle" fill="#14d991" font-size="30" font-weight="700" font-family="Arial, sans-serif">${ticketStatus}</text>
@@ -216,16 +265,16 @@ function OrganizerCheckoutSuccessClient({ organizer }: { organizer: string }) {
 
             <div className="mt-6 text-center">
               <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl dark:text-white">
-                Order Status
+                Payment Update
               </h1>
               <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                {orderId
-                  ? "We're checking the payment result and generated tickets."
-                  : "We couldn't find an order yet. Start checkout first or return here with ?orderId=..."}
+                {resolvedOrderId || callbackContext.paymentReference
+                  ? "We are checking your payment and preparing your tickets."
+                  : "We could not find your payment details yet. Please start again from the event page."}
               </p>
             </div>
 
-            {!orderId ? (
+            {!resolvedOrderId && !callbackContext.paymentReference ? (
               <div className="mt-8">
                 <Link
                   href={`/${organizer}/events`}
@@ -236,24 +285,54 @@ function OrganizerCheckoutSuccessClient({ organizer }: { organizer: string }) {
               </div>
             ) : isLoading ? (
               <div className="mt-8 rounded-2xl border border-purple-200/70 bg-white/70 p-6 text-sm text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
-                Waiting for the backend to return ticket data...
+                Confirming your payment and getting your tickets ready...
               </div>
             ) : error || !data?.tickets?.length ? (
               <div className="mt-8 space-y-4 rounded-2xl border border-purple-200/70 bg-white/70 p-6 dark:border-white/10 dark:bg-white/5">
                 <p className="text-sm text-slate-600 dark:text-slate-300">
                   {error instanceof Error
                     ? error.message
-                    : "Payment may still be processing. Tickets usually appear once the webhook confirms payment."}
+                    : orderStatusQuery.data?.orderStatus.paymentStatus === "cancelled"
+                      ? "This payment was cancelled, so no tickets were created."
+                      : orderStatusQuery.data?.orderStatus.isPaid
+                        ? "Your payment was successful. We are still finishing up your ticket details."
+                        : "Your payment is still being processed. Tickets usually appear shortly after confirmation."}
                 </p>
+
+                {orderStatusQuery.data?.orderStatus ? (
+                  <div className="rounded-xl border border-purple-200/70 bg-purple-50/70 px-4 py-3 text-sm dark:border-white/10 dark:bg-slate-900/70">
+                    <p className="font-semibold text-slate-900 dark:text-white">
+                      Current status: {orderStatusQuery.data.orderStatus.paymentStatus}
+                    </p>
+                    <p className="mt-1 text-slate-600 dark:text-slate-300">
+                      Payment reference:{" "}
+                      {orderStatusQuery.data.orderStatus.paymentReference ||
+                        callbackContext.paymentReference ||
+                        "Unavailable"}
+                    </p>
+                  </div>
+                ) : null}
 
                 <button
                   type="button"
-                  onClick={() => refetch()}
-                  disabled={isFetching}
+                  onClick={() => {
+                    void orderLookupQuery.refetch();
+                    void orderStatusQuery.refetch();
+                    void ticketsQuery.refetch();
+                  }}
+                  disabled={
+                    orderLookupQuery.isFetching ||
+                    orderStatusQuery.isFetching ||
+                    ticketsQuery.isFetching
+                  }
                   className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-purple-600 px-4 text-sm font-semibold text-white transition hover:bg-purple-700 disabled:opacity-70"
                 >
                   <LuRefreshCw className="text-base" />
-                  {isFetching ? "Refreshing..." : "Refresh Order"}
+                  {orderLookupQuery.isFetching ||
+                  orderStatusQuery.isFetching ||
+                  ticketsQuery.isFetching
+                    ? "Refreshing..."
+                    : "Check Again"}
                 </button>
               </div>
             ) : (
@@ -279,7 +358,7 @@ function OrganizerCheckoutSuccessClient({ organizer }: { organizer: string }) {
                             TICKET {index + 1} OF {data.tickets.length}
                           </p>
                           <p className="mt-1 text-lg font-semibold text-slate-900 dark:text-white">
-                            {eventDetails?.event.title ?? "EventFlow Ticket"}
+                            {eventDetails?.event.title ?? "Zentry Ticket"}
                           </p>
                         </div>
 
@@ -358,12 +437,17 @@ function OrganizerCheckoutSuccessClient({ organizer }: { organizer: string }) {
                 <div className="mt-8 space-y-3">
                   <button
                     type="button"
-                    onClick={() => refetch()}
-                    disabled={isFetching}
+                    onClick={() => {
+                      void orderStatusQuery.refetch();
+                      void ticketsQuery.refetch();
+                    }}
+                    disabled={orderStatusQuery.isFetching || ticketsQuery.isFetching}
                     className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-purple-200/70 bg-white/60 px-4 text-sm font-semibold text-slate-900 transition hover:bg-white disabled:opacity-70 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
                   >
                     <LuRefreshCw className="text-base" />
-                    {isFetching ? "Refreshing..." : "Refresh Tickets"}
+                    {orderStatusQuery.isFetching || ticketsQuery.isFetching
+                      ? "Refreshing..."
+                      : "Check for Updates"}
                   </button>
 
                   <Link

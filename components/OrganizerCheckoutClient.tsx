@@ -74,16 +74,16 @@ function OrganizerCheckoutClient({
       });
 
       if (typeof window !== "undefined") {
-        sessionStorage.setItem("eventflow:lastOrderId", purchase.order.id);
-        sessionStorage.setItem("eventflow:lastOrganizerSlug", organizer);
-        sessionStorage.setItem("eventflow:lastEventId", eventId);
+        sessionStorage.setItem("zentry:lastOrderId", purchase.order.id);
+        sessionStorage.setItem("zentry:lastOrganizerSlug", organizer);
+        sessionStorage.setItem("zentry:lastEventId", eventId);
       }
 
       const payment = await initializeOrderPayment(purchase.order.id);
 
       if (typeof window !== "undefined") {
         sessionStorage.setItem(
-          "eventflow:lastPaymentReference",
+          "zentry:lastPaymentReference",
           payment.payment.reference,
         );
       }

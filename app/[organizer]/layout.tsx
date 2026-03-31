@@ -1,7 +1,5 @@
 import React from "react";
-import Footer from "@/components/Footer";
-import OrganizerHeader from "@/components/OrganizerHeader";
-import OrganizerFooterMenu from "@/components/OrganizerFooterMenu";
+import OrganizerShell from "@/components/OrganizerShell";
 
 interface Props {
   children: React.ReactNode;
@@ -10,16 +8,7 @@ interface Props {
 function OrganizerLayout(props: Props) {
   const { children } = props;
 
-  return (
-    <div className={`min-h-screen antialiased flex flex-col`}>
-      <OrganizerHeader />
-      <main className="flex-1">{children}</main>
-
-      <Footer>
-        <OrganizerFooterMenu />
-      </Footer>
-    </div>
-  );
+  return <OrganizerShell>{children}</OrganizerShell>;
 }
 
 export default OrganizerLayout;

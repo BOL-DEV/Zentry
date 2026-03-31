@@ -14,7 +14,7 @@ export function createTicketCode(eventId: string) {
 }
 
 export function createTicketPayload(eventId: string, code: string) {
-  return `eventflow://ticket?event=${encodeURIComponent(eventId)}&code=${encodeURIComponent(code)}`;
+  return `zentry://ticket?event=${encodeURIComponent(eventId)}&code=${encodeURIComponent(code)}`;
 }
 
 export function isValidTicketCode(code: string) {
@@ -27,7 +27,7 @@ export function parseTicketInput(input: string): ParsedTicketInput {
 
   if (!trimmed) return { kind: "unknown", raw };
 
-  if (/^eventflow:\/\/ticket\?/i.test(trimmed)) {
+  if (/^(eventflow|zentry):\/\/ticket\?/i.test(trimmed)) {
     try {
       const url = new URL(trimmed);
       const eventId = url.searchParams.get("event");

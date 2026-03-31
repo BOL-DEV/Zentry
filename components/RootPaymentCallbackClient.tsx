@@ -5,36 +5,70 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import Card from "@/components/Card";
+import { getOrderByPaymentReference } from "@/helpers/organizer-api";
 
 function RootPaymentCallbackClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [message] = useState(() => {
-    if (typeof window === "undefined") return "Finalizing your payment...";
-
-    const organizer = sessionStorage.getItem("eventflow:lastOrganizerSlug");
-    const orderId = sessionStorage.getItem("eventflow:lastOrderId");
-
-    if (!organizer || !orderId) {
-      return "We couldn't recover your organizer or order details from this browser session.";
-    }
-
-    return "Finalizing your payment...";
-  });
+  const [message, setMessage] = useState("We are confirming your payment...");
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    let cancelled = false;
 
-    const organizer = sessionStorage.getItem("eventflow:lastOrganizerSlug");
-    const orderId = sessionStorage.getItem("eventflow:lastOrderId");
-    const eventId = sessionStorage.getItem("eventflow:lastEventId");
-    const reference =
-      searchParams.get("reference") || searchParams.get("trxref") || "";
+    async function finalizePayment() {
+      if (typeof window === "undefined") return;
 
-    if (!organizer || !orderId || !eventId) return;
+      const organizer = sessionStorage.getItem("zentry:lastOrganizerSlug");
+      const fallbackOrderId = sessionStorage.getItem("zentry:lastOrderId");
+      const fallbackEventId = sessionStorage.getItem("zentry:lastEventId");
+      const reference =
+        searchParams.get("reference") || searchParams.get("trxref") || "";
 
-    const successUrl = `/${organizer}/events/${eventId}/checkout/success?orderId=${encodeURIComponent(orderId)}${reference ? `&reference=${encodeURIComponent(reference)}` : ""}`;
-    router.replace(successUrl);
+      if (!organizer) {
+        if (!cancelled) {
+          setMessage(
+            "We could not open your ticket page automatically. Please return to the event page and check your payment there.",
+          );
+        }
+        return;
+      }
+
+      let orderId = fallbackOrderId || "";
+      let eventId = fallbackEventId || "";
+
+      if (reference) {
+        try {
+          const lookup = await getOrderByPaymentReference(reference);
+          orderId = lookup.order.id;
+          eventId = lookup.order.eventId;
+
+          sessionStorage.setItem("zentry:lastOrderId", orderId);
+          sessionStorage.setItem("zentry:lastEventId", eventId);
+          sessionStorage.setItem("zentry:lastPaymentReference", reference);
+        } catch {
+          // Fall back to the last browser session checkout details when lookup fails.
+        }
+      }
+
+      if (!orderId || !eventId) {
+        if (!cancelled) {
+          setMessage(
+            "We could not find your payment details yet. Please return to the events page and try again in a moment.",
+          );
+        }
+        return;
+      }
+
+      router.replace(
+        `/${organizer}/events/${eventId}/checkout/success?orderId=${encodeURIComponent(orderId)}${reference ? `&reference=${encodeURIComponent(reference)}` : ""}`,
+      );
+    }
+
+    finalizePayment();
+
+    return () => {
+      cancelled = true;
+    };
   }, [router, searchParams]);
 
   return (
@@ -42,7 +76,7 @@ function RootPaymentCallbackClient() {
       <div className="mx-auto max-w-2xl px-6 pt-28 pb-16">
         <Card>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-            Payment Callback
+            Payment Processing
           </h1>
           <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
             {message}

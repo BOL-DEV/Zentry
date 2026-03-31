@@ -9,7 +9,7 @@ function ReliabilitySection() {
             Built for Reliable Event Operations
           </h2>
           <p className="mt-6 text-lg text-slate-600 dark:text-slate-300">
-            EventFlow is designed to keep your entry flow clean and your reporting accurate,
+            Zentry is designed to keep your entry flow clean and your reporting accurate,
             even when the line gets long.
           </p>
         </div>

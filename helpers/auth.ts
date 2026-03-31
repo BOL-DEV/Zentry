@@ -1,7 +1,7 @@
 import type { ApiAuthResponse } from "@/helpers/type";
 
-const TOKEN_KEY = "eventflow:auth-token";
-const USER_KEY = "eventflow:auth-user";
+const TOKEN_KEY = "zentry:auth-token";
+const USER_KEY = "zentry:auth-user";
 
 export type AuthUser = ApiAuthResponse["data"]["user"];
 

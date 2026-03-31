@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "EventFlow",
+  title: "Zentry",
   description: "A minimal workspace to sketch ideas fast.",
 };
 
@@ -25,7 +25,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} min-h-screen antialiased flex flex-col bg-purple-100 text-slate-900 dark:bg-slate-950 dark:text-white`}
       >

@@ -14,6 +14,7 @@ import { TbCoin } from "react-icons/tb";
 import Card from "@/components/Card";
 import FullPageLoader from "@/components/FullPageLoader";
 import OrganizerEventsSection from "@/components/OrganizerEventsSection";
+import WorkspaceTopbar from "@/components/WorkspaceTopbar";
 import { getAuthToken, getAuthUser } from "@/helpers/auth";
 import { formatCurrency, formatNumber } from "@/helpers/format";
 import { getOrganizerDashboardData } from "@/helpers/organizer-api";
@@ -67,13 +68,13 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
         <div className="mx-auto lg:max-w-7xl px-6 pt-28 pb-10">
           <Card>
             <p className="text-sm text-slate-600 dark:text-slate-300">
-              Sign in to access the organizer dashboard.
+              Sign in to view your event dashboard.
             </p>
             <Link
               href={`/login?next=/${organizer}/dashboard`}
               className="mt-4 inline-flex h-11 items-center justify-center rounded-lg bg-purple-600 px-5 text-sm font-semibold text-white transition hover:bg-purple-700"
             >
-              Go to Login
+              Sign In
             </Link>
           </Card>
         </div>
@@ -87,13 +88,13 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
         <div className="mx-auto lg:max-w-7xl px-6 pt-28 pb-10">
           <Card>
             <p className="text-sm text-slate-600 dark:text-slate-300">
-              Staff accounts use the staff workspace for ticket verification.
+              This account is set up for guest check-in, so we are sending you to the check-in area.
             </p>
             <Link
               href={`/${organizer}/staff`}
               className="mt-4 inline-flex h-11 items-center justify-center rounded-lg bg-purple-600 px-5 text-sm font-semibold text-white transition hover:bg-purple-700"
             >
-              Open Staff Workspace
+              Open Check-in Area
             </Link>
           </Card>
         </div>
@@ -105,7 +106,7 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
     return (
       <FullPageLoader
         title="Building your dashboard"
-        description="We are pulling sales, check-ins, and event activity for this organizer."
+        description="We are loading your event sales, check-ins, and latest activity."
       />
     );
   }
@@ -118,7 +119,7 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
             <p className="text-sm font-semibold text-rose-700 dark:text-rose-300">
               {error instanceof Error
                 ? error.message
-                : "We couldn't load the organizer dashboard."}
+                : "We couldn't load your dashboard right now."}
             </p>
           </Card>
         </div>
@@ -133,21 +134,18 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
       <div className="mx-auto lg:max-w-7xl px-6 pt-28 pb-10">
         <div className="grid gap-10 lg:grid-cols-12 lg:items-center">
           <div className="lg:col-span-7">
-            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-600 dark:text-slate-300">
-              Organizer Portal
-            </p>
+            <WorkspaceTopbar
+              eyebrow="Event Dashboard"
+              title="Run bold events."
+              description="Everything you need to manage events, understand sales, and keep attendees moving fast."
+            />
 
-            <h1 className="mt-4 text-5xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-6xl">
-              Run bold events.
+            <h2 className="mt-6 text-5xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-6xl">
+              Track every ticket.
               <span className="block text-purple-700 dark:text-purple-400">
-                Track every ticket.
+                Stay on top of check-ins.
               </span>
-            </h1>
-
-            <p className="mt-4 max-w-2xl text-lg text-slate-600 dark:text-slate-300">
-              Everything you need to manage events, understand sales, and keep
-              attendees moving fast.
-            </p>
+            </h2>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
               <Link
@@ -247,7 +245,7 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
           At a glance
         </h2>
         <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-          Key numbers across your organizer events.
+          A quick look at how your events are performing.
         </p>
 
         <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
