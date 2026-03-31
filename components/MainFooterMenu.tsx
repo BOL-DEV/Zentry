@@ -33,7 +33,7 @@ function MainFooterMenu() {
             <span className="grid h-10 w-10 place-items-center rounded-xl bg-purple-600 text-2xl text-white">
               ⚡
             </span>
-            <span className="text-xl font-bold text-purple-600">EventFlow</span>
+            <span className="text-xl font-bold text-purple-600">Zentry</span>
           </Link>
           <p className="mt-4 max-w-md text-sm text-slate-600 dark:text-slate-300">
             Professional event management for everyone.

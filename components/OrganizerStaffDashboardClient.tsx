@@ -11,6 +11,7 @@ import {
 
 import Card from "@/components/Card";
 import FullPageLoader from "@/components/FullPageLoader";
+import WorkspaceTopbar from "@/components/WorkspaceTopbar";
 import { getAuthToken, getAuthUser } from "@/helpers/auth";
 import { formatNumber } from "@/helpers/format";
 import { getOrganizerStaffWorkspaceData } from "@/helpers/organizer-api";
@@ -31,13 +32,13 @@ function OrganizerStaffDashboardClient({ organizer }: { organizer: string }) {
         <div className="mx-auto max-w-6xl px-6 pt-28 pb-16">
           <Card>
             <p className="text-sm text-slate-600 dark:text-slate-300">
-              Sign in to access the staff workspace.
+              Sign in to open the guest check-in area.
             </p>
             <Link
               href={`/login?next=/${organizer}/staff`}
               className="mt-4 inline-flex h-11 items-center justify-center rounded-lg bg-purple-600 px-5 text-sm font-semibold text-white transition hover:bg-purple-700"
             >
-              Go to Login
+              Sign In
             </Link>
           </Card>
         </div>
@@ -48,8 +49,8 @@ function OrganizerStaffDashboardClient({ organizer }: { organizer: string }) {
   if (isLoading) {
     return (
       <FullPageLoader
-        title="Loading staff workspace"
-        description="We are preparing your assigned events and verification tools."
+        title="Loading check-in area"
+        description="We are getting your event list and check-in tools ready."
       />
     );
   }
@@ -62,7 +63,7 @@ function OrganizerStaffDashboardClient({ organizer }: { organizer: string }) {
             <p className="text-sm font-semibold text-rose-700 dark:text-rose-300">
               {error instanceof Error
                 ? error.message
-                : "We couldn't load the staff workspace."}
+                : "We couldn't open the check-in area right now."}
             </p>
           </Card>
         </div>
@@ -73,18 +74,11 @@ function OrganizerStaffDashboardClient({ organizer }: { organizer: string }) {
   return (
     <main className="bg-purple-100 dark:bg-slate-950/90">
       <div className="mx-auto max-w-6xl px-6 pt-28 pb-16">
-        <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm dark:border-white/10 dark:bg-white/5">
-          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-600 dark:text-slate-300">
-            Staff Workspace
-          </p>
-          <h1 className="mt-4 text-4xl font-bold tracking-tight text-slate-900 dark:text-white">
-            Check-in and verification
-          </h1>
-          <p className="mt-3 max-w-2xl text-sm text-slate-600 dark:text-slate-300">
-            Signed in as {authUser?.fullName || "staff"}.
-            Open any event below to verify attendee tickets.
-          </p>
-        </div>
+        <WorkspaceTopbar
+          eyebrow="Check-in Area"
+          title="Guest entry and ticket scanning"
+          description={`Signed in as ${authUser?.fullName || "team member"}. Open any event below to check guests in.`}
+        />
 
         <section className="mt-8 grid gap-4 md:grid-cols-3">
           <Card>
@@ -148,7 +142,7 @@ function OrganizerStaffDashboardClient({ organizer }: { organizer: string }) {
                   href={`/${organizer}/dashboard/${event.id}/verify`}
                   className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-purple-600 px-5 text-sm font-semibold text-white transition hover:bg-purple-700"
                 >
-                  Open Verification
+                  Open Check-in
                   <LuArrowUpRight className="text-base" />
                 </Link>
               </div>

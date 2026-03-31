@@ -1,13 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { LuArrowLeft } from "react-icons/lu";
 
 import Card from "@/components/Card";
 import { createOrganizerGalleryItem } from "@/helpers/organizer-api";
+import WorkspaceTopbar from "@/components/WorkspaceTopbar";
 
 function OrganizerCreateGalleryClient({ organizer }: { organizer: string }) {
   const router = useRouter();
@@ -56,22 +55,13 @@ function OrganizerCreateGalleryClient({ organizer }: { organizer: string }) {
   return (
     <main className="min-h-screen bg-purple-100 dark:bg-slate-950/90">
       <div className="mx-auto max-w-3xl px-6 pt-28 pb-16">
-        <Link
-          href={`/${organizer}/dashboard`}
-          className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
-        >
-          <LuArrowLeft className="text-base" />
-          Back to Dashboard
-        </Link>
-
-        <div className="mt-6">
-          <h1 className="text-4xl font-bold tracking-tight text-slate-900 dark:text-white">
-            Add Gallery Image
-          </h1>
-          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-            Publish a new gallery image for this organizer.
-          </p>
-        </div>
+        <WorkspaceTopbar
+          eyebrow="Organizer Workspace"
+          title="Add Gallery Image"
+          description="Publish a new gallery image for this organizer."
+          backHref={`/${organizer}/dashboard`}
+          backLabel="Back to Dashboard"
+        />
 
         <Card className="mt-8">
           <form

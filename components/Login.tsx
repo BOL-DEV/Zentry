@@ -54,10 +54,10 @@ function Login(props: Props) {
       <div className="mx-auto flex w-full max-w-md flex-col items-center">
         <header className="mb-8 text-center flex flex-col gap-2">
           <h1 className="text-3xl font-semibold tracking-tight text-slate-900 md:text-4xl dark:text-white">
-            Dashboard Login
+            Sign In
           </h1>
           <p className="mt-2 text-md text-slate-600 dark:text-slate-300">
-            Sign in as an organizer or staff member
+            Sign in to manage events or check guests in
           </p>
         </header>
 
@@ -128,21 +128,21 @@ function Login(props: Props) {
             <div className="pt-2">
               <div className="my-4 h-px w-full bg-purple-200/70 dark:bg-white/10" />
               <p className="text-center text-xs text-slate-600 dark:text-slate-300">
-                Use a valid dashboard account from the backend
+                Use your Zentry account details
               </p>
               <div className="mt-4 rounded-lg border border-purple-200/70 bg-purple-50 p-4 text-xs text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
                 <ul className="list-disc space-y-1 pl-4">
                   <li>
                     <span className="text-slate-900 dark:text-white">
-                      Organizer:
+                      Event managers:
                     </span>
-                    routed to the organizer dashboard
+                    go to the main event dashboard
                   </li>
                   <li>
                     <span className="text-slate-900 dark:text-white">
-                      Staff:
+                      Check-in team:
                     </span>
-                    routed to the organizer staff workspace
+                    go to the guest check-in area
                   </li>
                 </ul>
               </div>

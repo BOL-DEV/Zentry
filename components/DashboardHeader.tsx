@@ -21,7 +21,7 @@ function DashboardHeader({ role, email}: Props) {
           <span className="grid h-10 w-10 place-items-center rounded-xl bg-purple-600 text-2xl">
             ⚡
           </span>
-          <span className="text-purple-600 text-xl font-bold">EventFlow</span>
+          <span className="text-purple-600 text-xl font-bold">Zentry</span>
         </Link>
 
         <div className="flex items-center gap-3">

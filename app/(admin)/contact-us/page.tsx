@@ -20,8 +20,8 @@ function Page() {
         const subject = String(formData.get("subject") ?? "").trim();
         const message = String(formData.get("message") ?? "").trim();
 
-        const to = "support@eventflow.com";
-        const computedSubject = subject || "EventFlow — Contact";
+        const to = "support@zentry.com";
+        const computedSubject = subject || "Zentry Contact";
         const body = [`Name: ${name}`, `Email: ${email}`, "", message]
             .filter(Boolean)
             .join("\n");
@@ -41,7 +41,7 @@ function Page() {
                         Contact Us
                     </h1>
                     <p className="mt-4 text-lg text-slate-600 dark:text-slate-300">
-                        Questions about EventFlow, pricing, or onboarding? Send us a message
+                        Questions about Zentry, pricing, or onboarding? Send us a message
                         and we’ll get back to you.
                     </p>
                 </div>
@@ -59,7 +59,7 @@ function Page() {
                                             Email
                                         </h2>
                                         <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                                            support@eventflow.com
+                                            support@zentry.com
                                         </p>
                                         <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
                                             Best for product questions and account help.

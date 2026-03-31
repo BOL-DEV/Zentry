@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import Logo from "./Logo";
 import ThemeToggle from "./ThemeToggle";
 import MobileMenuToggle from "./MobileMenuToggle";
@@ -48,6 +49,12 @@ function OrganizerHeader() {
 
         <div className=" flex items-center gap-3 ">
           <HeaderMenu menuData={menuData} />
+          <Link
+            href="/login"
+            className="hidden h-10 items-center justify-center rounded-lg bg-purple-600 px-4 text-sm font-semibold text-white transition hover:bg-purple-700 md:inline-flex"
+          >
+            Login
+          </Link>
           <ThemeToggle />
           <MobileMenuToggle menuData={menuData} />
         </div>

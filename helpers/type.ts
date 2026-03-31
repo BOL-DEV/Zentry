@@ -105,6 +105,15 @@ export type ApiOrder = {
   updatedAt?: string;
 };
 
+export type ApiOrderStatus = {
+  orderId: string;
+  paymentStatus: "pending" | "paid" | "cancelled";
+  paymentReference?: string | null;
+  totalAmount: number;
+  isPaid: boolean;
+  createdAt?: string;
+};
+
 export type ApiOrderItem = {
   ticketTypeId: string;
   ticketTypeName: string;
@@ -274,5 +283,5 @@ export type AdminEventListItem = {
   locationText: string;
   organizerId: string;
   organizerName: string;
-  slug?: string;
+  organizerSlug?: string;
 };

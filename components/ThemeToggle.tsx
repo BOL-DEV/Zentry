@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { FaRegMoon } from "react-icons/fa";
 import { IoSunnyOutline } from "react-icons/io5";
 
@@ -14,15 +14,19 @@ function resolveThemePreference() {
 }
 
 function ThemeToggle() {
+  const isHydrated = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
   const [isDarkMode, setIsDarkMode] = useState(() => {
     if (typeof window === "undefined") return false;
     return resolveThemePreference();
   });
 
   useEffect(() => {
-    const shouldUseDark = resolveThemePreference();
-    document.documentElement.classList.toggle("dark", shouldUseDark);
-  }, []);
+    document.documentElement.classList.toggle("dark", isDarkMode);
+  }, [isDarkMode]);
 
   const handleThemeToggle = () => {
     setIsDarkMode((prev) => {
@@ -39,7 +43,11 @@ function ThemeToggle() {
       className="ml-0 rounded-lg p-3 text-lg font-bold text-slate-900 transition hover:bg-white/70 dark:text-slate-200 dark:hover:bg-white/10 lg:border-purple-200/70 dark:lg:border-white/10"
       onClick={handleThemeToggle}
     >
-      {isDarkMode ? <IoSunnyOutline /> : <FaRegMoon />}
+      {isHydrated ? (
+        isDarkMode ? <IoSunnyOutline /> : <FaRegMoon />
+      ) : (
+        <span className="block h-[1em] w-[1em]" aria-hidden="true" />
+      )}
     </button>
   );
 }

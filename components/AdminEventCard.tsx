@@ -1,5 +1,7 @@
-import Image from "next/image";
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 import { LuCalendar, LuMapPin } from "react-icons/lu";
 import type { AdminEventListItem } from "@/helpers/type";
 
@@ -9,6 +11,7 @@ interface Props {
 
 function AdminEventCard(props: Props) {
   const { event } = props;
+  const [imageFailed, setImageFailed] = useState(false);
 
   return (
     <article
@@ -16,13 +19,20 @@ function AdminEventCard(props: Props) {
       className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/5"
     >
       <div className="relative h-48 w-full">
-        <Image
-          src={event.imageUrl}
-          alt={event.title}
-          fill
-          className="object-cover"
-          sizes="(max-width: 1024px) 100vw, 33vw"
-        />
+        {imageFailed || !event.imageUrl ? (
+          <div className="flex h-full w-full items-center justify-center bg-linear-to-br from-slate-200 via-slate-100 to-white text-sm font-semibold text-slate-500 dark:from-slate-900 dark:via-slate-800 dark:to-slate-950 dark:text-slate-300">
+            Event Poster Unavailable
+          </div>
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={event.imageUrl}
+            alt={event.title}
+            className="h-full w-full object-cover"
+            loading="lazy"
+            onError={() => setImageFailed(true)}
+          />
+        )}
 
         <span className="absolute right-4 top-4 inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
           Upcoming
@@ -51,9 +61,9 @@ function AdminEventCard(props: Props) {
           {event.organizerName}
         </p>
 
-        {event.slug ? (
+        {event.organizerSlug ? (
           <Link
-            href={`/${event?.slug}/events/${event.id}`}
+            href={`/${event.organizerSlug}/events/${event.id}`}
             className="mt-5 inline-flex h-11 w-full items-center justify-center rounded-lg bg-purple-600 px-4 text-sm font-semibold text-white transition hover:bg-purple-700"
           >
             View Details

@@ -10,6 +10,7 @@ import type {
   ApiOrganizer,
   ApiOrder,
   ApiOrderItem,
+  ApiOrderStatus,
   ApiPaymentInitialization,
   ApiScannerSummary,
   ApiTicket,
@@ -39,6 +40,8 @@ type ApiPublicEventListItem = ApiEvent & {
   };
   organizerName?: string;
   organizerSlug?: string;
+  slug?: string;
+  organizer_slug?: string;
 };
 
 function titleCase(value: string) {
@@ -375,7 +378,11 @@ export async function getAllPublicEventsData(): Promise<AdminEventListItem[]> {
       organizerId: event.organizerId,
       organizerName:
         event.organizer?.name || event.organizerName || "Organizer",
-      organizerSlug: event.organizer?.slug || event.organizerSlug,
+      organizerSlug:
+        event.organizer?.slug ||
+        event.organizerSlug ||
+        event.organizer_slug ||
+        event.slug,
     }));
 }
 
@@ -565,6 +572,26 @@ export async function getOrderTickets(orderId: string): Promise<{
     order: ApiOrder;
     tickets: ApiTicket[];
   }>(`/orders/${orderId}/tickets`);
+
+  return response.data;
+}
+
+export async function getOrderByPaymentReference(
+  paymentReference: string,
+): Promise<{ order: ApiOrder }> {
+  const response = await apiFetch<{
+    order: ApiOrder;
+  }>(`/orders/payment-reference/${encodeURIComponent(paymentReference)}`);
+
+  return response.data;
+}
+
+export async function getOrderStatus(orderId: string): Promise<{
+  orderStatus: ApiOrderStatus;
+}> {
+  const response = await apiFetch<{
+    orderStatus: ApiOrderStatus;
+  }>(`/orders/${orderId}/status`);
 
   return response.data;
 }
