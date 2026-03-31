@@ -1,12 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
+import { ClipLoader } from "react-spinners";
 
 import OrganizerAttendeesList from "@/components/OrganizerAttendeesList";
 import Card from "@/components/Card";
-import FullPageLoader from "@/components/FullPageLoader";
 import TicketVerificationClient from "@/components/TicketVerificationClient";
 import WorkspaceTopbar from "@/components/WorkspaceTopbar";
 import { getAuthToken, getAuthUser } from "@/helpers/auth";
@@ -25,9 +24,8 @@ function OrganizerVerifyPageClient({
 }) {
   const token = getAuthToken();
   const authUser = getAuthUser();
-  const [refreshVersion, setRefreshVersion] = useState(0);
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["organizer-verify-event", organizer, eventId, refreshVersion],
+  const { data, isLoading, error, refetch, isFetching } = useQuery({
+    queryKey: ["organizer-verify-event", organizer, eventId],
     queryFn: async () => {
       const [eventDetails, scannerSummary, attendees] = await Promise.all([
         getOrganizerEventDetails(organizer, eventId),
@@ -62,11 +60,10 @@ function OrganizerVerifyPageClient({
               </Link>
             </Card>
           </div>
-        ) : isLoading ? (
-          <FullPageLoader
-            title="Loading check-in tools"
-            description="We are getting guest details and entry updates ready."
-          />
+        ) : isLoading && !data ? (
+          <div className="flex min-h-[60vh] items-center justify-center">
+            <ClipLoader color="#7e22ce" size={42} speedMultiplier={0.9} />
+          </div>
         ) : error || !data ? (
           <div className="mt-6">
             <Card>
@@ -87,11 +84,20 @@ function OrganizerVerifyPageClient({
               backLabel="Back"
             />
 
+            {isFetching ? (
+              <div className="mt-4 inline-flex items-center gap-3 rounded-full border border-purple-200/70 bg-white/80 px-4 py-2 text-sm text-slate-600 shadow-sm dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+                <ClipLoader color="#7e22ce" size={16} speedMultiplier={0.9} />
+                Updating guest list...
+              </div>
+            ) : null}
+
             <TicketVerificationClient
               eventId={data.eventDetails.event.id}
               totalSold={data.scannerSummary.scannerSummary.totalTicketsSold}
               initialVerifiedCount={data.scannerSummary.scannerSummary.totalCheckedIn}
-              onVerifiedSuccess={() => setRefreshVersion((value) => value + 1)}
+              onVerifiedSuccess={() => {
+                void refetch();
+              }}
             />
 
             {authUser?.role !== "staff" ? (
