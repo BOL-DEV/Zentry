@@ -1,9 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
+import jsQR from "jsqr";
+import Webcam from "react-webcam";
 import {
   LuCircleCheck,
+  LuLoaderCircle,
   LuMail,
   LuPercent,
   LuQrCode,
@@ -90,12 +93,19 @@ function TicketVerificationClient({
   const [mode, setMode] = useState<Mode>("manual");
   const [ticketInput, setTicketInput] = useState("");
   const [verifiedCount, setVerifiedCount] = useState(initialVerifiedCount);
+  const [scannerError, setScannerError] = useState<string | null>(null);
+  const [isScannerReady, setIsScannerReady] = useState(false);
   const [message, setMessage] = useState<
     | { type: "success"; text: string }
     | { type: "error"; text: string }
     | null
   >(null);
   const [verifiedTicket, setVerifiedTicket] = useState<ApiTicket | null>(null);
+  const webcamRef = useRef<Webcam | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const isReadingRef = useRef(false);
+  const lastScannedValueRef = useRef("");
+  const lastScanTimeRef = useRef(0);
 
   const verificationRate = useMemo(() => {
     if (!Number.isFinite(totalSold) || totalSold <= 0) return 0;
@@ -140,8 +150,8 @@ function TicketVerificationClient({
     },
   });
 
-  const handleVerify = () => {
-    const parsed = parseTicketInput(ticketInput);
+  const verifyInput = useCallback((rawInput: string) => {
+    const parsed = parseTicketInput(rawInput);
 
     const code =
       parsed.kind === "payload"
@@ -164,7 +174,88 @@ function TicketVerificationClient({
     }
 
     verifyMutation.mutate(code);
-  };
+  }, [eventId, verifyMutation]);
+
+  const handleVerifyClick = useCallback(() => {
+    verifyInput(ticketInput);
+  }, [ticketInput, verifyInput]);
+
+  const activateScanMode = useCallback(() => {
+    isReadingRef.current = false;
+    setScannerError(null);
+    setIsScannerReady(false);
+    setMode("scan");
+  }, []);
+
+  const activateManualMode = useCallback(() => {
+    isReadingRef.current = false;
+    setScannerError(null);
+    setIsScannerReady(false);
+    setMode("manual");
+  }, []);
+
+  useEffect(() => {
+    if (mode !== "scan" || !isScannerReady) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      if (isReadingRef.current || verifyMutation.isPending) {
+        return;
+      }
+
+      const video = webcamRef.current?.video;
+      const canvas = canvasRef.current;
+
+      if (!video || !canvas || video.readyState < 2) {
+        return;
+      }
+
+      const width = video.videoWidth;
+      const height = video.videoHeight;
+
+      if (!width || !height) {
+        return;
+      }
+
+      const context = canvas.getContext("2d", { willReadFrequently: true });
+      if (!context) {
+        return;
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      context.drawImage(video, 0, 0, width, height);
+
+      const imageData = context.getImageData(0, 0, width, height);
+      const decoded = jsQR(imageData.data, width, height);
+
+      if (!decoded?.data) {
+        return;
+      }
+
+      const now = Date.now();
+      if (
+        decoded.data === lastScannedValueRef.current &&
+        now - lastScanTimeRef.current < 1500
+      ) {
+        return;
+      }
+
+      lastScannedValueRef.current = decoded.data;
+      lastScanTimeRef.current = now;
+      isReadingRef.current = true;
+      setTicketInput(decoded.data);
+      verifyInput(decoded.data);
+      window.setTimeout(() => {
+        isReadingRef.current = false;
+      }, 1200);
+    }, 700);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [isScannerReady, mode, verifyInput, verifyMutation.isPending]);
 
   return (
     <>
@@ -264,7 +355,7 @@ function TicketVerificationClient({
           <div className="inline-flex w-full items-center rounded-xl border border-slate-200 bg-white p-1 shadow-sm sm:w-auto dark:border-white/10 dark:bg-white/5">
             <button
               type="button"
-              onClick={() => setMode("scan")}
+              onClick={activateScanMode}
               className={`inline-flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition sm:flex-none sm:px-4 ${
                 mode === "scan"
                   ? "bg-purple-600 text-white"
@@ -276,7 +367,7 @@ function TicketVerificationClient({
             </button>
             <button
               type="button"
-              onClick={() => setMode("manual")}
+              onClick={activateManualMode}
               className={`inline-flex flex-1 items-center justify-center rounded-lg px-3 py-2 text-sm font-semibold transition sm:flex-none sm:px-4 ${
                 mode === "manual"
                   ? "bg-purple-600 text-white"
@@ -290,16 +381,55 @@ function TicketVerificationClient({
 
         <div className="p-6">
           {mode === "scan" ? (
-            <div className="rounded-2xl border border-slate-200 bg-white/60 p-10 text-center dark:border-white/10 dark:bg-white/5">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border-2 border-dashed border-purple-500/60 text-purple-600 dark:text-purple-300">
-                <LuQrCode size={28} />
+            <div className="rounded-2xl border border-slate-200 bg-white/60 p-4 sm:p-5 dark:border-white/10 dark:bg-white/5">
+              <div className="overflow-hidden rounded-2xl bg-slate-100 dark:bg-slate-950/70">
+                <Webcam
+                  ref={webcamRef}
+                  audio={false}
+                  mirrored={false}
+                  screenshotFormat="image/jpeg"
+                  videoConstraints={{
+                    facingMode: { ideal: "environment" },
+                  }}
+                  onUserMedia={() => {
+                    setScannerError(null);
+                    setIsScannerReady(true);
+                  }}
+                  onUserMediaError={() => {
+                    setIsScannerReady(false);
+                    setScannerError(
+                      "We couldn't open your camera. You can still paste the ticket code below.",
+                    );
+                  }}
+                  className="aspect-video w-full object-cover"
+                />
+                <canvas ref={canvasRef} className="hidden" />
               </div>
-              <p className="mt-5 text-base font-semibold text-slate-900 dark:text-white">
-                Point your device at the QR code
-              </p>
-              <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                The ticket payload will automatically appear below
-              </p>
+
+              {!isScannerReady ? (
+                <div className="mt-4 inline-flex items-center gap-3 rounded-full border border-purple-200 bg-purple-50 px-4 py-2 text-sm font-medium text-purple-800 dark:border-purple-500/20 dark:bg-purple-500/10 dark:text-purple-200">
+                  <LuLoaderCircle className="animate-spin" size={16} />
+                  Opening camera...
+                </div>
+              ) : null}
+
+              <div className="mt-5 text-center">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border-2 border-dashed border-purple-500/60 text-purple-600 dark:text-purple-300">
+                  <LuQrCode size={28} />
+                </div>
+                <p className="mt-5 text-base font-semibold text-slate-900 dark:text-white">
+                  Point your device at the QR code
+                </p>
+                <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                  We will fill in the ticket details as soon as the code is read
+                </p>
+              </div>
+
+              {scannerError ? (
+                <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-100">
+                  {scannerError}
+                </div>
+              ) : null}
             </div>
           ) : null}
 
@@ -316,7 +446,7 @@ function TicketVerificationClient({
               onKeyDown={(event) => {
                 if (event.key === "Enter") {
                   event.preventDefault();
-                  handleVerify();
+                  verifyInput(ticketInput);
                 }
               }}
             />
@@ -324,7 +454,7 @@ function TicketVerificationClient({
 
           <button
             type="button"
-            onClick={handleVerify}
+            onClick={handleVerifyClick}
             disabled={verifyMutation.isPending}
             className="mt-5 inline-flex h-12 w-full items-center justify-center rounded-xl bg-purple-600 px-4 text-sm font-semibold text-white transition hover:bg-purple-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-purple-600/30 disabled:cursor-not-allowed disabled:opacity-70 dark:focus-visible:ring-purple-400/30"
           >

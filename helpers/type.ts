@@ -43,7 +43,13 @@ export type ApiOrganizer = {
 
 export type ApiEvent = {
   _id: string;
-  organizerId: string;
+  organizerId:
+    | string
+    | {
+        _id: string;
+        slug?: string;
+        name?: string;
+      };
   title: string;
   description: string;
   location: string;

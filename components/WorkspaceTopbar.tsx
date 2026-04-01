@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import DashboardLogoutButton from "@/components/DashboardLogoutButton";
+import ThemeToggle from "@/components/ThemeToggle";
 
 function WorkspaceTopbar({
   eyebrow,
@@ -40,6 +41,10 @@ function WorkspaceTopbar({
               {backLabel}
             </Link>
           ) : null}
+
+          <div className="inline-flex h-11 items-center justify-center rounded-lg border border-slate-200 bg-white px-1 shadow-sm dark:border-white/10 dark:bg-white/5">
+            <ThemeToggle />
+          </div>
 
           <DashboardLogoutButton />
         </div>

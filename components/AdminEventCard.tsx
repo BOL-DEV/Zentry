@@ -12,6 +12,10 @@ interface Props {
 function AdminEventCard(props: Props) {
   const { event } = props;
   const [imageFailed, setImageFailed] = useState(false);
+  const detailsHref = event.organizerSlug
+    ? `/${event.organizerSlug}/events/${event.id}`
+    : undefined;
+
 
   return (
     <article
@@ -61,15 +65,15 @@ function AdminEventCard(props: Props) {
           {event.organizerName}
         </p>
 
-        {event.organizerSlug ? (
+        {detailsHref ? (
           <Link
-            href={`/${event.organizerSlug}/events/${event.id}`}
+            href={detailsHref}
             className="mt-5 inline-flex h-11 w-full items-center justify-center rounded-lg bg-purple-600 px-4 text-sm font-semibold text-white transition hover:bg-purple-700"
           >
             View Details
           </Link>
         ) : (
-          <div className="mt-5 inline-flex h-11 w-full items-center justify-center rounded-lg bg-slate-100 px-4 text-sm font-semibold text-slate-500 dark:bg-white/10 dark:text-slate-300">
+          <div className="mt-5 inline-flex h-11 w-full items-center justify-center rounded-lg bg-slate-200 px-4 text-sm font-semibold text-slate-500 dark:bg-white/10 dark:text-slate-400">
             Event details unavailable
           </div>
         )}
@@ -78,4 +82,4 @@ function AdminEventCard(props: Props) {
   );
 }
 
-export default AdminEventCard
+export default AdminEventCard;

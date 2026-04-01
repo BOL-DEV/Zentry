@@ -2,8 +2,18 @@ import type { ApiAuthResponse } from "@/helpers/type";
 
 const TOKEN_KEY = "zentry:auth-token";
 const USER_KEY = "zentry:auth-user";
+const AUTH_CHANGE_EVENT = "zentry-auth-change";
 
 export type AuthUser = ApiAuthResponse["data"]["user"];
+export type AuthSession = {
+  token: string;
+  user: AuthUser | null;
+};
+
+function emitAuthChange() {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
+}
 
 export function getAuthToken() {
   if (typeof window === "undefined") return "";
@@ -13,6 +23,7 @@ export function getAuthToken() {
 export function setAuthToken(token: string) {
   if (typeof window === "undefined") return;
   localStorage.setItem(TOKEN_KEY, token);
+  emitAuthChange();
 }
 
 export function getAuthUser(): AuthUser | null {
@@ -32,10 +43,12 @@ export function getAuthUser(): AuthUser | null {
 export function setAuthUser(user: AuthUser) {
   if (typeof window === "undefined") return;
   localStorage.setItem(USER_KEY, JSON.stringify(user));
+  emitAuthChange();
 }
 
 export function clearAuthToken() {
   if (typeof window === "undefined") return;
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
+  emitAuthChange();
 }
