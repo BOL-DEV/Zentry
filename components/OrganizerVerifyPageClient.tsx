@@ -94,9 +94,8 @@ function OrganizerVerifyPageClient({
             />
 
             {isFetching ? (
-              <div className="mt-4 inline-flex items-center gap-3 rounded-full border border-purple-200/70 bg-white/80 px-4 py-2 text-sm text-slate-600 shadow-sm dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+              <div className="mt-4 inline-flex items-center justify-center rounded-full border border-purple-200/70 bg-white/80 px-4 py-2 shadow-sm dark:border-white/10 dark:bg-white/5">
                 <ClipLoader color="#7e22ce" size={16} speedMultiplier={0.9} />
-                Updating guest list...
               </div>
             ) : null}
 

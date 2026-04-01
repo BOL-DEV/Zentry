@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import QRCode from "qrcode";
@@ -154,6 +154,8 @@ function OrganizerCheckoutSuccessClient({ organizer }: { organizer: string }) {
   });
 
   const [qrCodeMap, setQrCodeMap] = useState<Record<string, string>>({});
+  const [showEmailNotice, setShowEmailNotice] = useState(false);
+  const hasShownEmailNoticeRef = useRef(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -180,6 +182,19 @@ function OrganizerCheckoutSuccessClient({ organizer }: { organizer: string }) {
       isMounted = false;
     };
   }, [data]);
+
+  useEffect(() => {
+    if (!data?.tickets?.length || hasShownEmailNoticeRef.current) return;
+
+    hasShownEmailNoticeRef.current = true;
+    const timeoutId = window.setTimeout(() => {
+      setShowEmailNotice(true);
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [data?.tickets?.length]);
 
   const ticketTypeById = useMemo(() => {
     return new Map(
@@ -259,6 +274,28 @@ function OrganizerCheckoutSuccessClient({ organizer }: { organizer: string }) {
 
         <div className="relative mx-auto flex min-h-screen max-w-3xl items-center justify-center px-6 py-16">
           <Card className="w-full p-10">
+            {showEmailNotice ? (
+              <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-900 shadow-sm dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-100">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="font-semibold">Tickets sent to your email</p>
+                    <p className="mt-1 text-emerald-800 dark:text-emerald-100/90">
+                      A copy of your ticket has been sent to {data?.order.buyerEmail}.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowEmailNotice(false)}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-full text-emerald-700 transition hover:bg-emerald-100 dark:text-emerald-100 dark:hover:bg-emerald-500/10"
+                    aria-label="Close email notice"
+                  >
+                    <LuX className="text-base" />
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/10 ring-1 ring-emerald-500/20">
               <LuCheck className="text-2xl text-emerald-400" />
             </div>
@@ -292,7 +329,8 @@ function OrganizerCheckoutSuccessClient({ organizer }: { organizer: string }) {
                 <p className="text-sm text-slate-600 dark:text-slate-300">
                   {error instanceof Error
                     ? error.message
-                    : orderStatusQuery.data?.orderStatus.paymentStatus === "cancelled"
+                    : orderStatusQuery.data?.orderStatus.paymentStatus ===
+                        "cancelled"
                       ? "This payment was cancelled, so no tickets were created."
                       : orderStatusQuery.data?.orderStatus.isPaid
                         ? "Your payment was successful. We are still finishing up your ticket details."
@@ -302,7 +340,8 @@ function OrganizerCheckoutSuccessClient({ organizer }: { organizer: string }) {
                 {orderStatusQuery.data?.orderStatus ? (
                   <div className="rounded-xl border border-purple-200/70 bg-purple-50/70 px-4 py-3 text-sm dark:border-white/10 dark:bg-slate-900/70">
                     <p className="font-semibold text-slate-900 dark:text-white">
-                      Current status: {orderStatusQuery.data.orderStatus.paymentStatus}
+                      Current status:{" "}
+                      {orderStatusQuery.data.orderStatus.paymentStatus}
                     </p>
                     <p className="mt-1 text-slate-600 dark:text-slate-300">
                       Payment reference:{" "}
@@ -339,7 +378,8 @@ function OrganizerCheckoutSuccessClient({ organizer }: { organizer: string }) {
               <>
                 <div className="mt-8 text-center">
                   <p className="text-sm text-slate-600 dark:text-slate-300">
-                    {data.tickets.length} ticket{data.tickets.length === 1 ? "" : "s"} generated for{" "}
+                    {data.tickets.length} ticket
+                    {data.tickets.length === 1 ? "" : "s"} generated for{" "}
                     <span className="font-semibold text-slate-900 dark:text-white">
                       {data.order.buyerName}
                     </span>
@@ -350,86 +390,102 @@ function OrganizerCheckoutSuccessClient({ organizer }: { organizer: string }) {
                   {data.tickets.map((ticket, index) => (
                     <div
                       key={ticket.ticketCode}
-                      className="rounded-2xl border border-purple-200/70 bg-white/70 p-6 shadow-sm dark:border-white/10 dark:bg-white/5"
+                      className="overflow-hidden rounded-3xl border border-purple-200/70 bg-white/80 shadow-sm dark:border-white/10 dark:bg-white/5"
                     >
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
+                      <div className="h-1.5 w-full bg-linear-to-r from-cyan-400 via-purple-500 to-emerald-400" />
+
+                      <div className="p-4 sm:p-6">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="min-w-0">
+                            <p className="text-[11px] font-semibold tracking-[0.22em] text-slate-500 uppercase dark:text-slate-400">
+                              TICKET {index + 1} OF {data.tickets.length}
+                            </p>
+                            <p className="mt-2 text-lg font-semibold leading-tight text-slate-900 sm:text-xl dark:text-white">
+                              {eventDetails?.event.title ?? "Zentry Ticket"}
+                            </p>
+                            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                              Present this ticket at entry for a quick check-in.
+                            </p>
+                          </div>
+
+                          <span className="inline-flex w-fit items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-500 ring-1 ring-emerald-500/20 dark:text-emerald-400">
+                            <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                            {ticket.status}
+                          </span>
+                        </div>
+
+                        <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_auto] lg:items-start">
+                          <div className="rounded-2xl border border-purple-200/70 bg-white/70 p-4 dark:border-white/10 dark:bg-white/5">
+                            <div className="grid gap-5 sm:grid-cols-2">
+                              <div>
+                                <p className="text-xs font-semibold tracking-wide text-slate-500 dark:text-slate-400">
+                                  TICKET TYPE
+                                </p>
+                                <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">
+                                  {ticketTypeById.get(ticket.ticketTypeId) ??
+                                    "Ticket"}
+                                </p>
+                              </div>
+
+                              <div>
+                                <p className="text-xs font-semibold tracking-wide text-slate-500 dark:text-slate-400">
+                                  ATTENDEE NAME
+                                </p>
+                                <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">
+                                  {ticket.buyerName}
+                                </p>
+                              </div>
+
+                              <div className="sm:col-span-2">
+                                <p className="text-xs font-semibold tracking-wide text-slate-500 dark:text-slate-400">
+                                  ATTENDEE EMAIL
+                                </p>
+                                <p className="mt-1 break-all text-sm leading-6 font-semibold text-slate-900 dark:text-white">
+                                  {ticket.buyerEmail}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="rounded-2xl border border-purple-200/70 bg-white/80 p-4 dark:border-white/10 dark:bg-white/5">
+                            {qrCodeMap[ticket.ticketCode] ? (
+                              <div className="flex justify-center">
+                                <Image
+                                  src={qrCodeMap[ticket.ticketCode]}
+                                  alt={`QR code for ${ticket.ticketCode}`}
+                                  width={192}
+                                  height={192}
+                                  unoptimized
+                                  className="h-auto w-40 rounded-2xl bg-white p-3 shadow-sm sm:w-44"
+                                />
+                              </div>
+                            ) : (
+                              <div className="flex min-h-40 items-center justify-center rounded-2xl bg-slate-100 text-sm text-slate-500 dark:bg-slate-900/70 dark:text-slate-400">
+                                Preparing QR code...
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="mt-4 rounded-2xl border border-dashed border-purple-200/70 bg-purple-50/50 p-4 dark:border-white/10 dark:bg-white/5">
                           <p className="text-xs font-semibold tracking-wide text-slate-500 dark:text-slate-400">
-                            TICKET {index + 1} OF {data.tickets.length}
+                            TICKET CODE
                           </p>
-                          <p className="mt-1 text-lg font-semibold text-slate-900 dark:text-white">
-                            {eventDetails?.event.title ?? "Zentry Ticket"}
+                          <p className="mt-2 break-all font-mono text-base font-bold tracking-[0.22em] text-slate-900 sm:text-lg dark:text-white">
+                            {ticket.ticketCode}
                           </p>
                         </div>
 
-                        <span className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-500 ring-1 ring-emerald-500/20 dark:text-emerald-400">
-                          <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                          {ticket.status}
-                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadTicketImage(ticket)}
+                          disabled={!qrCodeMap[ticket.ticketCode]}
+                          className="mt-6 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-white/95 dark:hover:bg-white"
+                        >
+                          <LuDownload className="text-base" />
+                          Download Ticket
+                        </button>
                       </div>
-
-                      <div className="mt-6 rounded-2xl border border-purple-200/70 bg-white/70 p-4 dark:border-white/10 dark:bg-white/5">
-                        <div className="grid gap-6 sm:grid-cols-2">
-                          <div>
-                            <p className="text-xs font-semibold tracking-wide text-slate-500 dark:text-slate-400">
-                              TICKET TYPE
-                            </p>
-                            <p className="mt-1 font-semibold text-slate-900 dark:text-white">
-                              {ticketTypeById.get(ticket.ticketTypeId) ?? "Ticket"}
-                            </p>
-                          </div>
-
-                          <div>
-                            <p className="text-xs font-semibold tracking-wide text-slate-500 dark:text-slate-400">
-                              ATTENDEE NAME
-                            </p>
-                            <p className="mt-1 font-semibold text-slate-900 dark:text-white">
-                              {ticket.buyerName}
-                            </p>
-                          </div>
-
-                          <div className="sm:col-span-2">
-                            <p className="text-xs font-semibold tracking-wide text-slate-500 dark:text-slate-400">
-                              ATTENDEE EMAIL
-                            </p>
-                            <p className="mt-1 font-semibold text-slate-900 dark:text-white">
-                              {ticket.buyerEmail}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="mt-4 rounded-2xl border border-purple-200/70 bg-white/70 p-4 dark:border-white/10 dark:bg-white/5">
-                        <p className="text-xs font-semibold tracking-wide text-slate-500 dark:text-slate-400">
-                          TICKET CODE
-                        </p>
-                        <p className="mt-2 font-mono text-lg font-bold tracking-widest text-slate-900 dark:text-white">
-                          {ticket.ticketCode}
-                        </p>
-                      </div>
-
-                      {qrCodeMap[ticket.ticketCode] ? (
-                        <div className="mt-6 flex justify-center">
-                          <Image
-                            src={qrCodeMap[ticket.ticketCode]}
-                            alt={`QR code for ${ticket.ticketCode}`}
-                            width={224}
-                            height={224}
-                            unoptimized
-                            className="h-auto w-56 rounded-2xl bg-white p-3 shadow-sm"
-                          />
-                        </div>
-                      ) : null}
-
-                      <button
-                        type="button"
-                        onClick={() => handleDownloadTicketImage(ticket)}
-                        disabled={!qrCodeMap[ticket.ticketCode]}
-                        className="mt-6 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-white/95 dark:hover:bg-white"
-                      >
-                        <LuDownload className="text-base" />
-                        Download Ticket Image
-                      </button>
                     </div>
                   ))}
                 </div>
@@ -441,7 +497,9 @@ function OrganizerCheckoutSuccessClient({ organizer }: { organizer: string }) {
                       void orderStatusQuery.refetch();
                       void ticketsQuery.refetch();
                     }}
-                    disabled={orderStatusQuery.isFetching || ticketsQuery.isFetching}
+                    disabled={
+                      orderStatusQuery.isFetching || ticketsQuery.isFetching
+                    }
                     className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-purple-200/70 bg-white/60 px-4 text-sm font-semibold text-slate-900 transition hover:bg-white disabled:opacity-70 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
                   >
                     <LuRefreshCw className="text-base" />

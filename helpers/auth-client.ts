@@ -5,12 +5,25 @@ import { getAuthToken, getAuthUser } from "@/helpers/auth";
 import type { AuthSession } from "@/helpers/auth";
 
 const AUTH_CHANGE_EVENT = "zentry-auth-change";
+let cachedSession: AuthSession = { token: "", user: null };
+let cachedUserKey = "null";
 
 function readAuthSession(): AuthSession {
-  return {
-    token: getAuthToken(),
-    user: getAuthUser(),
+  const token = getAuthToken();
+  const user = getAuthUser();
+  const userKey = user ? JSON.stringify(user) : "null";
+
+  if (cachedSession.token === token && cachedUserKey === userKey) {
+    return cachedSession;
+  }
+
+  cachedUserKey = userKey;
+  cachedSession = {
+    token,
+    user,
   };
+
+  return cachedSession;
 }
 
 export function useAuthSession(): AuthSession {
