@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSyncExternalStore } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ClipLoader } from "react-spinners";
 
@@ -8,7 +9,7 @@ import OrganizerAttendeesList from "@/components/OrganizerAttendeesList";
 import Card from "@/components/Card";
 import TicketVerificationClient from "@/components/TicketVerificationClient";
 import WorkspaceTopbar from "@/components/WorkspaceTopbar";
-import { getAuthToken, getAuthUser } from "@/helpers/auth";
+import { useAuthSession } from "@/helpers/auth-client";
 import {
   getOrganizerEventAttendees,
   getOrganizerEventDetails,
@@ -22,8 +23,12 @@ function OrganizerVerifyPageClient({
   organizer: string;
   eventId: string;
 }) {
-  const token = getAuthToken();
-  const authUser = getAuthUser();
+  const isHydrated = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+  const { token, user: authUser } = useAuthSession();
   const { data, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ["organizer-verify-event", organizer, eventId],
     queryFn: async () => {
@@ -46,7 +51,11 @@ function OrganizerVerifyPageClient({
   return (
     <main className="min-h-screen bg-purple-100 dark:bg-slate-950/90">
       <div className="mx-auto max-w-6xl px-6 pt-28 pb-16">
-        {!token ? (
+        {!isHydrated ? (
+          <div className="flex min-h-[60vh] items-center justify-center">
+            <ClipLoader color="#7e22ce" size={42} speedMultiplier={0.9} />
+          </div>
+        ) : !token ? (
           <div className="mt-6">
             <Card>
               <p className="text-sm text-slate-600 dark:text-slate-300">

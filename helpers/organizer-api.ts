@@ -38,6 +38,14 @@ type ApiPublicEventListItem = ApiEvent & {
     name?: string;
     slug?: string;
   };
+  organizerId?:
+    | string
+    | {
+        _id?: string;
+        id?: string;
+        name?: string;
+        slug?: string;
+      };
   organizerName?: string;
   organizerSlug?: string;
   slug?: string;
@@ -375,11 +383,20 @@ export async function getAllPublicEventsData(): Promise<AdminEventListItem[]> {
       imageUrl: event.posterUrl,
       dateTimeText: formatDateTimeText(new Date(event.date)),
       locationText: event.location,
-      organizerId: event.organizerId,
+      organizerId:
+        typeof event.organizerId === "string"
+          ? event.organizerId
+          : event.organizerId?._id || event.organizerId?.id || "",
       organizerName:
-        event.organizer?.name || event.organizerName || "Organizer",
+        event.organizer?.name ||
+        (typeof event.organizerId === "object" ? event.organizerId?.name : "") ||
+        event.organizerName ||
+        "Organizer",
       organizerSlug:
         event.organizer?.slug ||
+        (typeof event.organizerId === "object"
+          ? event.organizerId?.slug
+          : undefined) ||
         event.organizerSlug ||
         event.organizer_slug ||
         event.slug,

@@ -15,7 +15,7 @@ import Card from "@/components/Card";
 import FullPageLoader from "@/components/FullPageLoader";
 import OrganizerEventsSection from "@/components/OrganizerEventsSection";
 import WorkspaceTopbar from "@/components/WorkspaceTopbar";
-import { getAuthToken, getAuthUser } from "@/helpers/auth";
+import { useAuthSession } from "@/helpers/auth-client";
 import { formatCurrency, formatNumber } from "@/helpers/format";
 import { getOrganizerDashboardData } from "@/helpers/organizer-api";
 
@@ -54,8 +54,7 @@ function StatCard({
 }
 
 function OrganizerDashboardClient({ organizer }: { organizer: string }) {
-  const token = getAuthToken();
-  const authUser = getAuthUser();
+  const { token, user: authUser } = useAuthSession();
   const { data, isLoading, error } = useQuery({
     queryKey: ["organizer-dashboard", organizer],
     queryFn: () => getOrganizerDashboardData(organizer),

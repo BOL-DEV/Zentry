@@ -21,9 +21,9 @@ function Hero() {
             <span className="text-purple-600">Confidence</span>
           </h1>
           <p className="text-lg text-slate-500 dark:text-slate-300 lg:w-xl">
-            Zentry is your complete event management platform. From ticketing
-            to attendee verification, we handle it all so you can focus on
-            creating memorable experiences.
+            Zentry is your complete event management platform. From ticketing to
+            attendee verification, we handle it all so you can focus on creating
+            memorable experiences.
           </p>
 
           <div className="flex flex-col lg:flex-row gap-4  items-center">
@@ -34,7 +34,7 @@ function Hero() {
               </span>
             </button>
             <button className="flex items-center justify-center gap-2 rounded-lg border-2 border-purple-600 px-6 py-3 font-semibold text-purple-600 transition hover:bg-purple-700 hover:text-white dark:border-purple-400 dark:text-purple-300 dark:hover:bg-purple-500/15 dark:hover:text-white lg:w-fit w-full">
-              Oraganize an Event
+              Organize an Event
             </button>
           </div>
         </div>

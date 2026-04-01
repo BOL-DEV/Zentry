@@ -15,8 +15,9 @@ function OrganizerEventsSection({
   const [openEventId, setOpenEventId] = useState<string | null>(null);
 
   return (
-    <section className="bg-white dark:bg-slate-950">
-      <div className="mx-auto lg:max-w-7xl px-6 pb-14">
+    <section>
+      <div className="mx-auto px-6 pb-14 lg:max-w-7xl">
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-slate-900/80 sm:p-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
             Your Events
@@ -43,6 +44,7 @@ function OrganizerEventsSection({
               }
             />
           ))}
+        </div>
         </div>
       </div>
     </section>
