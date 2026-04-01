@@ -191,7 +191,9 @@ function OrganizerCheckoutClient({
                     className="block text-sm font-medium text-slate-800 dark:text-slate-100"
                   >
                     Full Name{" "}
-                    <span className="text-purple-600 dark:text-purple-400">*</span>
+                    <span className="text-purple-600 dark:text-purple-400">
+                      *
+                    </span>
                   </label>
                   <input
                     id="fullName"
@@ -212,7 +214,9 @@ function OrganizerCheckoutClient({
                     className="block text-sm font-medium text-slate-800 dark:text-slate-100"
                   >
                     Email Address{" "}
-                    <span className="text-purple-600 dark:text-purple-400">*</span>
+                    <span className="text-purple-600 dark:text-purple-400">
+                      *
+                    </span>
                   </label>
                   <input
                     id="email"
@@ -252,7 +256,9 @@ function OrganizerCheckoutClient({
                     className="block text-sm font-medium text-slate-800 dark:text-slate-100"
                   >
                     Ticket Type{" "}
-                    <span className="text-purple-600 dark:text-purple-400">*</span>
+                    <span className="text-purple-600 dark:text-purple-400">
+                      *
+                    </span>
                   </label>
                   <select
                     id="ticketType"
@@ -269,7 +275,9 @@ function OrganizerCheckoutClient({
                       <option
                         key={ticket.id ?? ticket.name}
                         value={ticket.id}
-                        disabled={ticket.isActive === false || ticket.remaining <= 0}
+                        disabled={
+                          ticket.isActive === false || ticket.remaining <= 0
+                        }
                       >
                         {ticket.name} - {formatCurrency(ticket.price)}
                       </option>
@@ -283,25 +291,32 @@ function OrganizerCheckoutClient({
                     className="block text-sm font-medium text-slate-800 dark:text-slate-100"
                   >
                     Quantity{" "}
-                    <span className="text-purple-600 dark:text-purple-400">*</span>
+                    <span className="text-purple-600 dark:text-purple-400">
+                      *
+                    </span>
                   </label>
                   <select
                     id="quantity"
                     name="quantity"
                     required
                     value={String(quantity)}
-                    onChange={(event) => setQuantity(Number(event.target.value))}
+                    onChange={(event) =>
+                      setQuantity(Number(event.target.value))
+                    }
                     className={selectStyles}
                     disabled={!selectedTicket || maxQuantity < 1}
                   >
-                    {Array.from({ length: Math.max(1, maxQuantity) }, (_, index) => {
-                      const value = index + 1;
-                      return (
-                        <option key={value} value={String(value)}>
-                          {value} Ticket{value === 1 ? "" : "s"}
-                        </option>
-                      );
-                    })}
+                    {Array.from(
+                      { length: Math.max(1, maxQuantity) },
+                      (_, index) => {
+                        const value = index + 1;
+                        return (
+                          <option key={value} value={String(value)}>
+                            {value} Ticket{value === 1 ? "" : "s"}
+                          </option>
+                        );
+                      },
+                    )}
                   </select>
                 </div>
 
@@ -310,7 +325,6 @@ function OrganizerCheckoutClient({
                     {formError}
                   </div>
                 ) : null}
-
               </form>
             </Card>
 
@@ -337,7 +351,9 @@ function OrganizerCheckoutClient({
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <p className="text-slate-600 dark:text-slate-300">Available</p>
+                  <p className="text-slate-600 dark:text-slate-300">
+                    Available
+                  </p>
                   <p className="font-semibold text-slate-900 dark:text-white">
                     {selectedTicket?.remaining ?? 0}
                   </p>
@@ -363,7 +379,7 @@ function OrganizerCheckoutClient({
               </div>
 
               <p className="mt-3 text-center text-xs text-slate-500 dark:text-slate-400">
-                You&apos;ll be redirected to Paystack to complete payment securely.
+                You&apos;ll be redirected to complete payment securely.
               </p>
 
               <button
