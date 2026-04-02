@@ -32,8 +32,15 @@ function getSoldPercent(remaining: number, total: number) {
   return clampPercent(Math.round((getSoldCount(remaining, total) / total) * 100));
 }
 
-function splitDateAndTime(dateTimeText: string) {
-  const trimmed = dateTimeText.trim();
+function splitDateAndTime(dateTimeText?: string) {
+  const trimmed = dateTimeText?.trim() || "";
+
+  if (!trimmed) {
+    return {
+      dateText: "Date to be announced",
+      timeText: "Time to be announced",
+    };
+  }
 
   const bulletParts = trimmed.split("•").map((p) => p.trim()).filter(Boolean);
   if (bulletParts.length >= 2) {
@@ -163,6 +170,7 @@ function AdminEventDetails({
 }: Props) {
   const { dateText, timeText } = splitDateAndTime(event.dateTimeText);
   const organizerCheckoutHref = `/${organizerSlug}/events/${event.id}/checkout`;
+  const locationText = event.locationText?.trim() || "Location to be announced";
 
   return (
     <main className="bg-purple-100 dark:bg-slate-950/90">
@@ -176,7 +184,7 @@ function AdminEventDetails({
         </Link>
 
         <section className="mt-8 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/5">
-          <div className="relative h-90 w-full">
+          <div className="relative h-[28rem] w-full">
             <Image
               src={event.imageUrl}
               alt={event.title}
@@ -209,7 +217,7 @@ function AdminEventDetails({
                 ) : null}
                 <span className="inline-flex items-center gap-2">
                   <LuMapPin className="text-base" />
-                  {event.locationText}
+                  {locationText}
                 </span>
               </div>
             </div>
@@ -261,7 +269,7 @@ function AdminEventDetails({
                 ) : null}
                 <p className="flex items-center gap-2">
                   <LuMapPin className="text-base" />
-                  {event.locationText}
+                  {locationText}
                 </p>
               </div>
             </div>
