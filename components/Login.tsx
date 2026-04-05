@@ -16,6 +16,7 @@ function Login(props: Props) {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [deviceName, setDeviceName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -25,7 +26,16 @@ function Login(props: Props) {
     setIsSubmitting(true);
 
     try {
-      const response = await loginDashboardUser({ email, password });
+      const resolvedDeviceName =
+        deviceName.trim() ||
+        (typeof window !== "undefined" ? window.navigator.platform : "") ||
+        "This device";
+
+      const response = await loginDashboardUser({
+        email,
+        password,
+        deviceName: resolvedDeviceName,
+      });
       setAuthToken(response.token);
       setAuthUser(response.data.user);
 
@@ -78,6 +88,24 @@ function Login(props: Props) {
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 required
+                className={inputStyles}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label
+                htmlFor="deviceName"
+                className="block text-sm font-medium text-slate-800 dark:text-slate-200"
+              >
+                Device Name
+              </label>
+              <input
+                type="text"
+                id="deviceName"
+                name="deviceName"
+                value={deviceName}
+                onChange={(event) => setDeviceName(event.target.value)}
+                placeholder="My phone"
                 className={inputStyles}
               />
             </div>

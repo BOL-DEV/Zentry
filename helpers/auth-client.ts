@@ -5,6 +5,7 @@ import { getAuthToken, getAuthUser } from "@/helpers/auth";
 import type { AuthSession } from "@/helpers/auth";
 
 const AUTH_CHANGE_EVENT = "zentry-auth-change";
+const EMPTY_AUTH_SESSION: AuthSession = { token: "", user: null };
 let cachedSession: AuthSession = { token: "", user: null };
 let cachedUserKey = "null";
 
@@ -43,6 +44,6 @@ export function useAuthSession(): AuthSession {
       };
     },
     readAuthSession,
-    () => ({ token: "", user: null }),
+    () => EMPTY_AUTH_SESSION,
   );
 }

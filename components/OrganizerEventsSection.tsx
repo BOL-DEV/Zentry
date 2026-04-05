@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
 import OrganizerEventCard from "@/components/OrganizerEventCard";
 import type { OrganizerEvent } from "@/helpers/type";
 
@@ -12,8 +11,6 @@ function OrganizerEventsSection({
   events: OrganizerEvent[];
   organizer: string;
 }) {
-  const [openEventId, setOpenEventId] = useState<string | null>(null);
-
   return (
     <section>
       <div className="mx-auto px-6 pb-14 lg:max-w-7xl">
@@ -36,12 +33,7 @@ function OrganizerEventsSection({
             <OrganizerEventCard
               key={event.id}
               event={event}
-              open={openEventId === event.id}
-              onToggle={() =>
-                setOpenEventId((current) =>
-                  current === event.id ? null : event.id,
-                )
-              }
+              organizer={organizer}
             />
           ))}
         </div>

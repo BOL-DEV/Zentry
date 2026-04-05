@@ -19,6 +19,17 @@ function OrganizerAttendeesList({
   maxHeightClass?: string;
 }) {
   const [search, setSearch] = useState("");
+  const [ticketTypeFilter, setTicketTypeFilter] = useState("all");
+
+  const ticketTypeOptions = useMemo(() => {
+    return Array.from(
+      new Set(
+        attendees
+          .map((attendee) => attendee.ticketType.trim())
+          .filter(Boolean),
+      ),
+    ).sort((left, right) => left.localeCompare(right));
+  }, [attendees]);
 
   const filteredAttendees = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
@@ -26,8 +37,12 @@ function OrganizerAttendeesList({
     return attendees.filter((attendee) => {
       const matchesStatus =
         statusFilter === "all" ? true : attendee.status === statusFilter;
+      const matchesTicketType =
+        ticketTypeFilter === "all"
+          ? true
+          : attendee.ticketType === ticketTypeFilter;
 
-      if (!matchesStatus) return false;
+      if (!matchesStatus || !matchesTicketType) return false;
       if (!normalizedSearch) return true;
 
       const haystack = [
@@ -42,7 +57,7 @@ function OrganizerAttendeesList({
 
       return haystack.includes(normalizedSearch);
     });
-  }, [attendees, search, statusFilter]);
+  }, [attendees, search, statusFilter, ticketTypeFilter]);
 
   if (!attendees.length) {
     return (
@@ -70,14 +85,29 @@ function OrganizerAttendeesList({
       )}
 
       <div className="border-b border-slate-200 p-4 dark:border-white/10">
-        <div className="relative">
-          <LuSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search attendees..."
-            className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:border-purple-600 focus:ring-4 focus:ring-purple-600/15 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:border-purple-400 dark:focus:ring-purple-400/20"
-          />
+        <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_220px]">
+          <div className="relative">
+            <LuSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search attendees..."
+              className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:border-purple-600 focus:ring-4 focus:ring-purple-600/15 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:border-purple-400 dark:focus:ring-purple-400/20"
+            />
+          </div>
+
+          <select
+            value={ticketTypeFilter}
+            onChange={(event) => setTicketTypeFilter(event.target.value)}
+            className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-purple-600 focus:ring-4 focus:ring-purple-600/15 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:border-purple-400 dark:focus:ring-purple-400/20"
+          >
+            <option value="all">All ticket types</option>
+            {ticketTypeOptions.map((ticketType) => (
+              <option key={ticketType} value={ticketType}>
+                {ticketType}
+              </option>
+            ))}
+          </select>
         </div>
         <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
           Showing {filteredAttendees.length} of {attendees.length} attendees

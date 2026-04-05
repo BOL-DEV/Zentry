@@ -21,6 +21,11 @@ export type ApiAuthResponse = {
       organizerId: string;
       organizerSlug: string;
     };
+    session: {
+      id: string;
+      deviceName?: string;
+      userAgent?: string;
+    };
   };
 };
 
@@ -53,7 +58,8 @@ export type ApiEvent = {
   title: string;
   description: string;
   location: string;
-  posterUrl: string;
+  posterUrl?: string;
+  imageUrl?: string;
   dressCode?: string;
   policies?: string;
   date: string;
@@ -159,6 +165,55 @@ export type ApiScannerSummary = {
   checkInPercentage: number;
 };
 
+export type ApiSettlementSummary = {
+  confirmedSales: number;
+  platformFees: number;
+  paystackFees: number;
+  expectedNetSettlement: number;
+  totalPaidOrders: number;
+  pendingSettlement: number;
+  settled: number;
+  totalEventsWithSales?: number;
+};
+
+export type ApiSettlementOrder = {
+  id: string;
+  eventId?: string;
+  eventTitle?: string;
+  buyerName: string;
+  buyerEmail: string;
+  paymentReference: string;
+  grossAmount: number;
+  platformFeeTotal: number;
+  paystackFeeTotal: number;
+  expectedNetSettlement: number;
+  settlementStatus: "pending" | "processing" | "settled" | "failed";
+  paidAt?: string;
+  settlementDate?: string | null;
+};
+
+export type ApiSettlementEvent = {
+  eventId: string;
+  title: string;
+  date: string;
+  location: string;
+  confirmedSales: number;
+  pendingSettlement: number;
+  settled: number;
+  platformFees: number;
+  paystackFees: number;
+  expectedNetSettlement: number;
+  totalPaidOrders: number;
+};
+
+export type ApiPagination = {
+  page: number;
+  perPage: number;
+  totalOrders?: number;
+  totalPages: number;
+  total?: number;
+};
+
 export type ApiEventAttendee = {
   id: string;
   buyerName: string;
@@ -262,14 +317,25 @@ export type OrganizerDashboardData = {
     revenue: number;
     checkIns: number;
     checkInPercentage: number;
+    confirmedSales: number;
+    pendingSettlement: number;
+    settledRevenue: number;
+    platformFees: number;
+    paystackFees: number;
+    expectedNetSettlement: number;
+    totalPaidOrders: number;
+    totalEventsWithSales: number;
   };
   nextEvent: OrganizerEvent | null;
+  settlementEvents: ApiSettlementEvent[];
+  recentSettlementOrders: ApiSettlementOrder[];
 };
 
 export type OrganizerEventDetailsData = {
   organizer: Pick<ApiOrganizer, "_id" | "name" | "slug" | "heroTitle">;
   event: EventCardProps;
   totalSold: number;
+  ticketTypeBreakdown: TicketTypeBreak[];
 };
 
 export type OrganizerGalleryItem = {
