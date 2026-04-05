@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   LuArrowUpRight,
   LuChartColumnIncreasing,
   LuCircleCheck,
+  LuRefreshCw,
   LuTrendingUp,
   LuUsers,
 } from "react-icons/lu";
@@ -13,11 +15,15 @@ import { TbCoin } from "react-icons/tb";
 
 import Card from "@/components/Card";
 import FullPageLoader from "@/components/FullPageLoader";
-import OrganizerEventsSection from "@/components/OrganizerEventsSection";
+import SectionPagination from "@/components/SectionPagination";
 import WorkspaceTopbar from "@/components/WorkspaceTopbar";
 import { useAuthSession } from "@/helpers/auth-client";
 import { formatCurrency, formatNumber } from "@/helpers/format";
-import { getOrganizerDashboardData } from "@/helpers/organizer-api";
+import {
+  getOrganizerDashboardData,
+  getOrganizerOverallSettlementSummary,
+  syncOrganizerSettlements,
+} from "@/helpers/organizer-api";
 
 function StatCard({
   title,
@@ -55,10 +61,29 @@ function StatCard({
 
 function OrganizerDashboardClient({ organizer }: { organizer: string }) {
   const { token, user: authUser } = useAuthSession();
+  const queryClient = useQueryClient();
+  const [settlementPage, setSettlementPage] = useState(1);
   const { data, isLoading, error } = useQuery({
     queryKey: ["organizer-dashboard", organizer],
     queryFn: () => getOrganizerDashboardData(organizer),
     enabled: Boolean(token) && authUser?.role !== "staff",
+  });
+  const { data: settlementData, isFetching: isSettlementFetching } = useQuery({
+    queryKey: ["organizer-dashboard-settlements", organizer, settlementPage],
+    queryFn: () => getOrganizerOverallSettlementSummary(settlementPage, 6),
+    enabled: Boolean(token) && authUser?.role !== "staff",
+    placeholderData: (previousData) => previousData,
+  });
+  const settlementSyncMutation = useMutation({
+    mutationFn: syncOrganizerSettlements,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: ["organizer-dashboard", organizer],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ["organizer-dashboard-settlements", organizer],
+      });
+    },
   });
 
   if (!token) {
@@ -169,7 +194,7 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
               </Link>
 
               <Link
-                href={`/${organizer}/events`}
+                href={`/${organizer}/dashboard/events`}
                 className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-purple-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
               >
                 Manage Events
@@ -227,7 +252,7 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
 
                 <div className="mt-6">
                   <Link
-                    href={`/${organizer}/events`}
+                    href={`/${organizer}/dashboard/events`}
                     className="inline-flex h-11 w-full items-center justify-center rounded-lg bg-purple-600 px-5 text-sm font-semibold text-white transition hover:bg-purple-700"
                   >
                     View Your Events
@@ -270,9 +295,218 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
             icon={<LuUsers size={20} />}
           />
         </div>
+
+        <div className="mt-10">
+          <h3 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
+            Sales & Settlement
+          </h3>
+          <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-slate-600 dark:text-slate-300">
+              Keep track of confirmed sales, payout deductions, and what has
+              already settled.
+            </p>
+
+            <button
+              type="button"
+              onClick={() => settlementSyncMutation.mutate()}
+              disabled={settlementSyncMutation.isPending}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-70 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+            >
+              <LuRefreshCw className="text-base" />
+              {settlementSyncMutation.isPending
+                ? "Syncing..."
+                : "Sync Settlements"}
+            </button>
+          </div>
+
+          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <StatCard
+              title="Total Sales (Confirmed)"
+              value={formatCurrency(data.totals.confirmedSales)}
+              helper={`${formatNumber(data.totals.totalPaidOrders)} paid orders`}
+              icon={<TbCoin size={20} />}
+            />
+            <StatCard
+              title="Pending Settlement"
+              value={formatCurrency(data.totals.pendingSettlement)}
+              helper="Paid orders still waiting to settle"
+              icon={<LuTrendingUp size={20} />}
+            />
+            <StatCard
+              title="Settled"
+              value={formatCurrency(data.totals.settledRevenue)}
+              helper="Already paid out to your account"
+              icon={<LuCircleCheck size={20} />}
+            />
+          </div>
+
+          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <StatCard
+              title="Expected Net Settlement"
+              value={formatCurrency(data.totals.expectedNetSettlement)}
+              helper="Confirmed sales after platform and Paystack fees"
+              icon={<LuArrowUpRight size={20} />}
+            />
+            <StatCard
+              title="Platform Fees"
+              value={formatCurrency(data.totals.platformFees)}
+              helper="Platform charges across paid orders"
+              icon={<LuChartColumnIncreasing size={20} />}
+            />
+            <StatCard
+              title="Paystack Fees"
+              value={formatCurrency(data.totals.paystackFees)}
+              helper={`${formatNumber(data.totals.totalEventsWithSales)} events with sales`}
+              icon={<LuUsers size={20} />}
+            />
+          </div>
+
+          {settlementSyncMutation.isError ? (
+            <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-200">
+              {settlementSyncMutation.error instanceof Error
+                ? settlementSyncMutation.error.message
+                : "We couldn't sync settlements right now."}
+            </div>
+          ) : null}
+
+          {settlementData?.events.length ? (
+            <div className="flex flex-col mt-8 gap-8">
+              <div className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/5">
+                <div className="border-b border-slate-200 px-5 py-4 dark:border-white/10">
+                  <h4 className="text-lg font-bold text-slate-900 dark:text-white">
+                    Event Settlement Breakdown
+                  </h4>
+                  <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                    Events with paid orders and their current settlement
+                    progress.
+                  </p>
+                </div>
+
+                <div className="overflow-auto">
+                  <table className="min-w-full text-left text-sm">
+                    <thead className="bg-slate-50 text-slate-600 dark:bg-white/10 dark:text-slate-300">
+                      <tr>
+                        <th className="px-5 py-4 font-semibold">Event</th>
+                        <th className="px-5 py-4 font-semibold">Confirmed</th>
+                        <th className="px-5 py-4 font-semibold">Pending</th>
+                        <th className="px-5 py-4 font-semibold">Settled</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200 dark:divide-white/10">
+                      {settlementData.events.map((event) => (
+                        <tr
+                          key={event.eventId}
+                          className="text-slate-900 dark:text-white"
+                        >
+                          <td className="px-5 py-4">
+                            <div className="font-semibold">{event.title}</div>
+                            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                              {event.location}
+                            </div>
+                          </td>
+                          <td className="px-5 py-4">
+                            {formatCurrency(event.confirmedSales)}
+                          </td>
+                          <td className="px-5 py-4">
+                            {formatCurrency(event.pendingSettlement)}
+                          </td>
+                          <td className="px-5 py-4">
+                            {formatCurrency(event.settled)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/5">
+                <div className="border-b border-slate-200 px-5 py-4 dark:border-white/10">
+                  <h4 className="text-lg font-bold text-slate-900 dark:text-white">
+                    Recent Paid Orders
+                  </h4>
+                  <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                    Latest paid orders in your settlement summary.
+                  </p>
+                </div>
+
+                <div className="px-5 py-4">
+                  <div className="space-y-3">
+                    {settlementData.recentOrders.length ? (
+                      settlementData.recentOrders.map((order) => (
+                        <div
+                          key={order.id}
+                          className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-slate-900/70"
+                        >
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="min-w-0">
+                              <p className="font-semibold text-slate-900 dark:text-white">
+                                {order.buyerName}
+                              </p>
+                              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                {order.eventTitle || order.paymentReference}
+                              </p>
+                            </div>
+                            <span className="inline-flex rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-700 dark:bg-purple-500/15 dark:text-purple-300">
+                              {order.settlementStatus}
+                            </span>
+                          </div>
+                          <div className="mt-3 flex items-center justify-between text-sm">
+                            <span className="text-slate-600 dark:text-slate-300">
+                              Gross
+                            </span>
+                            <span className="font-semibold text-slate-900 dark:text-white">
+                              {formatCurrency(order.grossAmount)}
+                            </span>
+                          </div>
+                          <div className="mt-2 flex items-center justify-between text-sm">
+                            <span className="text-slate-600 dark:text-slate-300">
+                              Net
+                            </span>
+                            <span className="font-semibold text-slate-900 dark:text-white">
+                              {formatCurrency(order.expectedNetSettlement)}
+                            </span>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-600 dark:border-white/10 dark:bg-slate-900/40 dark:text-slate-300">
+                        No paid orders available yet.
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <SectionPagination
+                  page={settlementData.pagination.page}
+                  totalPages={settlementData.pagination.totalPages}
+                  onPrevious={() =>
+                    setSettlementPage((currentPage) =>
+                      Math.max(1, currentPage - 1),
+                    )
+                  }
+                  onNext={() =>
+                    setSettlementPage((currentPage) =>
+                      Math.min(
+                        settlementData.pagination.totalPages,
+                        currentPage + 1,
+                      ),
+                    )
+                  }
+                  isPreviousDisabled={
+                    settlementPage <= 1 || isSettlementFetching
+                  }
+                  isNextDisabled={
+                    settlementPage >= settlementData.pagination.totalPages ||
+                    isSettlementFetching
+                  }
+                />
+              </div>
+            </div>
+          ) : null}
+        </div>
       </section>
 
-      <OrganizerEventsSection events={data.events} organizer={organizer} />
     </main>
   );
 }

@@ -18,10 +18,12 @@ import type { TicketTypeBreak } from "@/helpers/type";
 interface Props {
   ticketTypes: TicketTypeBreak[];
   eventId: string;
+  detailHref?: string;
+  detailLabel?: string;
 }
 
 function TicketTypeBreakdown(props: Props) {
-  const { ticketTypes, eventId } = props;
+  const { ticketTypes, eventId, detailHref, detailLabel = "View Event Details" } = props;
   const params = useParams<{ organizer?: string }>();
   const organizer = params?.organizer;
   const queryClient = useQueryClient();
@@ -144,7 +146,7 @@ function TicketTypeBreakdown(props: Props) {
           ))}
         </div>
 
-        <div className="mt-6 grid grid-cols-1 gap-3 lg:grid-cols-3">
+        <div className="mt-6 grid grid-cols-1 gap-3 lg:grid-cols-2">
           <Link
             href={verifyHref}
             className="inline-flex items-center justify-center rounded-xl bg-purple-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-purple-800 active:scale-[0.99]"
@@ -152,21 +154,15 @@ function TicketTypeBreakdown(props: Props) {
             Verify Tickets
           </Link>
 
-          <button
-            type="button"
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-purple-50 active:scale-[0.99] dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
-          >
-            <LuDownload className="text-base" />
-            Export Attendees
-          </button>
-
-          <button
-            type="button"
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-purple-50 active:scale-[0.99] dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
-          >
-            <LuDownload className="text-base" />
-            Export Report
-          </button>
+          {detailHref ? (
+            <Link
+              href={detailHref}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-purple-50 active:scale-[0.99] dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+            >
+              <LuDownload className="text-base" />
+              {detailLabel}
+            </Link>
+          ) : null}
         </div>
 
         <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-900">

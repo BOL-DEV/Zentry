@@ -12,7 +12,11 @@ import type {
   ApiOrderItem,
   ApiOrderStatus,
   ApiPaymentInitialization,
+  ApiPagination,
   ApiScannerSummary,
+  ApiSettlementEvent,
+  ApiSettlementOrder,
+  ApiSettlementSummary,
   ApiTicket,
   ApiTicketType,
   EventCardProps,
@@ -72,6 +76,17 @@ function parsePolicies(value?: string) {
   return parts.length > 0 ? parts : [value];
 }
 
+function getEventImageUrl(event: Pick<ApiEvent, "posterUrl" | "imageUrl" | "title">) {
+  const candidate = event.posterUrl?.trim() || event.imageUrl?.trim();
+
+  if (candidate) {
+    return candidate;
+  }
+
+  const title = encodeURIComponent(event.title || "Event");
+  return `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800"><rect width="1200" height="800" fill="%23ede9fe"/><rect x="60" y="60" width="1080" height="680" rx="36" fill="%23c4b5fd"/><text x="50%25" y="48%25" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="58" fill="%233b0764">Event Image</text><text x="50%25" y="58%25" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" fill="%235b21b6">${title}</text></svg>`;
+}
+
 function buildBuyHref(slug: string, eventId: string, ticketType: ApiTicketType) {
   if (!ticketType.isActive) return undefined;
   return `/${slug}/events/${eventId}/checkout?ticketTypeId=${ticketType._id}`;
@@ -110,7 +125,7 @@ function mapEventCard(
 
   return {
     id: event._id,
-    imageUrl: event.posterUrl,
+    imageUrl: getEventImageUrl(event),
     title: event.title,
     description: event.description,
     dateTimeText: formatDateTimeText(new Date(event.date)),
@@ -135,7 +150,7 @@ function mapPastEvent(
     title: event.title,
     dateText: formatDateText(new Date(event.date)),
     ticketsSold,
-    imageUrl: event.posterUrl,
+    imageUrl: getEventImageUrl(event),
   };
 }
 
@@ -380,7 +395,7 @@ export async function getAllPublicEventsData(): Promise<AdminEventListItem[]> {
     .map((event) => ({
       id: event._id,
       title: event.title,
-      imageUrl: event.posterUrl,
+      imageUrl: getEventImageUrl(event),
       dateTimeText: formatDateTimeText(new Date(event.date)),
       locationText: event.location,
       organizerId:
@@ -426,13 +441,17 @@ export async function getOrganizerEventDetails(
     },
     event: mapEventCard(event, ticketTypes, slug),
     totalSold,
+    ticketTypeBreakdown: ticketTypes
+      .slice()
+      .sort((left, right) => left.displayOrder - right.displayOrder)
+      .map(mapTicketBreak),
   };
 }
 
 export async function getOrganizerDashboardData(
   slug: string,
 ): Promise<OrganizerDashboardData> {
-  const [organizer, summaryResponse, organizerEventsWithTickets] =
+  const [organizer, summaryResponse, organizerEventsWithTickets, settlementData] =
     await Promise.all([
       fetchOrganizer(slug),
       apiFetch<{ summary: ApiDashboardSummary }>(
@@ -440,6 +459,7 @@ export async function getOrganizerDashboardData(
         { auth: true },
       ),
       fetchOrganizerEventsWithTickets(slug),
+      getOrganizerOverallSettlementSummary().catch(() => null),
     ]);
 
   const scannerSummaryEntries = await Promise.all(
@@ -497,12 +517,93 @@ export async function getOrganizerDashboardData(
       revenue: summaryResponse.data.summary.totalRevenue,
       checkIns: totalCheckedIn,
       checkInPercentage: totalCheckInPercentage,
+      confirmedSales:
+        settlementData?.summary.confirmedSales ??
+        summaryResponse.data.summary.totalRevenue,
+      pendingSettlement: settlementData?.summary.pendingSettlement ?? 0,
+      settledRevenue:
+        settlementData?.summary.settled ??
+        summaryResponse.data.summary.totalRevenue,
+      platformFees: settlementData?.summary.platformFees ?? 0,
+      paystackFees: settlementData?.summary.paystackFees ?? 0,
+      expectedNetSettlement:
+        settlementData?.summary.expectedNetSettlement ??
+        summaryResponse.data.summary.totalRevenue,
+      totalPaidOrders: settlementData?.summary.totalPaidOrders ?? 0,
+      totalEventsWithSales: settlementData?.summary.totalEventsWithSales ?? 0,
     },
     nextEvent: nextEvent
       ? events.find((event) => event.id === nextEvent._id) ??
         mapOrganizerEvent(nextEvent, nextEvent.ticketTypes)
       : null,
+    settlementEvents: settlementData?.events ?? [],
+    recentSettlementOrders: settlementData?.recentOrders ?? [],
   };
+}
+
+export async function syncOrganizerSettlements() {
+  const response = await apiFetch<{
+    settlementsChecked: number;
+    transactionsChecked: number;
+    ordersUpdated: number;
+    unmatchedTransactions: Array<{
+      settlementId: number;
+      reference: string;
+      transactionId: string;
+      amount: number;
+    }>;
+  }>(`/organizer/dashboard/sync-settlements`, {
+    method: "POST",
+    auth: true,
+  });
+
+  return response.data;
+}
+
+export async function getOrganizerOverallSettlementSummary(
+  page = 1,
+  perPage = 20,
+): Promise<{
+  summary: ApiSettlementSummary;
+  events: ApiSettlementEvent[];
+  pagination: ApiPagination;
+  recentOrders: ApiSettlementOrder[];
+}> {
+  const response = await apiFetch<{
+    summary: ApiSettlementSummary;
+    events: ApiSettlementEvent[];
+    pagination: ApiPagination;
+    recentOrders: ApiSettlementOrder[];
+  }>(`/organizer/dashboard/overall-settlement-summary?page=${page}&perPage=${perPage}`, {
+    auth: true,
+  });
+
+  return response.data;
+}
+
+export async function getOrganizerEventSettlementSummary(
+  eventId: string,
+  page = 1,
+  perPage = 20,
+): Promise<{
+  event: { id: string; title: string; date: string; location: string };
+  summary: ApiSettlementSummary;
+  pagination: ApiPagination;
+  orders: ApiSettlementOrder[];
+}> {
+  const response = await apiFetch<{
+    event: { id: string; title: string; date: string; location: string };
+    summary: ApiSettlementSummary;
+    pagination: ApiPagination;
+    orders: ApiSettlementOrder[];
+  }>(
+    `/organizer/dashboard/events/${eventId}/settlement-summary?page=${page}&perPage=${perPage}`,
+    {
+      auth: true,
+    },
+  );
+
+  return response.data;
 }
 
 export async function getOrganizerStaffWorkspaceData(
@@ -646,6 +747,7 @@ export async function createOrganizerGalleryItem(
 export async function loginDashboardUser(input: {
   email: string;
   password: string;
+  deviceName?: string;
 }) {
   const response = await fetch(resolveUrl(`/auth/login`), {
     method: "POST",
@@ -664,6 +766,15 @@ export async function loginDashboardUser(input: {
   }
 
   return payload;
+}
+
+export async function logoutDashboardUser() {
+  const response = await apiFetch<Record<string, never>>(`/auth/logout`, {
+    method: "POST",
+    auth: true,
+  });
+
+  return response;
 }
 
 export async function getOrganizerScannerSummary(eventId: string) {
