@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import {
   LuArrowUpRight,
@@ -12,11 +14,14 @@ import {
 import Card from "@/components/Card";
 import FullPageLoader from "@/components/FullPageLoader";
 import WorkspaceTopbar from "@/components/WorkspaceTopbar";
+import { clearAuthToken } from "@/helpers/auth";
+import { isAuthIssue } from "@/helpers/auth-redirect";
 import { useAuthSession } from "@/helpers/auth-client";
 import { formatNumber } from "@/helpers/format";
 import { getOrganizerStaffWorkspaceData } from "@/helpers/organizer-api";
 
 function OrganizerStaffDashboardClient({ organizer }: { organizer: string }) {
+  const router = useRouter();
   const { token, user: authUser } = useAuthSession();
 
   const { data, isLoading, error } = useQuery({
@@ -25,24 +30,21 @@ function OrganizerStaffDashboardClient({ organizer }: { organizer: string }) {
     enabled: Boolean(token),
   });
 
+  useEffect(() => {
+    if (!token) {
+      router.replace(`/login?next=/${organizer}/staff&reason=auth-required`);
+    }
+  }, [organizer, router, token]);
+
+  useEffect(() => {
+    if (!isAuthIssue(error)) return;
+
+    clearAuthToken();
+    router.replace(`/login?next=/${organizer}/staff&reason=session-expired`);
+  }, [error, organizer, router]);
+
   if (!token) {
-    return (
-      <main className="bg-purple-100 dark:bg-slate-950/90">
-        <div className="mx-auto max-w-6xl px-6 pt-28 pb-16">
-          <Card>
-            <p className="text-sm text-slate-600 dark:text-slate-300">
-              Sign in to open the guest check-in area.
-            </p>
-            <Link
-              href={`/login?next=/${organizer}/staff`}
-              className="mt-4 inline-flex h-11 items-center justify-center rounded-lg bg-purple-600 px-5 text-sm font-semibold text-white transition hover:bg-purple-700"
-            >
-              Sign In
-            </Link>
-          </Card>
-        </div>
-      </main>
-    );
+    return <FullPageLoader title="Redirecting to login" description="Taking you back to sign in." />;
   }
 
   if (isLoading) {

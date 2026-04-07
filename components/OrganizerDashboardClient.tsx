@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   LuArrowUpRight,
@@ -17,6 +18,8 @@ import Card from "@/components/Card";
 import FullPageLoader from "@/components/FullPageLoader";
 import SectionPagination from "@/components/SectionPagination";
 import WorkspaceTopbar from "@/components/WorkspaceTopbar";
+import { clearAuthToken } from "@/helpers/auth";
+import { isAuthIssue } from "@/helpers/auth-redirect";
 import { useAuthSession } from "@/helpers/auth-client";
 import { formatCurrency, formatNumber } from "@/helpers/format";
 import {
@@ -60,6 +63,7 @@ function StatCard({
 }
 
 function OrganizerDashboardClient({ organizer }: { organizer: string }) {
+  const router = useRouter();
   const { token, user: authUser } = useAuthSession();
   const queryClient = useQueryClient();
   const [settlementPage, setSettlementPage] = useState(1);
@@ -86,23 +90,29 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
     },
   });
 
+  useEffect(() => {
+    if (!token) {
+      router.replace(
+        `/login?next=/${organizer}/dashboard&reason=auth-required`,
+      );
+    }
+  }, [organizer, router, token]);
+
+  useEffect(() => {
+    if (!isAuthIssue(error)) return;
+
+    clearAuthToken();
+    router.replace(
+      `/login?next=/${organizer}/dashboard&reason=session-expired`,
+    );
+  }, [error, organizer, router]);
+
   if (!token) {
     return (
-      <main className="bg-purple-100 dark:bg-slate-950/90">
-        <div className="mx-auto lg:max-w-7xl px-6 pt-28 pb-10">
-          <Card>
-            <p className="text-sm text-slate-600 dark:text-slate-300">
-              Sign in to view your event dashboard.
-            </p>
-            <Link
-              href={`/login?next=/${organizer}/dashboard`}
-              className="mt-4 inline-flex h-11 items-center justify-center rounded-lg bg-purple-600 px-5 text-sm font-semibold text-white transition hover:bg-purple-700"
-            >
-              Sign In
-            </Link>
-          </Card>
-        </div>
-      </main>
+      <FullPageLoader
+        title="Redirecting to login"
+        description="Taking you back to sign in."
+      />
     );
   }
 
@@ -173,13 +183,6 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
               <Link
-                href={`/${organizer}/dashboard`}
-                className="inline-flex h-11 items-center justify-center rounded-lg bg-purple-600 px-5 text-sm font-semibold text-white transition hover:bg-purple-700"
-              >
-                Open Dashboard
-              </Link>
-
-              <Link
                 href={`/${organizer}/dashboard/create`}
                 className="inline-flex h-11 items-center justify-center rounded-lg bg-emerald-600 px-5 text-sm font-semibold text-white transition hover:bg-emerald-700"
               >
@@ -198,6 +201,14 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
                 className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-purple-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
               >
                 Manage Events
+                <LuArrowUpRight className="text-base" />
+              </Link>
+
+              <Link
+                href={`/${organizer}/dashboard/staff-sessions`}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-purple-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+              >
+                Staff Sessions
                 <LuArrowUpRight className="text-base" />
               </Link>
             </div>
@@ -506,7 +517,6 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
           ) : null}
         </div>
       </section>
-
     </main>
   );
 }

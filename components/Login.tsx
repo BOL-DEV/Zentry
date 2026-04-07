@@ -8,15 +8,15 @@ import { loginDashboardUser } from "@/helpers/organizer-api";
 
 interface Props {
   redirectTo?: string;
+  notice?: string;
 }
 
 function Login(props: Props) {
-  const { redirectTo } = props;
+  const { redirectTo, notice } = props;
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [deviceName, setDeviceName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -27,7 +27,6 @@ function Login(props: Props) {
 
     try {
       const resolvedDeviceName =
-        deviceName.trim() ||
         (typeof window !== "undefined" ? window.navigator.platform : "") ||
         "This device";
 
@@ -72,6 +71,12 @@ function Login(props: Props) {
         </header>
 
         <div className="w-full rounded-2xl border border-purple-200/70 bg-white p-8 shadow-md md:p-8 dark:border-white/10 dark:bg-white/5">
+          {notice ? (
+            <div className="mb-5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-100">
+              {notice}
+            </div>
+          ) : null}
+
           <form className="space-y-5" onSubmit={handleSubmit}>
             <div className="space-y-2">
               <label
@@ -88,24 +93,6 @@ function Login(props: Props) {
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 required
-                className={inputStyles}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label
-                htmlFor="deviceName"
-                className="block text-sm font-medium text-slate-800 dark:text-slate-200"
-              >
-                Device Name
-              </label>
-              <input
-                type="text"
-                id="deviceName"
-                name="deviceName"
-                value={deviceName}
-                onChange={(event) => setDeviceName(event.target.value)}
-                placeholder="My phone"
                 className={inputStyles}
               />
             </div>

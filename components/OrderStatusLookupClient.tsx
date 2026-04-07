@@ -12,6 +12,7 @@ import {
 } from "react-icons/lu";
 
 import Card from "@/components/Card";
+import { getStoredOrderAccessContext, storeOrderAccessContext } from "@/helpers/order-access";
 import { getOrderStatus, getOrderTickets } from "@/helpers/organizer-api";
 
 function OrderStatusLookupClient({
@@ -21,18 +22,41 @@ function OrderStatusLookupClient({
 }) {
   const [orderIdInput, setOrderIdInput] = useState(initialOrderId);
   const [activeOrderId, setActiveOrderId] = useState(initialOrderId);
+  const [storedAccessToken] = useState(() =>
+    typeof window === "undefined"
+      ? ""
+      : getStoredOrderAccessContext().accessToken || "",
+  );
+  const [buyerEmailInput, setBuyerEmailInput] = useState(() =>
+    typeof window === "undefined"
+      ? ""
+      : getStoredOrderAccessContext().buyerEmail || "",
+  );
+  const [activeBuyerEmail, setActiveBuyerEmail] = useState(() =>
+    typeof window === "undefined"
+      ? ""
+      : getStoredOrderAccessContext().buyerEmail || "",
+  );
   const [copied, setCopied] = useState(false);
 
+  const activeAccess = useMemo(
+    () => ({
+      accessToken: storedAccessToken || undefined,
+      buyerEmail: activeBuyerEmail.trim() || undefined,
+    }),
+    [activeBuyerEmail, storedAccessToken],
+  );
+
   const orderStatusQuery = useQuery({
-    queryKey: ["public-order-status", activeOrderId],
-    queryFn: () => getOrderStatus(activeOrderId),
+    queryKey: ["public-order-status", activeOrderId, activeAccess.accessToken, activeAccess.buyerEmail],
+    queryFn: () => getOrderStatus(activeOrderId, activeAccess),
     enabled: Boolean(activeOrderId),
     retry: false,
   });
 
   const ticketsQuery = useQuery({
-    queryKey: ["public-order-tickets", activeOrderId],
-    queryFn: () => getOrderTickets(activeOrderId),
+    queryKey: ["public-order-tickets", activeOrderId, activeAccess.accessToken, activeAccess.buyerEmail],
+    queryFn: () => getOrderTickets(activeOrderId, activeAccess),
     enabled: Boolean(activeOrderId) && orderStatusQuery.data?.orderStatus.isPaid,
     retry: false,
   });
@@ -64,19 +88,35 @@ function OrderStatusLookupClient({
             Check Payment Status
           </h1>
           <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-            Enter your order ID to check whether payment went through and view your ticket details.
+            Enter your order ID and the buyer email used at checkout to check payment progress and ticket details.
           </p>
 
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+          <div className="mt-6 grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
             <input
               value={orderIdInput}
               onChange={(event) => setOrderIdInput(event.target.value)}
               placeholder="Enter order ID"
               className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-purple-600 focus:ring-4 focus:ring-purple-600/15 dark:border-white/10 dark:bg-white/5 dark:text-white"
             />
+            <input
+              value={buyerEmailInput}
+              onChange={(event) => setBuyerEmailInput(event.target.value)}
+              placeholder="Buyer email"
+              type="email"
+              className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-purple-600 focus:ring-4 focus:ring-purple-600/15 dark:border-white/10 dark:bg-white/5 dark:text-white"
+            />
             <button
               type="button"
-              onClick={() => setActiveOrderId(orderIdInput.trim())}
+              onClick={() => {
+                const nextOrderId = orderIdInput.trim();
+                const nextBuyerEmail = buyerEmailInput.trim();
+                setActiveOrderId(nextOrderId);
+                setActiveBuyerEmail(nextBuyerEmail);
+                storeOrderAccessContext({
+                  orderId: nextOrderId,
+                  buyerEmail: nextBuyerEmail,
+                });
+              }}
               className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-purple-600 px-5 text-sm font-semibold text-white transition hover:bg-purple-700"
             >
               <LuSearch className="text-base" />
