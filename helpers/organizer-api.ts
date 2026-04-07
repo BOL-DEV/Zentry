@@ -1,5 +1,6 @@
 import { formatDateText, formatDateTimeText } from "@/helpers/date";
 import { apiFetch, resolveUrl } from "@/helpers/api";
+import type { OrderAccessContext } from "@/helpers/order-access";
 import type {
   AdminEventListItem,
   ApiAuthResponse,
@@ -14,6 +15,7 @@ import type {
   ApiPaymentInitialization,
   ApiPagination,
   ApiScannerSummary,
+  ApiStaffSession,
   ApiSettlementEvent,
   ApiSettlementOrder,
   ApiSettlementSummary,
@@ -65,6 +67,38 @@ function titleCase(value: string) {
     .join(" ");
 }
 
+function pickDefinedString(...values: Array<string | undefined>) {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) {
+      return value;
+    }
+  }
+
+  return undefined;
+}
+
+function isValidDateInput(value?: string) {
+  if (!value?.trim()) return false;
+  return !Number.isNaN(new Date(value).getTime());
+}
+
+function mergeEventDetails(primary: ApiEvent, fallback?: ApiEvent): ApiEvent {
+  if (!fallback) return primary;
+
+  return {
+    ...fallback,
+    ...primary,
+    title: pickDefinedString(primary.title, fallback.title) || "",
+    description: pickDefinedString(primary.description, fallback.description) || "",
+    location: pickDefinedString(primary.location, fallback.location) || "",
+    posterUrl: pickDefinedString(primary.posterUrl, fallback.posterUrl),
+    imageUrl: pickDefinedString(primary.imageUrl, fallback.imageUrl),
+    dressCode: pickDefinedString(primary.dressCode, fallback.dressCode),
+    policies: pickDefinedString(primary.policies, fallback.policies),
+    date: isValidDateInput(primary.date) ? primary.date : fallback.date,
+  };
+}
+
 function parsePolicies(value?: string) {
   if (!value) return [] as string[];
 
@@ -97,6 +131,11 @@ function mapTicketType(
   slug: string,
   eventId: string,
 ): TicketType {
+  const quantityReserved =
+    typeof ticketType.quantityReserved === "number"
+      ? ticketType.quantityReserved
+      : 0;
+
   return {
     id: ticketType._id,
     name: titleCase(ticketType.name),
@@ -105,7 +144,9 @@ function mapTicketType(
     sold: ticketType.quantitySold,
     remaining: Math.max(
       0,
-      ticketType.quantityAvailable - ticketType.quantitySold,
+      ticketType.quantityAvailable -
+        ticketType.quantitySold -
+        quantityReserved,
     ),
     total: ticketType.quantityAvailable,
     isActive: ticketType.isActive,
@@ -242,11 +283,15 @@ async function fetchOrganizerLandingEvents(slug: string) {
 
 async function fetchOrganizerEvent(slug: string, eventId: string) {
   const response = await apiFetch<{
-    organizer: Pick<ApiOrganizer, "_id" | "name" | "slug">;
+    organizer: Pick<ApiOrganizer, "name" | "slug"> & { _id?: string };
     event: ApiEvent;
+    ticketTypes?: ApiTicketType[];
   }>(`/organizer/${slug}/events/${eventId}`);
 
-  return response.data;
+  return {
+    ...response.data,
+    ticketTypes: response.data.ticketTypes ?? [],
+  };
 }
 
 async function fetchOrganizerGallery(slug: string) {
@@ -267,6 +312,23 @@ async function fetchEventTicketTypes(slug: string, eventId: string) {
   }>(`/organizer/${slug}/events/${eventId}/ticket-types`);
 
   return response.data.ticketTypes;
+}
+
+function getOrderAccessHeaders(access?: OrderAccessContext) {
+  const headers: Record<string, string> = {};
+
+  const accessToken = access?.accessToken?.trim();
+  if (accessToken) {
+    headers["x-order-access-token"] = accessToken;
+    return headers;
+  }
+
+  const buyerEmail = access?.buyerEmail?.trim();
+  if (buyerEmail) {
+    headers["x-buyer-email"] = buyerEmail;
+  }
+
+  return headers;
 }
 
 async function fetchOrganizerEventsWithTickets(
@@ -353,7 +415,7 @@ export async function getOrganizerOverview(
   }, 0);
 
   return {
-    id: organizer._id,
+    id: organizer._id ?? organizer.slug,
     slug: organizer.slug,
     name: organizer.name,
     logo: organizer.logoUrl,
@@ -422,26 +484,35 @@ export async function getOrganizerEventDetails(
   slug: string,
   eventId: string,
 ): Promise<OrganizerEventDetailsData> {
-  const [{ organizer, event }, ticketTypes] = await Promise.all([
+  const [{ organizer, event, ticketTypes }, organizerEventsData] = await Promise.all([
     fetchOrganizerEvent(slug, eventId),
-    fetchEventTicketTypes(slug, eventId),
+    fetchOrganizerEvents(slug).catch(() => null),
   ]);
 
-  const totalSold = ticketTypes.reduce(
+  const fallbackEvent = organizerEventsData?.events.find(
+    (candidate) => candidate._id === eventId,
+  );
+  const resolvedEvent = mergeEventDetails(event, fallbackEvent);
+  const resolvedTicketTypes =
+    ticketTypes.length > 0
+      ? ticketTypes
+      : await fetchEventTicketTypes(slug, eventId).catch(() => []);
+
+  const totalSold = resolvedTicketTypes.reduce(
     (sum, ticketType) => sum + ticketType.quantitySold,
     0,
   );
 
   return {
     organizer: {
-      _id: organizer._id,
+      _id: organizer._id ?? "",
       name: organizer.name,
       slug: organizer.slug,
       heroTitle: "",
     },
-    event: mapEventCard(event, ticketTypes, slug),
+    event: mapEventCard(resolvedEvent, resolvedTicketTypes, slug),
     totalSold,
-    ticketTypeBreakdown: ticketTypes
+    ticketTypeBreakdown: resolvedTicketTypes
       .slice()
       .sort((left, right) => left.displayOrder - right.displayOrder)
       .map(mapTicketBreak),
@@ -668,7 +739,10 @@ export async function createPurchase(
   return response.data;
 }
 
-export async function initializeOrderPayment(orderId: string): Promise<{
+export async function initializeOrderPayment(
+  orderId: string,
+  access?: OrderAccessContext,
+): Promise<{
   order: ApiOrder;
   payment: ApiPaymentInitialization;
 }> {
@@ -677,39 +751,53 @@ export async function initializeOrderPayment(orderId: string): Promise<{
     payment: ApiPaymentInitialization;
   }>(`/orders/${orderId}/pay`, {
     method: "POST",
+    headers: getOrderAccessHeaders(access),
   });
 
   return response.data;
 }
 
-export async function getOrderTickets(orderId: string): Promise<{
+export async function getOrderTickets(
+  orderId: string,
+  access?: OrderAccessContext,
+): Promise<{
   order: ApiOrder;
   tickets: ApiTicket[];
 }> {
   const response = await apiFetch<{
     order: ApiOrder;
     tickets: ApiTicket[];
-  }>(`/orders/${orderId}/tickets`);
+  }>(`/orders/${orderId}/tickets`, {
+    headers: getOrderAccessHeaders(access),
+  });
 
   return response.data;
 }
 
 export async function getOrderByPaymentReference(
   paymentReference: string,
+  access?: OrderAccessContext,
 ): Promise<{ order: ApiOrder }> {
   const response = await apiFetch<{
     order: ApiOrder;
-  }>(`/orders/payment-reference/${encodeURIComponent(paymentReference)}`);
+  }>(`/orders/payment-reference/${encodeURIComponent(paymentReference)}`, {
+    headers: getOrderAccessHeaders(access),
+  });
 
   return response.data;
 }
 
-export async function getOrderStatus(orderId: string): Promise<{
+export async function getOrderStatus(
+  orderId: string,
+  access?: OrderAccessContext,
+): Promise<{
   orderStatus: ApiOrderStatus;
 }> {
   const response = await apiFetch<{
     orderStatus: ApiOrderStatus;
-  }>(`/orders/${orderId}/status`);
+  }>(`/orders/${orderId}/status`, {
+    headers: getOrderAccessHeaders(access),
+  });
 
   return response.data;
 }
@@ -855,4 +943,45 @@ export async function verifyDashboardTicket(
   );
 
   return response.data.ticket;
+}
+
+export async function getStaffSessions(staffId: string): Promise<{
+  sessions: ApiStaffSession[];
+}> {
+  const response = await apiFetch<{
+    sessions: ApiStaffSession[];
+  }>(`/organizer/dashboard/staff/${staffId}/sessions`, {
+    auth: true,
+  });
+
+  return {
+    sessions: response.data.sessions ?? [],
+  };
+}
+
+export async function logoutStaffSession(
+  staffId: string,
+  sessionId: string,
+) {
+  const response = await apiFetch<Record<string, never>>(
+    `/organizer/dashboard/staff/${staffId}/sessions/${sessionId}/logout`,
+    {
+      method: "PATCH",
+      auth: true,
+    },
+  );
+
+  return response;
+}
+
+export async function logoutAllStaffSessions(staffId: string) {
+  const response = await apiFetch<Record<string, never>>(
+    `/organizer/dashboard/staff/${staffId}/logout-all`,
+    {
+      method: "PATCH",
+      auth: true,
+    },
+  );
+
+  return response;
 }

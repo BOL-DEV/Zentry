@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { clearAuthToken } from "@/helpers/auth";
 import { logoutDashboardUser } from "@/helpers/organizer-api";
 
 function DashboardLogoutButton() {
   const router = useRouter();
+  const params = useParams<{ organizer?: string }>();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   return (
@@ -21,7 +22,7 @@ function DashboardLogoutButton() {
           // Clear the local session even if the backend session is already gone.
         } finally {
           clearAuthToken();
-          router.push("/login");
+          router.push(params?.organizer ? `/${params.organizer}` : "/");
           setIsLoggingOut(false);
         }
       }}

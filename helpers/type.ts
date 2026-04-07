@@ -30,7 +30,7 @@ export type ApiAuthResponse = {
 };
 
 export type ApiOrganizer = {
-  _id: string;
+  _id?: string;
   name: string;
   slug: string;
   logoUrl: string;
@@ -41,13 +41,15 @@ export type ApiOrganizer = {
   contactEmail: string;
   contactPhone: string;
   location: string;
-  paystackSubaccountCode: string;
+  isActive?: boolean;
+  paystackSubaccountCode?: string;
   createdAt: string;
   updatedAt: string;
 };
 
 export type ApiEvent = {
   _id: string;
+  eventId?: string;
   organizerId:
     | string
     | {
@@ -55,6 +57,7 @@ export type ApiEvent = {
         slug?: string;
         name?: string;
       };
+  organizerSlug?: string;
   title: string;
   description: string;
   location: string;
@@ -69,12 +72,13 @@ export type ApiEvent = {
 
 export type ApiTicketType = {
   _id: string;
-  eventId: string;
+  eventId?: string;
   name: string;
   description?: string;
   price: number;
   quantityAvailable: number;
   quantitySold: number;
+  quantityReserved?: number;
   isActive: boolean;
   displayOrder: number;
   createdAt: string;
@@ -113,6 +117,9 @@ export type ApiOrder = {
   totalAmount: number;
   paymentStatus: "pending" | "paid" | "cancelled";
   paymentReference?: string | null;
+  accessToken?: string;
+  reservationExpiresAt?: string | null;
+  reservationReleasedAt?: string | null;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -123,6 +130,7 @@ export type ApiOrderStatus = {
   paymentReference?: string | null;
   totalAmount: number;
   isPaid: boolean;
+  reservationExpiresAt?: string | null;
   createdAt?: string;
 };
 
@@ -222,6 +230,16 @@ export type ApiEventAttendee = {
   status: "valid" | "checked-in";
   ticketType: string;
   purchasedAt: string;
+};
+
+export type ApiStaffSession = {
+  id: string;
+  deviceName?: string;
+  userAgent?: string;
+  ipAddress?: string;
+  lastActivityAt?: string;
+  createdAt?: string;
+  isActive?: boolean;
 };
 
 export type TicketType = {

@@ -6,13 +6,26 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { LuCopy } from "react-icons/lu";
 
 import Card from "@/components/Card";
+import { getStoredCheckoutContext, storeOrderAccessContext } from "@/helpers/order-access";
 import { getOrderByPaymentReference } from "@/helpers/organizer-api";
 
 function RootPaymentCallbackClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [storedContext] = useState(() =>
+    typeof window === "undefined"
+      ? {
+          orderId: "",
+          organizerSlug: "",
+          eventId: "",
+          paymentReference: "",
+          accessToken: "",
+          buyerEmail: "",
+        }
+      : getStoredCheckoutContext(),
+  );
   const [message, setMessage] = useState("We are confirming your payment...");
-  const [resolvedOrderId, setResolvedOrderId] = useState("");
+  const [resolvedOrderId, setResolvedOrderId] = useState(storedContext.orderId || "");
   const [copied, setCopied] = useState(false);
 
   async function handleCopyOrderId() {
@@ -33,16 +46,22 @@ function RootPaymentCallbackClient() {
     async function finalizePayment() {
       if (typeof window === "undefined") return;
 
-      const organizer = sessionStorage.getItem("zentry:lastOrganizerSlug");
-      const fallbackOrderId = sessionStorage.getItem("zentry:lastOrderId");
-      const fallbackEventId = sessionStorage.getItem("zentry:lastEventId");
+      const organizer = storedContext.organizerSlug;
+      const fallbackOrderId = storedContext.orderId;
+      const fallbackEventId = storedContext.eventId;
       const reference =
         searchParams.get("reference") || searchParams.get("trxref") || "";
+
+      if (!cancelled && fallbackOrderId) {
+        setResolvedOrderId(fallbackOrderId);
+      }
 
       if (!organizer) {
         if (!cancelled) {
           setMessage(
-            "We could not open your ticket page automatically. Please return to the event page and check your payment there.",
+            fallbackOrderId
+              ? "We could not open your ticket page automatically, but your order ID is ready below so you can check payment status manually."
+              : "We could not open your ticket page automatically. Please return to the event page and check your payment there.",
           );
         }
         return;
@@ -53,16 +72,24 @@ function RootPaymentCallbackClient() {
 
       if (reference) {
         try {
-          const lookup = await getOrderByPaymentReference(reference);
+          const lookup = await getOrderByPaymentReference(reference, {
+            accessToken: storedContext.accessToken,
+            buyerEmail: storedContext.buyerEmail,
+          });
           orderId = lookup.order.id;
           eventId = lookup.order.eventId;
           if (!cancelled) {
             setResolvedOrderId(orderId);
           }
 
-          sessionStorage.setItem("zentry:lastOrderId", orderId);
-          sessionStorage.setItem("zentry:lastEventId", eventId);
-          sessionStorage.setItem("zentry:lastPaymentReference", reference);
+          storeOrderAccessContext({
+            orderId,
+            organizerSlug: organizer,
+            eventId,
+            paymentReference: reference,
+            accessToken: storedContext.accessToken,
+            buyerEmail: lookup.order.buyerEmail || storedContext.buyerEmail,
+          });
         } catch {
           // Fall back to the last browser session checkout details when lookup fails.
         }
@@ -91,7 +118,7 @@ function RootPaymentCallbackClient() {
     return () => {
       cancelled = true;
     };
-  }, [router, searchParams]);
+  }, [router, searchParams, storedContext]);
 
   return (
     <main className="min-h-screen bg-purple-100 dark:bg-slate-950/90">

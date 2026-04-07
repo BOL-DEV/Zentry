@@ -7,6 +7,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { LuArrowLeft } from "react-icons/lu";
 
 import Card from "@/components/Card";
+import { storeOrderAccessContext } from "@/helpers/order-access";
 import FullPageLoader from "@/components/FullPageLoader";
 import { formatCurrency } from "@/helpers/format";
 import {
@@ -75,20 +76,28 @@ function OrganizerCheckoutClient({
         })),
       });
 
-      if (typeof window !== "undefined") {
-        sessionStorage.setItem("zentry:lastOrderId", purchase.order.id);
-        sessionStorage.setItem("zentry:lastOrganizerSlug", organizer);
-        sessionStorage.setItem("zentry:lastEventId", eventId);
-      }
+      storeOrderAccessContext({
+        orderId: purchase.order.id,
+        organizerSlug: organizer,
+        eventId,
+        paymentReference: purchase.order.paymentReference || undefined,
+        accessToken: purchase.order.accessToken,
+        buyerEmail: purchase.order.buyerEmail || buyerEmail.trim(),
+      });
 
-      const payment = await initializeOrderPayment(purchase.order.id);
+      const payment = await initializeOrderPayment(purchase.order.id, {
+        accessToken: purchase.order.accessToken,
+        buyerEmail: purchase.order.buyerEmail || buyerEmail.trim(),
+      });
 
-      if (typeof window !== "undefined") {
-        sessionStorage.setItem(
-          "zentry:lastPaymentReference",
-          payment.payment.reference,
-        );
-      }
+      storeOrderAccessContext({
+        orderId: purchase.order.id,
+        organizerSlug: organizer,
+        eventId,
+        paymentReference: payment.payment.reference,
+        accessToken: purchase.order.accessToken,
+        buyerEmail: purchase.order.buyerEmail || buyerEmail.trim(),
+      });
 
       return payment;
     },

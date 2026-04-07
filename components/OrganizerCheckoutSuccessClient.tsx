@@ -8,6 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { LuCheck, LuDownload, LuRefreshCw, LuX } from "react-icons/lu";
 
 import Card from "@/components/Card";
+import { getStoredCheckoutContext, storeOrderAccessContext } from "@/helpers/order-access";
 import {
   getOrderByPaymentReference,
   getOrderStatus,
@@ -84,25 +85,37 @@ function OrganizerCheckoutSuccessClient({ organizer }: { organizer: string }) {
         orderId: "",
         paymentReference: "",
         fallbackEventId: "",
+        accessToken: "",
+        buyerEmail: "",
       };
     }
 
+    const storedContext = getStoredCheckoutContext();
     const params = new URLSearchParams(window.location.search);
     return {
-      orderId:
-        params.get("orderId") || sessionStorage.getItem("zentry:lastOrderId") || "",
+      orderId: params.get("orderId") || storedContext.orderId,
       paymentReference:
         params.get("reference") ||
         params.get("trxref") ||
-        sessionStorage.getItem("zentry:lastPaymentReference") ||
-        "",
-      fallbackEventId: sessionStorage.getItem("zentry:lastEventId") || "",
+        storedContext.paymentReference,
+      fallbackEventId: storedContext.eventId,
+      accessToken: storedContext.accessToken || "",
+      buyerEmail: storedContext.buyerEmail || "",
     };
   });
 
+  const orderAccess = useMemo(
+    () => ({
+      accessToken: callbackContext.accessToken || undefined,
+      buyerEmail: callbackContext.buyerEmail || undefined,
+    }),
+    [callbackContext.accessToken, callbackContext.buyerEmail],
+  );
+
   const orderLookupQuery = useQuery({
     queryKey: ["order-by-payment-reference", callbackContext.paymentReference],
-    queryFn: () => getOrderByPaymentReference(callbackContext.paymentReference),
+    queryFn: () =>
+      getOrderByPaymentReference(callbackContext.paymentReference, orderAccess),
     enabled: !callbackContext.orderId && Boolean(callbackContext.paymentReference),
     retry: false,
   });
@@ -113,7 +126,7 @@ function OrganizerCheckoutSuccessClient({ organizer }: { organizer: string }) {
 
   const orderStatusQuery = useQuery({
     queryKey: ["order-status", resolvedOrderId],
-    queryFn: () => getOrderStatus(resolvedOrderId),
+    queryFn: () => getOrderStatus(resolvedOrderId, orderAccess),
     enabled: Boolean(resolvedOrderId),
     retry: false,
     refetchInterval: (query) => {
@@ -126,7 +139,7 @@ function OrganizerCheckoutSuccessClient({ organizer }: { organizer: string }) {
 
   const ticketsQuery = useQuery({
     queryKey: ["order-tickets", resolvedOrderId],
-    queryFn: () => getOrderTickets(resolvedOrderId),
+    queryFn: () => getOrderTickets(resolvedOrderId, orderAccess),
     enabled:
       Boolean(resolvedOrderId) &&
       (orderStatusQuery.data?.orderStatus.isPaid ||
@@ -147,6 +160,29 @@ function OrganizerCheckoutSuccessClient({ organizer }: { organizer: string }) {
   const error = orderLookupQuery.error || orderStatusQuery.error || ticketsQuery.error;
 
   const eventId = data?.tickets?.[0]?.eventId ?? resolvedEventId;
+  useEffect(() => {
+    if (!resolvedOrderId) return;
+
+    storeOrderAccessContext({
+      orderId: resolvedOrderId,
+      eventId: resolvedEventId,
+      paymentReference: callbackContext.paymentReference,
+      accessToken: callbackContext.accessToken,
+      buyerEmail:
+        data?.order.buyerEmail ||
+        orderLookupQuery.data?.order.buyerEmail ||
+        callbackContext.buyerEmail,
+    });
+  }, [
+    callbackContext.accessToken,
+    callbackContext.buyerEmail,
+    callbackContext.paymentReference,
+    data?.order.buyerEmail,
+    orderLookupQuery.data?.order.buyerEmail,
+    resolvedEventId,
+    resolvedOrderId,
+  ]);
+
   const { data: eventDetails } = useQuery({
     queryKey: ["success-event-details", organizer, eventId],
     queryFn: () => getOrganizerEventDetails(organizer, eventId),
