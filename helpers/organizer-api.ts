@@ -315,21 +315,20 @@ async function fetchEventTicketTypes(slug: string, eventId: string) {
 }
 
 function getOrderAccessHeaders(access?: OrderAccessContext) {
+  const headers: Record<string, string> = {};
+
   const accessToken = access?.accessToken?.trim();
   if (accessToken) {
-    return {
-      "x-order-access-token": accessToken,
-    };
+    headers["x-order-access-token"] = accessToken;
+    return headers;
   }
 
   const buyerEmail = access?.buyerEmail?.trim();
   if (buyerEmail) {
-    return {
-      "x-buyer-email": buyerEmail,
-    };
+    headers["x-buyer-email"] = buyerEmail;
   }
 
-  return {};
+  return headers;
 }
 
 async function fetchOrganizerEventsWithTickets(
@@ -416,7 +415,7 @@ export async function getOrganizerOverview(
   }, 0);
 
   return {
-    id: organizer._id,
+    id: organizer._id ?? organizer.slug,
     slug: organizer.slug,
     name: organizer.name,
     logo: organizer.logoUrl,
