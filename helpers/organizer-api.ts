@@ -253,6 +253,14 @@ async function fetchOrganizer(slug: string) {
   return response.data.organizer;
 }
 
+async function fetchPublicOrganizers() {
+  const response = await apiFetch<{ organizers: ApiOrganizer[] }>(
+    `/organizer`,
+  );
+
+  return response.data.organizers;
+}
+
 async function fetchOrganizerEvents(slug: string) {
   const response = await apiFetch<{
     organizer: Pick<ApiOrganizer, "_id" | "name" | "slug">;
@@ -436,6 +444,14 @@ export async function getOrganizerOverview(
   };
 }
 
+export async function getPublicOrganizers(): Promise<ApiOrganizer[]> {
+  const organizers = await fetchPublicOrganizers();
+
+  return organizers
+    .slice()
+    .sort((left, right) => left.name.localeCompare(right.name));
+}
+
 export async function getOrganizerEventsPageData(slug: string) {
   const organizerEventsWithTickets = await fetchOrganizerEventsWithTickets(slug);
 
@@ -463,11 +479,16 @@ export async function getAllPublicEventsData(): Promise<AdminEventListItem[]> {
         typeof event.organizerId === "string"
           ? event.organizerId
           : event.organizerId?._id || event.organizerId?.id || "",
-      organizerName:
-        event.organizer?.name ||
-        (typeof event.organizerId === "object" ? event.organizerId?.name : "") ||
-        event.organizerName ||
-        "Organizer",
+      organizerName: 
+        event.organizer?.name || 
+        (typeof event.organizerId === "object" ? event.organizerId?.name : "") || 
+        event.organizerName || 
+        titleCase(
+          event.organizerSlug ||
+            event.organizer_slug ||
+            event.slug ||
+            "Organizer",
+        ), 
       organizerSlug:
         event.organizer?.slug ||
         (typeof event.organizerId === "object"

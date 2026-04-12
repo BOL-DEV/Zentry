@@ -4,16 +4,34 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { FiMenu, FiX } from 'react-icons/fi';
-import { menuDataProps } from "../helpers/type";
-import { useParams } from "next/navigation";
+import { mobileMenuProps } from "../helpers/type";
+import { useParams, usePathname } from "next/navigation";
 
-function MobileMenuToggle(props: menuDataProps) {
-  const { menuData } = props;
+function MobileMenuToggle(props: mobileMenuProps) {
+  const { menuData, showLogin = false, loginHref = "/login" } = props;
   const { organizer } = useParams<{ organizer?: string }>();
+  const pathname = usePathname();
 
   const handleUrl = (href: string) => {
+    if (href.startsWith("/#") || href.startsWith("#")) return href;
     if (organizer) return `/${organizer}${href}`;
     return href;
+  };
+
+  const isActive = (href: string) => {
+    if (!pathname) return false;
+
+    if (href === "/") {
+      return organizer ? pathname === `/${organizer}` : pathname === "/";
+    }
+
+    if (href.startsWith("/#") || href.startsWith("#")) {
+      const normalized = href.replace(/^\/#/, "").replace(/^#/, "");
+      return pathname === `/${normalized}` || pathname.endsWith(`/${normalized}`);
+    }
+
+    const target = organizer ? `/${organizer}${href}` : href;
+    return pathname === target || pathname.startsWith(`${target}/`);
   };
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -48,11 +66,23 @@ function MobileMenuToggle(props: menuDataProps) {
                 <Link
                   key={item.name}
                   href={handleUrl(item.href)}
-                  className="block rounded-lg px-3 py-2 transition hover:bg-purple-100 dark:hover:bg-white/10"
+                  className={`block rounded-lg px-3 py-2 transition hover:bg-purple-100 dark:hover:bg-white/10 ${
+                    isActive(item.href)
+                      ? "bg-white text-purple-700 dark:bg-white/10 dark:text-white"
+                      : ""
+                  }`}
                 >
                   {item.name}
                 </Link>
               ))}
+              {showLogin ? (
+                <Link
+                  href={loginHref}
+                  className="mt-2 inline-flex h-11 items-center justify-center rounded-lg bg-purple-600 px-4 text-sm font-semibold text-white transition hover:bg-purple-700"
+                >
+                  Login
+                </Link>
+              ) : null}
             </ul>
           </div>
         </div>

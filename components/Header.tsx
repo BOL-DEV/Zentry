@@ -12,6 +12,10 @@ const menuData = [
     href: "/",
   },
   {
+    name: "Organizers",
+    href: "/organizers",
+  },
+  {
     name: "Events",
     href: "/events",
   },
@@ -47,7 +51,7 @@ function Header() {
             Login
           </Link>
           <ThemeToggle />
-          <MobileMenuToggle menuData={menuData} />
+          <MobileMenuToggle menuData={menuData} showLogin />
         </div>
       </div>
     </header>

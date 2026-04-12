@@ -56,7 +56,7 @@ function OrganizerHeader() {
             Login
           </Link>
           <ThemeToggle />
-          <MobileMenuToggle menuData={menuData} />
+          <MobileMenuToggle menuData={menuData} showLogin />
         </div>
       </div>
     </header>
