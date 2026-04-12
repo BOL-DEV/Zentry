@@ -34,17 +34,23 @@ export async function apiFetch<T>(
     },
   });
 
+  const responseText = await response.text();
   let payload: ApiEnvelope<T> | null = null;
 
-  try {
-    payload = (await response.json()) as ApiEnvelope<T>;
-  } catch {
-    payload = null;
+  if (responseText) {
+    try {
+      payload = JSON.parse(responseText) as ApiEnvelope<T>;
+    } catch {
+      payload = null;
+    }
   }
 
   if (!response.ok) {
+    const fallbackMessage = responseText.trim();
     throw new Error(
-      payload?.message || `Request failed with status ${response.status}`,
+      payload?.message ||
+        fallbackMessage ||
+        `Request failed with status ${response.status}`,
     );
   }
 

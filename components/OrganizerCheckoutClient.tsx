@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { LuArrowLeft } from "react-icons/lu";
 
@@ -13,7 +13,6 @@ import { formatCurrency } from "@/helpers/format";
 import {
   createPurchase,
   getOrganizerEventDetails,
-  initializeOrderPayment,
 } from "@/helpers/organizer-api";
 
 function OrganizerCheckoutClient({
@@ -23,10 +22,11 @@ function OrganizerCheckoutClient({
   organizer: string;
   eventId: string;
 }) {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const requestedTicketTypeId = searchParams.get("ticketTypeId");
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch: refetchEventDetails } = useQuery({
     queryKey: ["organizer-checkout-event", organizer, eventId],
     queryFn: () => getOrganizerEventDetails(organizer, eventId),
   });
@@ -66,14 +66,45 @@ function OrganizerCheckoutClient({
         throw new Error("Select at least one ticket type before continuing.");
       }
 
+      const latestEventDetails = await getOrganizerEventDetails(organizer, eventId);
+      const latestTicketTypes = new Map(
+        latestEventDetails.event.ticketTypes
+          .filter((ticket) => ticket.id)
+          .map((ticket) => [ticket.id as string, ticket]),
+      );
+
+      const items = selectedItems.map((ticket) => {
+        if (!ticket.id) {
+          throw new Error(
+            "One or more selected ticket types could not be identified. Please refresh and try again.",
+          );
+        }
+
+        const latestTicket = latestTicketTypes.get(ticket.id);
+        if (!latestTicket || latestTicket.isActive === false) {
+          throw new Error(
+            `${ticket.name} is no longer available. Please refresh the page and select another ticket.`,
+          );
+        }
+
+        if (latestTicket.remaining < ticket.selectedQuantity) {
+          throw new Error(
+            `${ticket.name} no longer has enough tickets available. Please reduce the quantity and try again.`,
+          );
+        }
+
+        return {
+          ticketTypeId: ticket.id,
+          quantity: ticket.selectedQuantity,
+        };
+      });
+
       const purchase = await createPurchase(organizer, eventId, {
         buyerName: buyerName.trim(),
         buyerEmail: buyerEmail.trim(),
-        buyerPhone: buyerPhone.trim() || undefined,
-        items: selectedItems.map((ticket) => ({
-          ticketTypeId: ticket.id as string,
-          quantity: ticket.selectedQuantity,
-        })),
+        buyerPhone: buyerPhone.trim(),
+        paymentGateway: "squad",
+        items,
       });
 
       storeOrderAccessContext({
@@ -83,30 +114,23 @@ function OrganizerCheckoutClient({
         paymentReference: purchase.order.paymentReference || undefined,
         accessToken: purchase.order.accessToken,
         buyerEmail: purchase.order.buyerEmail || buyerEmail.trim(),
+        orderSnapshot: purchase.order,
       });
 
-      const payment = await initializeOrderPayment(purchase.order.id, {
-        accessToken: purchase.order.accessToken,
-        buyerEmail: purchase.order.buyerEmail || buyerEmail.trim(),
-      });
-
-      storeOrderAccessContext({
-        orderId: purchase.order.id,
-        organizerSlug: organizer,
-        eventId,
-        paymentReference: payment.payment.reference,
-        accessToken: purchase.order.accessToken,
-        buyerEmail: purchase.order.buyerEmail || buyerEmail.trim(),
-      });
-
-      return payment;
+      return purchase.order;
     },
-    onSuccess: (payment) => {
-      if (typeof window !== "undefined") {
-        window.location.assign(payment.payment.authorizationUrl);
+    onSuccess: (order) => {
+      if (typeof window !== "undefined" && order.checkoutUrl) {
+        window.location.assign(order.checkoutUrl);
+        return;
       }
+
+      router.replace(
+        `/${organizer}/events/${eventId}/checkout/success?orderId=${encodeURIComponent(order.id)}${order.paymentReference ? `&reference=${encodeURIComponent(order.paymentReference)}` : ""}`,
+      );
     },
     onError: (mutationError) => {
+      void refetchEventDetails();
       setFormError(
         mutationError instanceof Error
           ? mutationError.message
@@ -183,8 +207,8 @@ function OrganizerCheckoutClient({
                   submitEvent.preventDefault();
                   setFormError(null);
 
-                  if (!buyerName.trim() || !buyerEmail.trim()) {
-                    setFormError("Name and email are required.");
+                  if (!buyerName.trim() || !buyerEmail.trim() || !buyerPhone.trim()) {
+                    setFormError("Name, email, and phone number are required.");
                     return;
                   }
 
@@ -397,7 +421,7 @@ function OrganizerCheckoutClient({
               </div>
 
               <p className="mt-3 text-center text-xs text-slate-500 dark:text-slate-400">
-                You&apos;ll be redirected to complete payment securely.
+                We&apos;ll connect you to Squad checkout to complete payment securely.
               </p>
 
               <button
@@ -407,8 +431,8 @@ function OrganizerCheckoutClient({
                 className="mt-6 inline-flex h-12 w-full items-center justify-center rounded-xl bg-purple-600 px-4 text-sm font-semibold text-white transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {checkoutMutation.isPending
-                  ? "Starting payment..."
-                  : "Proceed to Payment"}
+                  ? "Creating Order..."
+                  : "Continue to Squad Checkout"}
               </button>
             </Card>
           </section>

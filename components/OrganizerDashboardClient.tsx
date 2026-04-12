@@ -355,7 +355,7 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
             <StatCard
               title="Expected Net Settlement"
               value={formatCurrency(data.totals.expectedNetSettlement)}
-              helper="Confirmed sales after platform and Paystack fees"
+              helper="Confirmed sales after platform and payment processing fees"
               icon={<LuArrowUpRight size={20} />}
             />
             <StatCard
@@ -365,8 +365,8 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
               icon={<LuChartColumnIncreasing size={20} />}
             />
             <StatCard
-              title="Paystack Fees"
-              value={formatCurrency(data.totals.paystackFees)}
+              title="Payment Processing Fees"
+              value={formatCurrency(data.totals.paymentProcessingFees)}
               helper={`${formatNumber(data.totals.totalEventsWithSales)} events with sales`}
               icon={<LuUsers size={20} />}
             />

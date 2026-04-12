@@ -264,8 +264,10 @@ function OrganizerDashboardEventDetailsClient({
                 icon={<LuUsers className="text-lg" />}
               />
               <InfoCard
-                label="Paystack Fees"
-                value={formatCurrency(data.settlementSummary.summary.paystackFees)}
+                label="Payment Processing Fees"
+                value={formatCurrency(
+                  data.settlementSummary.summary.paymentProcessingFees,
+                )}
                 icon={<LuUsers className="text-lg" />}
               />
               <InfoCard
