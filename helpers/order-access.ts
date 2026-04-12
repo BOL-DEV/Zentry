@@ -3,6 +3,26 @@ export type OrderAccessContext = {
   buyerEmail?: string;
 };
 
+type StoredOrderSnapshot = {
+  id?: string;
+  eventId?: string;
+  buyerName?: string;
+  buyerEmail?: string;
+  buyerPhone?: string;
+  totalAmount?: number;
+  paymentStatus?: string;
+  paymentGateway?: "squad";
+  paymentReference?: string | null;
+  accessToken?: string;
+  reservationExpiresAt?: string | null;
+  reservationReleasedAt?: string | null;
+  platformFeeTotal?: number;
+  squadGatewayFee?: number;
+  squadTransferFee?: number;
+  organizerPayoutAmount?: number;
+  checkoutUrl?: string | null;
+};
+
 const STORAGE_KEYS = {
   orderId: "zentry:lastOrderId",
   organizerSlug: "zentry:lastOrganizerSlug",
@@ -10,6 +30,7 @@ const STORAGE_KEYS = {
   paymentReference: "zentry:lastPaymentReference",
   orderAccessToken: "zentry:lastOrderAccessToken",
   buyerEmail: "zentry:lastBuyerEmail",
+  orderSnapshot: "zentry:lastOrderSnapshot",
 } as const;
 
 function canUseSessionStorage() {
@@ -50,6 +71,7 @@ export function storeOrderAccessContext(context: {
   paymentReference?: string;
   accessToken?: string;
   buyerEmail?: string;
+  orderSnapshot?: StoredOrderSnapshot;
 }) {
   writeValue(STORAGE_KEYS.orderId, context.orderId);
   writeValue(STORAGE_KEYS.organizerSlug, context.organizerSlug);
@@ -57,14 +79,37 @@ export function storeOrderAccessContext(context: {
   writeValue(STORAGE_KEYS.paymentReference, context.paymentReference);
   writeValue(STORAGE_KEYS.orderAccessToken, context.accessToken);
   writeValue(STORAGE_KEYS.buyerEmail, context.buyerEmail);
+
+  if (!canUseSessionStorage()) return;
+
+  if (context.orderSnapshot) {
+    sessionStorage.setItem(
+      STORAGE_KEYS.orderSnapshot,
+      JSON.stringify(context.orderSnapshot),
+    );
+  }
 }
 
 export function getStoredCheckoutContext() {
+  let orderSnapshot: StoredOrderSnapshot | null = null;
+
+  if (canUseSessionStorage()) {
+    const raw = sessionStorage.getItem(STORAGE_KEYS.orderSnapshot);
+    if (raw) {
+      try {
+        orderSnapshot = JSON.parse(raw) as StoredOrderSnapshot;
+      } catch {
+        sessionStorage.removeItem(STORAGE_KEYS.orderSnapshot);
+      }
+    }
+  }
+
   return {
     orderId: readValue(STORAGE_KEYS.orderId),
     organizerSlug: readValue(STORAGE_KEYS.organizerSlug),
     eventId: readValue(STORAGE_KEYS.eventId),
     paymentReference: readValue(STORAGE_KEYS.paymentReference),
+    orderSnapshot,
     ...getStoredOrderAccessContext(),
   };
 }

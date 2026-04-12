@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import QRCode from "qrcode";
 import { useQuery } from "@tanstack/react-query";
-import { LuCheck, LuDownload, LuRefreshCw, LuX } from "react-icons/lu";
+import { LuCheck, LuCopy, LuDownload, LuRefreshCw, LuX } from "react-icons/lu";
 
 import Card from "@/components/Card";
 import { getStoredCheckoutContext, storeOrderAccessContext } from "@/helpers/order-access";
@@ -16,7 +16,30 @@ import {
   getOrganizerEventDetails,
 } from "@/helpers/organizer-api";
 import { createTicketPayload } from "@/helpers/ticket";
-import type { ApiTicket } from "@/helpers/type";
+import type { ApiOrder, ApiTicket } from "@/helpers/type";
+
+function getPaymentReference(searchParams: URLSearchParams) {
+  return (
+    searchParams.get("reference") ||
+    searchParams.get("trxref") ||
+    searchParams.get("transaction_ref") ||
+    ""
+  );
+}
+
+function formatDateTime(value?: string | null) {
+  if (!value) return "Unavailable";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Unavailable";
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  }).format(date);
+}
 
 function escapeSvgText(value: string) {
   return value
@@ -94,11 +117,9 @@ function OrganizerCheckoutSuccessClient({ organizer }: { organizer: string }) {
     const params = new URLSearchParams(window.location.search);
     return {
       orderId: params.get("orderId") || storedContext.orderId,
-      paymentReference:
-        params.get("reference") ||
-        params.get("trxref") ||
-        storedContext.paymentReference,
+      paymentReference: getPaymentReference(params) || storedContext.paymentReference,
       fallbackEventId: storedContext.eventId,
+      storedOrder: storedContext.orderSnapshot,
       accessToken: storedContext.accessToken || "",
       buyerEmail: storedContext.buyerEmail || "",
     };
@@ -111,6 +132,7 @@ function OrganizerCheckoutSuccessClient({ organizer }: { organizer: string }) {
     }),
     [callbackContext.accessToken, callbackContext.buyerEmail],
   );
+  const hasReturnedFromCheckout = Boolean(callbackContext.paymentReference);
 
   const orderLookupQuery = useQuery({
     queryKey: ["order-by-payment-reference", callbackContext.paymentReference],
@@ -142,18 +164,28 @@ function OrganizerCheckoutSuccessClient({ organizer }: { organizer: string }) {
     queryFn: () => getOrderTickets(resolvedOrderId, orderAccess),
     enabled:
       Boolean(resolvedOrderId) &&
-      (orderStatusQuery.data?.orderStatus.isPaid ||
+      (orderStatusQuery.data?.orderStatus?.isPaid ||
         (!orderStatusQuery.isLoading && orderStatusQuery.isError)),
     retry: false,
     refetchInterval: (query) => {
       if (!resolvedOrderId) return false;
-      if (!orderStatusQuery.data?.orderStatus.isPaid) return false;
+      if (!orderStatusQuery.data?.orderStatus?.isPaid) return false;
       if (query.state.data?.tickets?.length) return false;
       return 3000;
     },
   });
 
   const data = ticketsQuery.data;
+  const storedOrder =
+    callbackContext.storedOrder?.id
+      ? (callbackContext.storedOrder as ApiOrder)
+      : undefined;
+  const displayOrder: ApiOrder | undefined =
+    data?.order ||
+    orderLookupQuery.data?.order ||
+    (storedOrder?.id === resolvedOrderId
+      ? storedOrder
+      : undefined);
   const isLoading =
     orderLookupQuery.isLoading ||
     (Boolean(resolvedOrderId) && orderStatusQuery.isLoading && !data);
@@ -172,11 +204,13 @@ function OrganizerCheckoutSuccessClient({ organizer }: { organizer: string }) {
         data?.order.buyerEmail ||
         orderLookupQuery.data?.order.buyerEmail ||
         callbackContext.buyerEmail,
+      orderSnapshot: displayOrder,
     });
   }, [
     callbackContext.accessToken,
     callbackContext.buyerEmail,
     callbackContext.paymentReference,
+    displayOrder,
     data?.order.buyerEmail,
     orderLookupQuery.data?.order.buyerEmail,
     resolvedEventId,
@@ -192,6 +226,7 @@ function OrganizerCheckoutSuccessClient({ organizer }: { organizer: string }) {
   const [qrCodeMap, setQrCodeMap] = useState<Record<string, string>>({});
   const [showEmailNotice, setShowEmailNotice] = useState(false);
   const hasShownEmailNoticeRef = useRef(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -302,14 +337,25 @@ function OrganizerCheckoutSuccessClient({ organizer }: { organizer: string }) {
     await triggerPngDownload(`${ticket.ticketCode}.png`, svg);
   }
 
-  return (
-    <main className="min-h-screen bg-purple-100 dark:bg-slate-950/90">
-      <div className="relative">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-linear-to-b from-slate-950/10 via-transparent to-transparent dark:from-white/5" />
-        <div className="fixed inset-0 bg-slate-950/50 backdrop-blur-sm" />
+  async function handleCopyOrderId() {
+    if (!resolvedOrderId) return;
 
-        <div className="relative mx-auto flex min-h-screen max-w-3xl items-center justify-center px-6 py-16">
-          <Card className="w-full p-10">
+    try {
+      await navigator.clipboard.writeText(resolvedOrderId);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch {
+      setCopied(false);
+    }
+  }
+
+  return (
+    <main className="min-h-screen bg-purple-100 dark:bg-slate-950">
+      <div className="relative">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(147,51,234,0.12),_transparent_42%)] dark:bg-[radial-gradient(circle_at_top,_rgba(168,85,247,0.16),_transparent_38%)]" />
+
+        <div className="relative mx-auto flex min-h-screen max-w-5xl items-center justify-center px-6 py-16">
+          <Card className="w-full border-purple-200/70 bg-white/95 p-10 shadow-xl shadow-purple-950/5 dark:border-white/8 dark:bg-slate-950/88 dark:shadow-black/30">
             {showEmailNotice ? (
               <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-900 shadow-sm dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-100">
                 <div className="flex items-start justify-between gap-4">
@@ -342,7 +388,9 @@ function OrganizerCheckoutSuccessClient({ organizer }: { organizer: string }) {
               </h1>
               <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
                 {resolvedOrderId || callbackContext.paymentReference
-                  ? "We are checking your payment and preparing your tickets."
+                  ? callbackContext.paymentReference
+                    ? "Payment received. Your tickets are being processed now."
+                    : "We are checking your payment and preparing your tickets."
                   : "We could not find your payment details yet. Please start again from the event page."}
               </p>
             </div>
@@ -357,24 +405,44 @@ function OrganizerCheckoutSuccessClient({ organizer }: { organizer: string }) {
                 </Link>
               </div>
             ) : isLoading ? (
-              <div className="mt-8 rounded-2xl border border-purple-200/70 bg-white/70 p-6 text-sm text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
-                Confirming your payment and getting your tickets ready...
+              <div className="mt-10 flex justify-center">
+                <div className="w-full max-w-xl rounded-3xl border border-purple-200/70 bg-white/80 p-8 text-center shadow-sm dark:border-white/10 dark:bg-slate-900/80">
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300">
+                    <LuRefreshCw className="animate-spin text-2xl" />
+                  </div>
+                  <h2 className="mt-5 text-xl font-bold text-slate-900 dark:text-white">
+                    Ticket processing in progress
+                  </h2>
+                  <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
+                    Confirming your payment and getting your tickets ready...
+                  </p>
+                </div>
               </div>
-            ) : error || !data?.tickets?.length ? (
-              <div className="mt-8 space-y-4 rounded-2xl border border-purple-200/70 bg-white/70 p-6 dark:border-white/10 dark:bg-white/5">
-                <p className="text-sm text-slate-600 dark:text-slate-300">
-                  {error instanceof Error
-                    ? error.message
-                    : orderStatusQuery.data?.orderStatus.paymentStatus ===
-                        "cancelled"
-                      ? "This payment was cancelled, so no tickets were created."
-                      : orderStatusQuery.data?.orderStatus.isPaid
-                        ? "Your payment was successful. We are still finishing up your ticket details."
-                        : "Your payment is still being processed. Tickets usually appear shortly after confirmation."}
-                </p>
+            ) : !orderStatusQuery.data?.orderStatus?.isPaid ? (
+              <div className="mt-10 flex justify-center">
+                <div className="w-full max-w-xl space-y-4 rounded-3xl border border-purple-200/70 bg-white/80 p-8 shadow-sm dark:border-white/10 dark:bg-slate-900/80">
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
+                    <LuRefreshCw className="animate-spin text-2xl" />
+                  </div>
+                  <div className="text-center">
+                    <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                      Ticket processing in progress
+                    </h2>
+                    <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
+                      We&apos;re waiting for the backend to confirm your payment and generate your tickets.
+                    </p>
+                  </div>
+
+                {error ? (
+                  <p className="text-center text-sm text-slate-600 dark:text-slate-300">
+                    {error instanceof Error
+                      ? error.message
+                      : "We couldn't refresh your payment status just yet."}
+                  </p>
+                ) : null}
 
                 {orderStatusQuery.data?.orderStatus ? (
-                  <div className="rounded-xl border border-purple-200/70 bg-purple-50/70 px-4 py-3 text-sm dark:border-white/10 dark:bg-slate-900/70">
+                  <div className="rounded-2xl border border-purple-200/70 bg-purple-50/80 px-4 py-4 text-sm dark:border-white/10 dark:bg-slate-950/70">
                     <p className="font-semibold text-slate-900 dark:text-white">
                       Current status:{" "}
                       {orderStatusQuery.data.orderStatus.paymentStatus}
@@ -385,27 +453,115 @@ function OrganizerCheckoutSuccessClient({ organizer }: { organizer: string }) {
                         callbackContext.paymentReference ||
                         "Unavailable"}
                     </p>
+                    <p className="mt-1 text-slate-600 dark:text-slate-300">
+                      Reservation expires:{" "}
+                      {formatDateTime(
+                        orderStatusQuery.data.orderStatus.reservationExpiresAt,
+                      )}
+                    </p>
+                    {hasReturnedFromCheckout ? (
+                      <p className="mt-2 text-slate-600 dark:text-slate-300">
+                        Squad has redirected you back successfully. We&apos;re waiting for the backend to confirm payment and generate your tickets.
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                {displayOrder?.checkoutUrl && !hasReturnedFromCheckout ? (
+                  <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 dark:border-emerald-500/20 dark:bg-emerald-500/10">
+                    <p className="text-xs font-semibold tracking-wide text-emerald-700 dark:text-emerald-200">
+                      COMPLETE PAYMENT
+                    </p>
+                    <p className="mt-3 text-sm text-emerald-900 dark:text-emerald-100">
+                      Your order has been created. Complete payment in Squad while this page stays open and keeps checking for confirmation.
+                    </p>
+                    <div className="mt-4 space-y-3">
+                      <a
+                        href={displayOrder.checkoutUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700"
+                      >
+                        Open Squad Checkout
+                      </a>
+                      <p className="text-xs text-emerald-800 dark:text-emerald-100/90">
+                        If Squad checkout did not stay open, use the button above to continue payment.
+                      </p>
+                    </div>
+                  </div>
+                ) : null}
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void orderLookupQuery.refetch();
+                      void orderStatusQuery.refetch();
+                      void ticketsQuery.refetch();
+                    }}
+                    disabled={
+                      orderLookupQuery.isFetching ||
+                      orderStatusQuery.isFetching ||
+                      ticketsQuery.isFetching
+                    }
+                    className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-purple-600 px-4 text-sm font-semibold text-white transition hover:bg-purple-700 disabled:opacity-70"
+                  >
+                    <LuRefreshCw className="text-base" />
+                    {orderLookupQuery.isFetching ||
+                    orderStatusQuery.isFetching ||
+                    ticketsQuery.isFetching
+                      ? "Refreshing..."
+                      : "Check Again"}
+                  </button>
+                </div>
+              </div>
+            ) : error || !data?.tickets?.length ? (
+              <div className="mt-8 space-y-4 rounded-2xl border border-purple-200/70 bg-white/80 p-6 dark:border-white/10 dark:bg-slate-900/80">
+                <p className="text-sm text-slate-600 dark:text-slate-300">
+                  {error instanceof Error
+                    ? error.message
+                    : "Your payment was successful. We are still finishing up your ticket details."}
+                </p>
+
+                {resolvedOrderId ? (
+                  <div className="rounded-2xl border border-slate-200 bg-white/70 p-4 dark:border-white/10 dark:bg-white/5">
+                    <p className="text-xs font-semibold tracking-wide text-slate-500 dark:text-slate-400">
+                      ORDER ID
+                    </p>
+                    <p className="mt-2 break-all font-mono text-sm font-semibold text-slate-900 dark:text-white">
+                      {resolvedOrderId}
+                    </p>
+
+                    <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                      <button
+                        type="button"
+                        onClick={handleCopyOrderId}
+                        className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+                      >
+                        <LuCopy className="text-base" />
+                        {copied ? "Copied" : "Copy Order ID"}
+                      </button>
+
+                      <Link
+                        href={`/payments/order-status?orderId=${encodeURIComponent(resolvedOrderId)}`}
+                        className="inline-flex h-11 items-center justify-center rounded-xl bg-purple-600 px-4 text-sm font-semibold text-white transition hover:bg-purple-700"
+                      >
+                        Generate Ticket With Order ID
+                      </Link>
+                    </div>
                   </div>
                 ) : null}
 
                 <button
                   type="button"
                   onClick={() => {
-                    void orderLookupQuery.refetch();
                     void orderStatusQuery.refetch();
                     void ticketsQuery.refetch();
                   }}
-                  disabled={
-                    orderLookupQuery.isFetching ||
-                    orderStatusQuery.isFetching ||
-                    ticketsQuery.isFetching
-                  }
+                  disabled={orderStatusQuery.isFetching || ticketsQuery.isFetching}
                   className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-purple-600 px-4 text-sm font-semibold text-white transition hover:bg-purple-700 disabled:opacity-70"
                 >
                   <LuRefreshCw className="text-base" />
-                  {orderLookupQuery.isFetching ||
-                  orderStatusQuery.isFetching ||
-                  ticketsQuery.isFetching
+                  {orderStatusQuery.isFetching || ticketsQuery.isFetching
                     ? "Refreshing..."
                     : "Check Again"}
                 </button>

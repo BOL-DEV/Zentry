@@ -157,7 +157,7 @@ function OrganizerStaffSessionsClient({ organizer }: { organizer: string }) {
           </div>
 
           <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
-            Use the staff user ID returned when staff accounts are created. If the backend has not mounted these routes yet, this page will show that clearly.
+            Use the staff user ID returned when staff accounts are created to review and revoke active staff devices.
           </p>
         </section>
 
@@ -183,9 +183,6 @@ function OrganizerStaffSessionsClient({ organizer }: { organizer: string }) {
                 {sessionsQuery.error instanceof Error
                   ? sessionsQuery.error.message
                   : "We couldn't load staff sessions right now."}
-              </p>
-              <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
-                If you see a route-not-found style message here, the backend staff session routes likely still need to be mounted first.
               </p>
             </Card>
           </div>

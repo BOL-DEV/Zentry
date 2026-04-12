@@ -9,6 +9,15 @@ import Card from "@/components/Card";
 import { getStoredCheckoutContext, storeOrderAccessContext } from "@/helpers/order-access";
 import { getOrderByPaymentReference } from "@/helpers/organizer-api";
 
+function getPaymentReference(searchParams: URLSearchParams) {
+  return (
+    searchParams.get("reference") ||
+    searchParams.get("trxref") ||
+    searchParams.get("transaction_ref") ||
+    ""
+  );
+}
+
 function RootPaymentCallbackClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -49,8 +58,7 @@ function RootPaymentCallbackClient() {
       const organizer = storedContext.organizerSlug;
       const fallbackOrderId = storedContext.orderId;
       const fallbackEventId = storedContext.eventId;
-      const reference =
-        searchParams.get("reference") || searchParams.get("trxref") || "";
+      const reference = getPaymentReference(searchParams);
 
       if (!cancelled && fallbackOrderId) {
         setResolvedOrderId(fallbackOrderId);
@@ -60,8 +68,8 @@ function RootPaymentCallbackClient() {
         if (!cancelled) {
           setMessage(
             fallbackOrderId
-              ? "We could not open your ticket page automatically, but your order ID is ready below so you can check payment status manually."
-              : "We could not open your ticket page automatically. Please return to the event page and check your payment there.",
+              ? "We couldn't open your ticket page automatically, but your order ID is ready below so you can continue from the status page."
+              : "We couldn't open your ticket page automatically. Please return to the event page and try again.",
           );
         }
         return;
@@ -77,7 +85,7 @@ function RootPaymentCallbackClient() {
             buyerEmail: storedContext.buyerEmail,
           });
           orderId = lookup.order.id;
-          eventId = lookup.order.eventId;
+          eventId = lookup.order.eventId || "";
           if (!cancelled) {
             setResolvedOrderId(orderId);
           }
@@ -102,7 +110,7 @@ function RootPaymentCallbackClient() {
       if (!orderId || !eventId) {
         if (!cancelled) {
           setMessage(
-            "We could not open your ticket page automatically yet. You can copy your order ID and check the payment status manually.",
+            "We couldn't open your ticket page automatically yet. You can copy your order ID and continue from the status page.",
           );
         }
         return;
@@ -111,6 +119,12 @@ function RootPaymentCallbackClient() {
       router.replace(
         `/${organizer}/events/${eventId}/checkout/success?orderId=${encodeURIComponent(orderId)}${reference ? `&reference=${encodeURIComponent(reference)}` : ""}`,
       );
+
+      if (typeof window !== "undefined" && window.opener && !window.opener.closed) {
+        window.setTimeout(() => {
+          window.close();
+        }, 1200);
+      }
     }
 
     finalizePayment();

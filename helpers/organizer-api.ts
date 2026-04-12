@@ -12,7 +12,6 @@ import type {
   ApiOrder,
   ApiOrderItem,
   ApiOrderStatus,
-  ApiPaymentInitialization,
   ApiPagination,
   ApiScannerSummary,
   ApiStaffSession,
@@ -596,7 +595,8 @@ export async function getOrganizerDashboardData(
         settlementData?.summary.settled ??
         summaryResponse.data.summary.totalRevenue,
       platformFees: settlementData?.summary.platformFees ?? 0,
-      paystackFees: settlementData?.summary.paystackFees ?? 0,
+      paymentProcessingFees:
+        settlementData?.summary.paymentProcessingFees ?? 0,
       expectedNetSettlement:
         settlementData?.summary.expectedNetSettlement ??
         summaryResponse.data.summary.totalRevenue,
@@ -724,7 +724,8 @@ export async function createPurchase(
   input: {
     buyerName: string;
     buyerEmail: string;
-    buyerPhone?: string;
+    buyerPhone: string;
+    paymentGateway?: "squad";
     items: { ticketTypeId: string; quantity: number }[];
   },
 ): Promise<{ order: ApiOrder; items: ApiOrderItem[] }> {
@@ -734,24 +735,6 @@ export async function createPurchase(
   }>(`/organizer/${slug}/events/${eventId}/purchases`, {
     method: "POST",
     body: JSON.stringify(input),
-  });
-
-  return response.data;
-}
-
-export async function initializeOrderPayment(
-  orderId: string,
-  access?: OrderAccessContext,
-): Promise<{
-  order: ApiOrder;
-  payment: ApiPaymentInitialization;
-}> {
-  const response = await apiFetch<{
-    order: ApiOrder;
-    payment: ApiPaymentInitialization;
-  }>(`/orders/${orderId}/pay`, {
-    method: "POST",
-    headers: getOrderAccessHeaders(access),
   });
 
   return response.data;

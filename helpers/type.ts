@@ -110,16 +110,22 @@ export type ApiTicket = {
 
 export type ApiOrder = {
   id: string;
-  eventId: string;
-  buyerName: string;
-  buyerEmail: string;
+  eventId?: string;
+  buyerName?: string;
+  buyerEmail?: string;
   buyerPhone?: string;
   totalAmount: number;
   paymentStatus: "pending" | "paid" | "cancelled";
+  paymentGateway?: "squad";
   paymentReference?: string | null;
   accessToken?: string;
   reservationExpiresAt?: string | null;
   reservationReleasedAt?: string | null;
+  platformFeeTotal?: number;
+  squadGatewayFee?: number;
+  squadTransferFee?: number;
+  organizerPayoutAmount?: number;
+  checkoutUrl?: string | null;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -127,6 +133,7 @@ export type ApiOrder = {
 export type ApiOrderStatus = {
   orderId: string;
   paymentStatus: "pending" | "paid" | "cancelled";
+  paymentGateway?: "squad";
   paymentReference?: string | null;
   totalAmount: number;
   isPaid: boolean;
@@ -140,13 +147,6 @@ export type ApiOrderItem = {
   quantity: number;
   unitPrice: number;
   subtotal: number;
-};
-
-export type ApiPaymentInitialization = {
-  provider: "paystack";
-  authorizationUrl: string;
-  accessCode: string;
-  reference: string;
 };
 
 export type ApiDashboardSummary = {
@@ -176,7 +176,7 @@ export type ApiScannerSummary = {
 export type ApiSettlementSummary = {
   confirmedSales: number;
   platformFees: number;
-  paystackFees: number;
+  paymentProcessingFees: number;
   expectedNetSettlement: number;
   totalPaidOrders: number;
   pendingSettlement: number;
@@ -193,7 +193,7 @@ export type ApiSettlementOrder = {
   paymentReference: string;
   grossAmount: number;
   platformFeeTotal: number;
-  paystackFeeTotal: number;
+  paymentProcessingFeeTotal: number;
   expectedNetSettlement: number;
   settlementStatus: "pending" | "processing" | "settled" | "failed";
   paidAt?: string;
@@ -209,7 +209,7 @@ export type ApiSettlementEvent = {
   pendingSettlement: number;
   settled: number;
   platformFees: number;
-  paystackFees: number;
+  paymentProcessingFees: number;
   expectedNetSettlement: number;
   totalPaidOrders: number;
 };
@@ -339,7 +339,7 @@ export type OrganizerDashboardData = {
     pendingSettlement: number;
     settledRevenue: number;
     platformFees: number;
-    paystackFees: number;
+    paymentProcessingFees: number;
     expectedNetSettlement: number;
     totalPaidOrders: number;
     totalEventsWithSales: number;

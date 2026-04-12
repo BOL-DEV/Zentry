@@ -9,6 +9,15 @@ import Card from "@/components/Card";
 import { getStoredCheckoutContext, storeOrderAccessContext } from "@/helpers/order-access";
 import { getOrderByPaymentReference } from "@/helpers/organizer-api";
 
+function getPaymentReference(searchParams: URLSearchParams) {
+  return (
+    searchParams.get("reference") ||
+    searchParams.get("trxref") ||
+    searchParams.get("transaction_ref") ||
+    ""
+  );
+}
+
 function OrganizerPaymentCallbackClient({
   organizer,
 }: {
@@ -50,8 +59,7 @@ function OrganizerPaymentCallbackClient({
     async function finalizePayment() {
       if (typeof window === "undefined") return;
 
-      const reference =
-        searchParams.get("reference") || searchParams.get("trxref") || "";
+      const reference = getPaymentReference(searchParams);
       const fallbackOrderId = storedContext.orderId;
       const fallbackEventId = storedContext.eventId;
 
@@ -69,7 +77,7 @@ function OrganizerPaymentCallbackClient({
             buyerEmail: storedContext.buyerEmail,
           });
           orderId = lookup.order.id;
-          eventId = lookup.order.eventId;
+          eventId = lookup.order.eventId || "";
           if (!cancelled) {
             setResolvedOrderId(orderId);
           }
@@ -95,8 +103,8 @@ function OrganizerPaymentCallbackClient({
         if (!cancelled) {
           setMessage(
             fallbackOrderId
-              ? "We could not open your ticket page automatically yet, but your order ID is ready below so you can check payment status manually."
-              : "We could not open your ticket page automatically yet. You can copy your order ID and check the payment status manually.",
+              ? "We couldn't open your ticket page automatically yet, but your order ID is ready below so you can continue from the status page."
+              : "We couldn't open your ticket page automatically yet. You can copy your order ID and continue from the status page.",
           );
         }
         return;
@@ -105,6 +113,12 @@ function OrganizerPaymentCallbackClient({
       router.replace(
         `/${organizer}/events/${eventId}/checkout/success?orderId=${encodeURIComponent(orderId)}${reference ? `&reference=${encodeURIComponent(reference)}` : ""}`,
       );
+
+      if (typeof window !== "undefined" && window.opener && !window.opener.closed) {
+        window.setTimeout(() => {
+          window.close();
+        }, 1200);
+      }
     }
 
     finalizePayment();
