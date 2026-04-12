@@ -5,7 +5,7 @@ import Stat from "@/components/Stat";
 
 const Home = () => {
   return (
-    <div className="dark:bg-slate-950/90 bg-purple-100  ">
+    <div className="dark:bg-slate-950/90 bg-purple-100">
       <Hero />
       <Stat />
       <PastEvent />

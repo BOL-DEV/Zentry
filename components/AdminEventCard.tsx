@@ -61,9 +61,9 @@ function AdminEventCard(props: Props) {
 
         <div className="mt-5 h-px w-full bg-slate-200 dark:bg-white/10" />
 
-        <p className="mt-4 text-sm text-slate-600 dark:text-slate-300">
-          {event.organizerName}
-        </p>
+        <p className="mt-4 text-sm text-slate-600 dark:text-slate-300"> 
+          {event.organizerSlug || event.organizerName} 
+        </p> 
 
         {detailsHref ? (
           <Link

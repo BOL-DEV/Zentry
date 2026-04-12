@@ -1,5 +1,10 @@
-export interface menuDataProps {
-  menuData: { name: string; href: string }[];
+export interface menuDataProps { 
+  menuData: { name: string; href: string }[]; 
+} 
+
+export interface mobileMenuProps extends menuDataProps {
+  showLogin?: boolean;
+  loginHref?: string;
 }
 
 export type ApiEnvelope<T> = {

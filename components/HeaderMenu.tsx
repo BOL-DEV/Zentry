@@ -1,16 +1,16 @@
 import Link from "next/link";
-import { useState } from "react";
 import { menuDataProps } from "../helpers/type";
-import { useParams } from "next/navigation";
+import { useParams, usePathname } from "next/navigation";
 
 function HeaderMenu(props: menuDataProps) {
   const { organizer } = useParams();
-
-  // organizer &&
-
-  // console.log(url);
+  const pathname = usePathname();
 
   const handleUrl = (href: string) => {
+    if (href.startsWith("/#") || href.startsWith("#")) {
+      return href;
+    }
+
     let url = "";
 
     if (organizer) {
@@ -23,10 +23,21 @@ function HeaderMenu(props: menuDataProps) {
   };
 
   const { menuData } = props;
-  const [activeMenu, setActiveMenu] = useState<string>("Home");
 
-  const handleMenuClick = (name: string) => {
-    setActiveMenu(name);
+  const isActive = (href: string) => {
+    if (!pathname) return false;
+
+    if (href === "/") {
+      return organizer ? pathname === `/${organizer}` : pathname === "/";
+    }
+
+    if (href.startsWith("/#") || href.startsWith("#")) {
+      const normalized = href.replace(/^\/#/, "").replace(/^#/, "");
+      return pathname === `/${normalized}` || pathname.endsWith(`/${normalized}`);
+    }
+
+    const target = organizer ? `/${organizer}${href}` : href;
+    return pathname === target || pathname.startsWith(`${target}/`);
   };
 
   return (
@@ -34,14 +45,11 @@ function HeaderMenu(props: menuDataProps) {
       {/* Desktop links */}
       <ul className="list-none items-center gap-8 pr-6 text-xs font-medium uppercase tracking-[0.3em] text-slate-700 dark:text-slate-300 lg:flex">
         {menuData.map((item) => (
-          <li key={item.name} onClick={() => handleMenuClick(item.name)}>
+          <li key={item.name}>
             <Link
-              href={{
-                pathname: handleUrl(item.href),
-                // query: { slug: "1" },
-              }}
+              href={handleUrl(item.href)}
               className={`rounded-xl p-3 font-semibold transition hover:bg-purple-200 hover:text-purple-700 dark:hover:bg-white/5 dark:hover:text-white ${
-                activeMenu === item.name
+                isActive(item.href)
                   ? "bg-purple-200 text-purple-700 dark:bg-white/10 dark:text-white"
                   : ""
               }`}
