@@ -1,5 +1,6 @@
 import type { ApiEnvelope } from "@/helpers/type";
 import { getAuthToken } from "@/helpers/auth";
+import { getAdminAuthToken } from "@/helpers/admin-auth";
 
 const configuredApiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -21,9 +22,14 @@ export function resolveUrl(path: string) {
 
 export async function apiFetch<T>(
   path: string,
-  init?: RequestInit & { auth?: boolean },
+  init?: RequestInit & { auth?: boolean | "admin" },
 ): Promise<ApiEnvelope<T>> {
-  const token = init?.auth ? getAuthToken() : "";
+  const token =
+    init?.auth === "admin"
+      ? getAdminAuthToken()
+      : init?.auth
+        ? getAuthToken()
+        : "";
   const response = await fetch(resolveUrl(path), {
     ...init,
     cache: "no-store",
