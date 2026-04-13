@@ -2,8 +2,19 @@ import { formatDateText, formatDateTimeText } from "@/helpers/date";
 import { apiFetch, resolveUrl } from "@/helpers/api";
 import type { OrderAccessContext } from "@/helpers/order-access";
 import type {
-  AdminEventListItem,
-  ApiAuthResponse,
+  AdminEventListItem, 
+  ApiAdminAnalytics,
+  ApiAdminAuthResponse,
+  ApiAdminCreatedUser,
+  ApiAdminEventDetail,
+  ApiAdminEventSummary,
+  ApiAdminOrganizerDetail,
+  ApiAdminOrderDetail,
+  ApiAdminOrderSummary,
+  ApiAdminOrganizerSummary,
+  ApiAdminTicketDetail,
+  ApiAdminTicketSummary,
+  ApiAuthResponse, 
   ApiDashboardSummary,
   ApiEvent,
   ApiEventAttendee,
@@ -30,6 +41,18 @@ import type {
   TicketType,
   TicketTypeBreak,
 } from "@/helpers/type";
+
+type ApiListEnvelope<T> = {
+  status: string;
+  data: T;
+  results?: number;
+  pagination?: {
+    page: number;
+    limit?: number;
+    total: number;
+    totalPages: number;
+  };
+};
 
 type OrganizerWithTickets = {
   organizer: Pick<ApiOrganizer, "_id" | "name" | "slug" | "heroTitle">;
@@ -860,6 +883,32 @@ export async function loginDashboardUser(input: {
   return payload;
 }
 
+export async function loginAdminUser(input: {
+  email: string;
+  password: string;
+  deviceName?: string;
+}) {
+  const response = await fetch(resolveUrl(`/admin/auth/login`), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(input),
+  });
+
+  const payload = (await response.json()) as
+    | ApiAdminAuthResponse
+    | { message?: string };
+
+  if (!response.ok || !("token" in payload)) {
+    throw new Error(
+      ("message" in payload && payload.message) || "Unable to sign in.",
+    );
+  }
+
+  return payload;
+}
+
 export async function logoutDashboardUser() {
   const response = await apiFetch<Record<string, never>>(`/auth/logout`, {
     method: "POST",
@@ -867,6 +916,293 @@ export async function logoutDashboardUser() {
   });
 
   return response;
+}
+
+export async function logoutAdminUser() {
+  const response = await apiFetch<Record<string, never>>(`/admin/auth/logout`, {
+    method: "POST",
+    auth: "admin",
+  });
+
+  return response;
+}
+
+export async function getAdminProfile() {
+  const response = await apiFetch<{
+    admin: ApiAdminAuthResponse["data"]["admin"];
+  }>(`/admin/auth/me`, {
+    auth: "admin",
+  });
+
+  return response.data;
+}
+
+export async function getAdminAnalytics() {
+  const response = await apiFetch<{
+    organizers: ApiAdminAnalytics["organizers"];
+    events: ApiAdminAnalytics["events"];
+    orders: ApiAdminAnalytics["orders"];
+    tickets: ApiAdminAnalytics["tickets"];
+    revenue: ApiAdminAnalytics["revenue"];
+  }>(`/admin/analytics`, {
+    auth: "admin",
+  });
+
+  return response.data;
+}
+
+export async function getAdminOrganizers(input?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  isActive?: boolean;
+}) {
+  const params = new URLSearchParams();
+  params.set("page", String(input?.page ?? 1));
+  params.set("limit", String(input?.limit ?? 10));
+
+  if (input?.search?.trim()) {
+    params.set("search", input.search.trim());
+  }
+
+  if (typeof input?.isActive === "boolean") {
+    params.set("isActive", String(input.isActive));
+  }
+
+  const response = (await apiFetch<{
+    organizers: ApiAdminOrganizerSummary[];
+  }>(`/admin/organizers?${params.toString()}`, {
+    auth: "admin",
+  })) as ApiListEnvelope<{
+    organizers: ApiAdminOrganizerSummary[];
+  }>;
+
+  return {
+    organizers: response.data.organizers,
+    pagination: response.pagination,
+    results: response.results,
+  };
+}
+
+export async function getAdminOrganizerDetail(organizerId: string) {
+  const response = await apiFetch<ApiAdminOrganizerDetail>(
+    `/admin/organizers/${organizerId}`,
+    {
+      auth: "admin",
+    },
+  );
+
+  return response.data;
+}
+
+export async function toggleAdminOrganizerActive(organizerId: string) {
+  const response = await apiFetch<{
+    organizer: {
+      id: string;
+      name: string;
+      slug: string;
+      isActive: boolean;
+    };
+  }>(`/admin/organizers/${organizerId}/toggle-active`, {
+    method: "PATCH",
+    auth: "admin",
+  });
+
+  return response.data.organizer;
+}
+
+export async function getAdminOrders(input?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  paymentStatus?: "pending" | "paid" | "cancelled";
+  settlementStatus?: "pending" | "processing" | "settled" | "failed";
+  eventId?: string;
+  organizerId?: string;
+}) {
+  const params = new URLSearchParams();
+  params.set("page", String(input?.page ?? 1));
+  params.set("limit", String(input?.limit ?? 10));
+
+  if (input?.search?.trim()) {
+    params.set("search", input.search.trim());
+  }
+
+  if (input?.paymentStatus) {
+    params.set("paymentStatus", input.paymentStatus);
+  }
+
+  if (input?.settlementStatus) {
+    params.set("settlementStatus", input.settlementStatus);
+  }
+
+  if (input?.eventId?.trim()) {
+    params.set("eventId", input.eventId.trim());
+  }
+
+  if (input?.organizerId?.trim()) {
+    params.set("organizerId", input.organizerId.trim());
+  }
+
+  const response = (await apiFetch<{
+    orders: ApiAdminOrderSummary[];
+  }>(`/admin/orders?${params.toString()}`, {
+    auth: "admin",
+  })) as ApiListEnvelope<{
+    orders: ApiAdminOrderSummary[];
+  }>;
+
+  return {
+    orders: response.data.orders,
+    pagination: response.pagination,
+    results: response.results,
+  };
+}
+
+export async function getAdminOrderDetail(orderId: string) {
+  const response = await apiFetch<ApiAdminOrderDetail>(`/admin/orders/${orderId}`, {
+    auth: "admin",
+  });
+
+  return response.data;
+}
+
+export async function getAdminEvents(input?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  organizerId?: string;
+  upcoming?: boolean;
+}) {
+  const params = new URLSearchParams();
+  params.set("page", String(input?.page ?? 1));
+  params.set("limit", String(input?.limit ?? 10));
+
+  if (input?.search?.trim()) {
+    params.set("search", input.search.trim());
+  }
+
+  if (input?.organizerId?.trim()) {
+    params.set("organizerId", input.organizerId.trim());
+  }
+
+  if (typeof input?.upcoming === "boolean") {
+    params.set("upcoming", String(input.upcoming));
+  }
+
+  const response = (await apiFetch<{
+    events: ApiAdminEventSummary[];
+  }>(`/admin/events?${params.toString()}`, {
+    auth: "admin",
+  })) as ApiListEnvelope<{
+    events: ApiAdminEventSummary[];
+  }>;
+
+  return {
+    events: response.data.events,
+    pagination: response.pagination,
+    results: response.results,
+  };
+}
+
+export async function getAdminEventDetail(eventId: string) {
+  const response = await apiFetch<ApiAdminEventDetail>(`/admin/events/${eventId}`, {
+    auth: "admin",
+  });
+
+  return response.data;
+}
+
+export async function getAdminTickets(input?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: "valid" | "checked-in";
+  eventId?: string;
+  organizerId?: string;
+}) {
+  const params = new URLSearchParams();
+  params.set("page", String(input?.page ?? 1));
+  params.set("limit", String(input?.limit ?? 10));
+
+  if (input?.search?.trim()) {
+    params.set("search", input.search.trim());
+  }
+
+  if (input?.status) {
+    params.set("status", input.status);
+  }
+
+  if (input?.eventId?.trim()) {
+    params.set("eventId", input.eventId.trim());
+  }
+
+  if (input?.organizerId?.trim()) {
+    params.set("organizerId", input.organizerId.trim());
+  }
+
+  const response = (await apiFetch<{
+    tickets: ApiAdminTicketSummary[];
+  }>(`/admin/tickets?${params.toString()}`, {
+    auth: "admin",
+  })) as ApiListEnvelope<{
+    tickets: ApiAdminTicketSummary[];
+  }>;
+
+  return {
+    tickets: response.data.tickets,
+    pagination: response.pagination,
+    results: response.results,
+  };
+}
+
+export async function getAdminTicketDetail(ticketId: string) {
+  const response = await apiFetch<ApiAdminTicketDetail>(`/admin/tickets/${ticketId}`, {
+    auth: "admin",
+  });
+
+  return response.data;
+}
+
+export async function createAdminDashboardUser(input: {
+  organizerId: string;
+  fullName: string;
+  email: string;
+  password: string;
+  role: "organizer" | "staff";
+}) {
+  const response = await apiFetch<{
+    user: ApiAdminCreatedUser;
+  }>(`/auth/users`, {
+    method: "POST",
+    body: JSON.stringify(input),
+    auth: "admin",
+  });
+
+  return response.data.user;
+}
+
+export async function createAdminOrganizer(input: {
+  name: string;
+  logoUrl: string;
+  bannerUrl: string;
+  heroTitle: string;
+  heroSubtitle: string;
+  about: string;
+  contactEmail: string;
+  contactPhone: string;
+  location: string;
+  paystackSubaccountCode?: string;
+}) {
+  const response = await apiFetch<{
+    organizer: ApiOrganizer;
+  }>(`/organizer`, {
+    method: "POST",
+    body: JSON.stringify(input),
+    auth: "admin",
+  });
+
+  return response.data.organizer;
 }
 
 export async function getOrganizerScannerSummary(eventId: string) {

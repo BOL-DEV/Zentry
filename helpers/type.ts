@@ -34,6 +34,308 @@ export type ApiAuthResponse = {
   };
 };
 
+export type ApiAdminAuthResponse = {
+  status: string;
+  token: string;
+  data: {
+    admin: {
+      id: string;
+      fullName: string;
+      email: string;
+      isActive?: boolean;
+    };
+    session: {
+      id: string;
+      deviceName?: string;
+      userAgent?: string;
+    };
+  };
+};
+
+export type ApiAdminAnalytics = {
+  organizers: {
+    total: number;
+    active: number;
+    inactive: number;
+  };
+  events: {
+    total: number;
+    upcoming: number;
+    completed: number;
+  };
+  orders: {
+    totalPaidOrders: number;
+    grossRevenue: number;
+  };
+  tickets: {
+    totalIssued: number;
+    totalCheckedIn: number;
+  };
+  revenue: {
+    platformFees: number;
+  };
+};
+
+export type ApiAdminOrganizerSummary = {
+  id: string;
+  name: string;
+  slug: string;
+  logoUrl?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  isActive: boolean;
+  createdAt: string;
+  stats: {
+    totalEvents: number;
+    totalPaidOrders: number;
+    totalTicketsSold: number;
+    grossRevenue: number;
+  };
+};
+
+export type ApiAdminOrganizerDetail = {
+  organizer: {
+    id: string;
+    name: string;
+    slug: string;
+    logoUrl?: string;
+    heroTitle?: string;
+    heroSubtitle?: string;
+    about?: string;
+    contactEmail?: string;
+    contactPhone?: string;
+    isActive: boolean;
+    createdAt: string;
+    updatedAt: string;
+  };
+  stats: {
+    totalEvents: number;
+    totalPaidOrders: number;
+    grossRevenue: number;
+    platformFees: number;
+    totalTicketsSold: number;
+    totalCheckedInTickets: number;
+  };
+  recentEvents: Array<{
+    id: string;
+    title: string;
+    date: string;
+    location: string;
+    createdAt: string;
+  }>;
+};
+
+export type ApiAdminOrderSummary = {
+  id: string;
+  buyerName: string;
+  buyerEmail: string;
+  buyerPhone?: string;
+  paymentReference?: string;
+  totalAmount: number;
+  paymentStatus: "pending" | "paid" | "cancelled";
+  paidAt?: string;
+  platformFeeTotal?: number;
+  paystackFeeTotal?: number;
+  paymentProcessingFeeTotal?: number;
+  expectedNetSettlement?: number;
+  settlementStatus?: "pending" | "processing" | "settled" | "failed";
+  settlementBatchId?: string;
+  settlementDate?: string | null;
+  createdAt: string;
+  event: {
+    id: string;
+    title: string;
+    date: string;
+    location: string;
+  };
+  organizer: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+};
+
+export type ApiAdminOrderDetail = {
+  order: {
+    id: string;
+    buyerName: string;
+    buyerEmail: string;
+    buyerPhone?: string;
+    paymentReference?: string;
+    totalAmount: number;
+    paymentStatus: "pending" | "paid" | "cancelled";
+    paidAt?: string;
+    platformFeeTotal?: number;
+    paystackFeeTotal?: number;
+    paymentProcessingFeeTotal?: number;
+    expectedNetSettlement?: number;
+    settlementStatus?: "pending" | "processing" | "settled" | "failed";
+    settlementBatchId?: string;
+    settlementDate?: string | null;
+    paystackTransactionId?: string;
+    createdAt: string;
+    updatedAt: string;
+    event: {
+      id: string;
+      title: string;
+      date: string;
+      location: string;
+    };
+    organizer: {
+      id: string;
+      name: string;
+      slug: string;
+    };
+    items: Array<{
+      id: string;
+      ticketTypeId: string;
+      ticketTypeName: string;
+      unitPrice: number;
+      quantity: number;
+      subtotal: number;
+    }>;
+  };
+};
+
+export type ApiAdminEventSummary = {
+  id: string;
+  title: string;
+  description?: string;
+  date: string;
+  location: string;
+  posterUrl?: string;
+  dressCode?: string;
+  policies?: string;
+  createdAt: string;
+  isUpcoming: boolean;
+  organizer: {
+    id: string;
+    name: string;
+    slug: string;
+    isActive: boolean;
+  };
+  stats: {
+    totalPaidOrders: number;
+    totalTicketsSold: number;
+    totalCheckedInTickets: number;
+    grossRevenue: number;
+    platformFees: number;
+  };
+};
+
+export type ApiAdminEventDetail = {
+  event: {
+    id: string;
+    title: string;
+    description?: string;
+    date: string;
+    location: string;
+    posterUrl?: string;
+    dressCode?: string;
+    policies?: string;
+    createdAt: string;
+    updatedAt: string;
+    isUpcoming: boolean;
+    organizer: {
+      id: string;
+      name: string;
+      slug: string;
+      contactEmail?: string;
+      contactPhone?: string;
+      isActive: boolean;
+    };
+  };
+  stats: {
+    totalPaidOrders: number;
+    grossRevenue: number;
+    platformFees: number;
+    paystackFees?: number;
+    paymentProcessingFees?: number;
+    expectedNetSettlement: number;
+    totalTicketsSold: number;
+    totalCheckedInTickets: number;
+  };
+  recentOrders: Array<{
+    id: string;
+    buyerName: string;
+    buyerEmail: string;
+    paymentReference?: string;
+    totalAmount: number;
+    paymentStatus: "pending" | "paid" | "cancelled";
+    settlementStatus?: "pending" | "processing" | "settled" | "failed";
+    paidAt?: string;
+    createdAt: string;
+  }>;
+};
+
+export type ApiAdminTicketSummary = {
+  id: string;
+  orderId: string;
+  eventId: string;
+  ticketTypeId: string;
+  buyerName: string;
+  buyerEmail: string;
+  ticketCode: string;
+  status: "valid" | "checked-in";
+  checkedInAt?: string | null;
+  verifiedBy?: string | null;
+  createdAt: string;
+  event: {
+    id: string;
+    title: string;
+    date: string;
+    location: string;
+  };
+  organizer: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+};
+
+export type ApiAdminTicketDetail = {
+  ticket: {
+    id: string;
+    orderId: string;
+    eventId: string;
+    ticketTypeId: string;
+    buyerName: string;
+    buyerEmail: string;
+    ticketCode: string;
+    status: "valid" | "checked-in";
+    checkedInAt?: string | null;
+    verifiedBy?: string | null;
+    createdAt: string;
+    updatedAt: string;
+    event: {
+      id: string;
+      title: string;
+      date: string;
+      location: string;
+    };
+    organizer: {
+      id: string;
+      name: string;
+      slug: string;
+    };
+    verifiedUser?: {
+      id: string;
+      fullName: string;
+      email: string;
+      role: "organizer" | "staff";
+    } | null;
+  };
+};
+
+export type ApiAdminCreatedUser = {
+  id: string;
+  organizerId: string;
+  fullName: string;
+  email: string;
+  role: "organizer" | "staff";
+  isActive: boolean;
+};
+
 export type ApiOrganizer = {
   _id?: string;
   name: string;
