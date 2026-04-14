@@ -639,10 +639,12 @@ export async function getOrganizerDashboardData(
         settlementData?.summary.settled ??
         summaryResponse.data.summary.totalRevenue,
       platformFees: settlementData?.summary.platformFees ?? 0,
-      paymentProcessingFees:
-        settlementData?.summary.paymentProcessingFees ?? 0,
-      expectedNetSettlement:
-        settlementData?.summary.expectedNetSettlement ??
+      squadGatewayFees:
+        settlementData?.summary.squadGatewayFees ?? 0,
+      squadTransferFees:
+        settlementData?.summary.squadTransferFees ?? 0,
+      organizerPayoutAmount:
+        settlementData?.summary.organizerPayoutAmount ??
         summaryResponse.data.summary.totalRevenue,
       totalPaidOrders: settlementData?.summary.totalPaidOrders ?? 0,
       totalEventsWithSales: settlementData?.summary.totalEventsWithSales ?? 0,
@@ -658,14 +660,17 @@ export async function getOrganizerDashboardData(
 
 export async function syncOrganizerSettlements() {
   const response = await apiFetch<{
-    settlementsChecked: number;
-    transactionsChecked: number;
-    ordersUpdated: number;
-    unmatchedTransactions: Array<{
-      settlementId: number;
-      reference: string;
-      transactionId: string;
-      amount: number;
+    ordersMatched: number;
+    ordersProcessed: number;
+    payoutsAttempted: number;
+    payoutsSucceeded: number;
+    payoutsFailed: number;
+    skippedNoBankDetails: number;
+    skippedNoPayoutRequired: number;
+    skippedMissingReference: number;
+    errors: Array<{
+      orderId: string;
+      message: string;
     }>;
   }>(`/organizer/dashboard/sync-settlements`, {
     method: "POST",

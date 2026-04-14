@@ -113,3 +113,12 @@ export function getStoredCheckoutContext() {
     ...getStoredOrderAccessContext(),
   };
 }
+
+export function getPaymentReferenceFromSearchParams(searchParams: URLSearchParams) {
+  return (
+    searchParams.get("reference") ||
+    searchParams.get("trxref") ||
+    searchParams.get("transaction_ref") ||
+    ""
+  );
+}

@@ -74,12 +74,14 @@ function OrganizerCard({ organizer }: { organizer: ApiOrganizer }) {
             {organizer.name}
           </h2>
           <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-            {organizer.heroSubtitle || organizer.about || "Discover upcoming experiences from this organizer."}
+            {organizer.heroSubtitle ||
+              organizer.about ||
+              "Discover upcoming experiences from this organizer."}
           </p>
         </div>
 
         <div className="mt-5 grid gap-3">
-          <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3 dark:border-white/8 dark:bg-white/[0.04]">
+          <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3 dark:border-white/8 dark:bg-white/4">
             <LuMapPin className="mt-0.5 text-base text-cyan-600 dark:text-cyan-300" />
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
@@ -92,7 +94,7 @@ function OrganizerCard({ organizer }: { organizer: ApiOrganizer }) {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3 dark:border-white/8 dark:bg-white/[0.04]">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3 dark:border-white/8 dark:bg-white/4">
               <div className="flex items-start gap-3">
                 <LuMail className="mt-0.5 text-base text-purple-600 dark:text-purple-300" />
                 <div className="min-w-0">
@@ -106,7 +108,7 @@ function OrganizerCard({ organizer }: { organizer: ApiOrganizer }) {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3 dark:border-white/8 dark:bg-white/[0.04]">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3 dark:border-white/8 dark:bg-white/4">
               <div className="flex items-start gap-3">
                 <LuPhone className="mt-0.5 text-base text-emerald-600 dark:text-emerald-300" />
                 <div className="min-w-0">
@@ -133,7 +135,7 @@ function PlatformOrganizersDirectory({
 }) {
   return (
     <main className="relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,#f3e8ff_0%,#efe4ff_40%,#f8f7ff_100%)] dark:bg-[linear-gradient(180deg,#020617_0%,#050b1a_45%,#020617_100%)]">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(147,51,234,0.16),_transparent_34%),radial-gradient(circle_at_right,_rgba(34,211,238,0.12),_transparent_30%)] dark:bg-[radial-gradient(circle_at_top,_rgba(34,211,238,0.12),_transparent_26%),radial-gradient(circle_at_left,_rgba(168,85,247,0.12),_transparent_28%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(147,51,234,0.16),transparent_34%),radial-gradient(circle_at_right,rgba(34,211,238,0.12),transparent_30%)]" />
 
       <section className="relative mx-auto max-w-7xl px-6 pt-28 pb-16">
         <div className="max-w-3xl">
@@ -145,7 +147,8 @@ function PlatformOrganizersDirectory({
             Explore the teams behind the experiences on Zentry.
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-7 text-slate-600 dark:text-slate-300">
-            Browse organizer profiles, discover who is hosting next, and jump straight into each organizer&apos;s public event space.
+            Browse organizer profiles, discover who is hosting next, and jump
+            straight into each organizer&apos;s public event space.
           </p>
         </div>
 
@@ -164,7 +167,8 @@ function PlatformOrganizersDirectory({
               No organizers yet
             </h2>
             <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
-              Organizer profiles will appear here as soon as they are available on the platform.
+              Organizer profiles will appear here as soon as they are available
+              on the platform.
             </p>
           </div>
         )}

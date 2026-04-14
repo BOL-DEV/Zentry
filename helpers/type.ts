@@ -483,8 +483,9 @@ export type ApiScannerSummary = {
 export type ApiSettlementSummary = {
   confirmedSales: number;
   platformFees: number;
-  paymentProcessingFees: number;
-  expectedNetSettlement: number;
+  squadGatewayFees: number;
+  squadTransferFees: number;
+  organizerPayoutAmount: number;
   totalPaidOrders: number;
   pendingSettlement: number;
   settled: number;
@@ -500,8 +501,9 @@ export type ApiSettlementOrder = {
   paymentReference: string;
   grossAmount: number;
   platformFeeTotal: number;
-  paymentProcessingFeeTotal: number;
-  expectedNetSettlement: number;
+  squadGatewayFee: number;
+  squadTransferFee: number;
+  organizerPayoutAmount: number;
   settlementStatus: "pending" | "processing" | "settled" | "failed";
   paidAt?: string;
   settlementDate?: string | null;
@@ -516,8 +518,9 @@ export type ApiSettlementEvent = {
   pendingSettlement: number;
   settled: number;
   platformFees: number;
-  paymentProcessingFees: number;
-  expectedNetSettlement: number;
+  squadGatewayFees: number;
+  squadTransferFees: number;
+  organizerPayoutAmount: number;
   totalPaidOrders: number;
 };
 
@@ -646,8 +649,9 @@ export type OrganizerDashboardData = {
     pendingSettlement: number;
     settledRevenue: number;
     platformFees: number;
-    paymentProcessingFees: number;
-    expectedNetSettlement: number;
+    squadGatewayFees: number;
+    squadTransferFees: number;
+    organizerPayoutAmount: number;
     totalPaidOrders: number;
     totalEventsWithSales: number;
   };

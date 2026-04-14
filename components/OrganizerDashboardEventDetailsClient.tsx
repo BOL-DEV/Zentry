@@ -217,7 +217,7 @@ function OrganizerDashboardEventDetailsClient({
                   Settlement Summary
                 </h2>
                 <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                  Track confirmed sales, deductions, and settled payouts for this event.
+                  Follow confirmed sales, fee deductions, and payout progress for this event.
                 </p>
               </div>
 
@@ -228,7 +228,7 @@ function OrganizerDashboardEventDetailsClient({
                 className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-70 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
               >
                 <LuRefreshCw className="text-base" />
-                {settlementSyncMutation.isPending ? "Syncing..." : "Sync Settlements"}
+                {settlementSyncMutation.isPending ? "Retrying..." : "Retry Squad Payouts"}
               </button>
             </div>
 
@@ -244,31 +244,38 @@ function OrganizerDashboardEventDetailsClient({
                 icon={<LuClock3 className="text-lg" />}
               />
               <InfoCard
-                label="Settled"
+                label="Settled Payouts"
                 value={formatCurrency(data.settlementSummary.summary.settled)}
                 icon={<LuQrCode className="text-lg" />}
               />
               <InfoCard
-                label="Expected Net"
+                label="Organizer Payout"
                 value={formatCurrency(
-                  data.settlementSummary.summary.expectedNetSettlement,
+                  data.settlementSummary.summary.organizerPayoutAmount,
                 )}
                 icon={<LuMapPin className="text-lg" />}
               />
             </div>
 
-            <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+            <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
               <InfoCard
                 label="Platform Fees"
                 value={formatCurrency(data.settlementSummary.summary.platformFees)}
                 icon={<LuUsers className="text-lg" />}
               />
               <InfoCard
-                label="Payment Processing Fees"
+                label="Squad Gateway Fees"
                 value={formatCurrency(
-                  data.settlementSummary.summary.paymentProcessingFees,
+                  data.settlementSummary.summary.squadGatewayFees,
                 )}
                 icon={<LuUsers className="text-lg" />}
+              />
+              <InfoCard
+                label="Squad Transfer Fees"
+                value={formatCurrency(
+                  data.settlementSummary.summary.squadTransferFees,
+                )}
+                icon={<LuRefreshCw className="text-lg" />}
               />
               <InfoCard
                 label="Paid Orders"
@@ -276,6 +283,12 @@ function OrganizerDashboardEventDetailsClient({
                 icon={<LuUsers className="text-lg" />}
               />
             </div>
+
+            {settlementSyncMutation.isSuccess && settlementSyncMutation.data ? (
+              <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-100">
+                Settlement refresh complete. Processed {formatNumber(settlementSyncMutation.data.ordersProcessed)} orders, attempted {formatNumber(settlementSyncMutation.data.payoutsAttempted)} payouts, and succeeded on {formatNumber(settlementSyncMutation.data.payoutsSucceeded)}.
+              </div>
+            ) : null}
 
             {settlementSyncMutation.isError ? (
               <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-200">
@@ -291,7 +304,7 @@ function OrganizerDashboardEventDetailsClient({
                   Paid Orders for This Event
                 </h3>
                 <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                  Gross, net, and settlement status for each paid order.
+                  Gross amount, organizer payout value, and current settlement state for each paid order.
                 </p>
               </div>
 
@@ -301,7 +314,7 @@ function OrganizerDashboardEventDetailsClient({
                     <tr>
                       <th className="px-5 py-4 font-semibold">Buyer</th>
                       <th className="px-5 py-4 font-semibold">Gross</th>
-                      <th className="px-5 py-4 font-semibold">Net</th>
+                      <th className="px-5 py-4 font-semibold">Payout</th>
                       <th className="px-5 py-4 font-semibold">Status</th>
                     </tr>
                   </thead>
@@ -319,7 +332,7 @@ function OrganizerDashboardEventDetailsClient({
                             {formatCurrency(order.grossAmount)}
                           </td>
                           <td className="px-5 py-4">
-                            {formatCurrency(order.expectedNetSettlement)}
+                            {formatCurrency(order.organizerPayoutAmount)}
                           </td>
                           <td className="px-5 py-4">
                             <span className="inline-flex rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-700 dark:bg-purple-500/15 dark:text-purple-300">

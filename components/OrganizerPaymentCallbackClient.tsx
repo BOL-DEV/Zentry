@@ -3,20 +3,15 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { LuCopy } from "react-icons/lu";
+import { LuCopy, LuRefreshCw } from "react-icons/lu";
 
 import Card from "@/components/Card";
-import { getStoredCheckoutContext, storeOrderAccessContext } from "@/helpers/order-access";
+import {
+  getPaymentReferenceFromSearchParams,
+  getStoredCheckoutContext,
+  storeOrderAccessContext,
+} from "@/helpers/order-access";
 import { getOrderByPaymentReference } from "@/helpers/organizer-api";
-
-function getPaymentReference(searchParams: URLSearchParams) {
-  return (
-    searchParams.get("reference") ||
-    searchParams.get("trxref") ||
-    searchParams.get("transaction_ref") ||
-    ""
-  );
-}
 
 function OrganizerPaymentCallbackClient({
   organizer,
@@ -37,7 +32,9 @@ function OrganizerPaymentCallbackClient({
         }
       : getStoredCheckoutContext(),
   );
-  const [message, setMessage] = useState("We are confirming your payment...");
+  const [message, setMessage] = useState(
+    "We received your checkout return and are routing you back to your ticket page.",
+  );
   const [resolvedOrderId, setResolvedOrderId] = useState(storedContext.orderId || "");
   const [copied, setCopied] = useState(false);
 
@@ -59,7 +56,7 @@ function OrganizerPaymentCallbackClient({
     async function finalizePayment() {
       if (typeof window === "undefined") return;
 
-      const reference = getPaymentReference(searchParams);
+      const reference = getPaymentReferenceFromSearchParams(searchParams);
       const fallbackOrderId = storedContext.orderId;
       const fallbackEventId = storedContext.eventId;
 
@@ -103,11 +100,15 @@ function OrganizerPaymentCallbackClient({
         if (!cancelled) {
           setMessage(
             fallbackOrderId
-              ? "We couldn't open your ticket page automatically yet, but your order ID is ready below so you can continue from the status page."
-              : "We couldn't open your ticket page automatically yet. You can copy your order ID and continue from the status page.",
+              ? "We couldn't finish the redirect automatically, but your order ID is ready below so you can continue from the order status page."
+              : "We couldn't finish the redirect automatically yet. You can continue from the order status page below.",
           );
         }
         return;
+      }
+
+      if (!cancelled) {
+        setMessage("Checkout return confirmed. Taking you to your ticket status page now...");
       }
 
       router.replace(
@@ -130,17 +131,21 @@ function OrganizerPaymentCallbackClient({
 
   return (
     <main className="min-h-screen bg-purple-100 dark:bg-slate-950/90">
-      <div className="mx-auto max-w-2xl px-6 pt-28 pb-16">
-        <Card>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-            Payment Processing
+      <div className="mx-auto flex min-h-screen max-w-2xl items-center px-6 py-16">
+        <Card className="w-full border-purple-200/70 bg-white/95 p-8 shadow-xl shadow-purple-950/5 dark:border-white/8 dark:bg-slate-950/88 dark:shadow-black/30">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-purple-100 text-purple-700 ring-1 ring-purple-500/15 dark:bg-purple-500/15 dark:text-purple-300">
+            <LuRefreshCw className="animate-spin text-2xl" />
+          </div>
+
+          <h1 className="mt-6 text-center text-2xl font-bold text-slate-900 dark:text-white">
+            Returning to Ticket Status
           </h1>
-          <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
+          <p className="mx-auto mt-3 max-w-xl text-center text-sm text-slate-600 dark:text-slate-300">
             {message}
           </p>
 
           {resolvedOrderId ? (
-            <div className="mt-6 rounded-2xl border border-slate-200 bg-white/70 p-4 dark:border-white/10 dark:bg-white/5">
+            <div className="mt-8 rounded-2xl border border-slate-200 bg-white/70 p-4 dark:border-white/10 dark:bg-white/5">
               <p className="text-xs font-semibold tracking-wide text-slate-500 dark:text-slate-400">
                 ORDER ID
               </p>
@@ -162,13 +167,13 @@ function OrganizerPaymentCallbackClient({
                   href={`/payments/order-status?orderId=${encodeURIComponent(resolvedOrderId)}`}
                   className="inline-flex h-11 items-center justify-center rounded-lg bg-purple-600 px-5 text-sm font-semibold text-white transition hover:bg-purple-700"
                 >
-                  Check Payment Status
+                  View Order Status
                 </Link>
               </div>
             </div>
           ) : null}
 
-          <div className="mt-6">
+          <div className="mt-6 flex justify-center">
             <Link
               href={`/${organizer}/events`}
               className="inline-flex h-11 items-center justify-center rounded-lg border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-purple-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"

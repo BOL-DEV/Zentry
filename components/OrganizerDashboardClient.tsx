@@ -309,12 +309,11 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
 
         <div className="mt-10">
           <h3 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
-            Sales & Settlement
+            Cash Flow & Settlements
           </h3>
           <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-slate-600 dark:text-slate-300">
-              Keep track of confirmed sales, payout deductions, and what has
-              already settled.
+              Review confirmed sales, fee deductions, and which funds are still pending versus already settled to your organizer account.
             </p>
 
             <button
@@ -325,8 +324,8 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
             >
               <LuRefreshCw className="text-base" />
               {settlementSyncMutation.isPending
-                ? "Syncing..."
-                : "Sync Settlements"}
+                ? "Retrying..."
+                : "Retry Squad Payouts"}
             </button>
           </div>
 
@@ -340,37 +339,58 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
             <StatCard
               title="Pending Settlement"
               value={formatCurrency(data.totals.pendingSettlement)}
-              helper="Paid orders still waiting to settle"
+              helper="Confirmed order value still moving through settlement"
               icon={<LuTrendingUp size={20} />}
             />
             <StatCard
-              title="Settled"
+              title="Settled Payouts"
               value={formatCurrency(data.totals.settledRevenue)}
-              helper="Already paid out to your account"
+              helper="Funds already marked as settled for payout"
               icon={<LuCircleCheck size={20} />}
             />
           </div>
 
           <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
             <StatCard
-              title="Expected Net Settlement"
-              value={formatCurrency(data.totals.expectedNetSettlement)}
-              helper="Confirmed sales after platform and payment processing fees"
+              title="Organizer Payout Amount"
+              value={formatCurrency(data.totals.organizerPayoutAmount)}
+              helper="Projected organizer-side amount after platform and Squad deductions"
               icon={<LuArrowUpRight size={20} />}
             />
             <StatCard
               title="Platform Fees"
               value={formatCurrency(data.totals.platformFees)}
-              helper="Platform charges across paid orders"
+              helper="Platform charges across confirmed paid orders"
               icon={<LuChartColumnIncreasing size={20} />}
             />
             <StatCard
-              title="Payment Processing Fees"
-              value={formatCurrency(data.totals.paymentProcessingFees)}
-              helper={`${formatNumber(data.totals.totalEventsWithSales)} events with sales`}
+              title="Squad Gateway Fees"
+              value={formatCurrency(data.totals.squadGatewayFees)}
+              helper={`${formatNumber(data.totals.totalEventsWithSales)} events currently contributing sales`}
               icon={<LuUsers size={20} />}
             />
           </div>
+
+          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <StatCard
+              title="Squad Transfer Fees"
+              value={formatCurrency(data.totals.squadTransferFees)}
+              helper="Transfer costs recorded across organizer payouts"
+              icon={<LuRefreshCw size={20} />}
+            />
+            <StatCard
+              title="Events With Sales"
+              value={formatNumber(data.totals.totalEventsWithSales)}
+              helper="Organizer events currently contributing paid orders"
+              icon={<LuChartColumnIncreasing size={20} />}
+            />
+          </div>
+
+          {settlementSyncMutation.isSuccess && settlementSyncMutation.data ? (
+            <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-100">
+              Refreshed settlement data. Matched {formatNumber(settlementSyncMutation.data.ordersMatched)} eligible orders, attempted {formatNumber(settlementSyncMutation.data.payoutsAttempted)} payouts, and completed {formatNumber(settlementSyncMutation.data.payoutsSucceeded)} successfully.
+            </div>
+          ) : null}
 
           {settlementSyncMutation.isError ? (
             <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-200">
@@ -388,8 +408,7 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
                     Event Settlement Breakdown
                   </h4>
                   <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                    Events with paid orders and their current settlement
-                    progress.
+                    A per-event view of confirmed sales, pending amounts, and settled payouts.
                   </p>
                 </div>
 
@@ -437,7 +456,7 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
                     Recent Paid Orders
                   </h4>
                   <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                    Latest paid orders in your settlement summary.
+                    Latest confirmed orders included in your settlement view.
                   </p>
                 </div>
 
@@ -472,10 +491,10 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
                           </div>
                           <div className="mt-2 flex items-center justify-between text-sm">
                             <span className="text-slate-600 dark:text-slate-300">
-                              Net
+                              Payout
                             </span>
                             <span className="font-semibold text-slate-900 dark:text-white">
-                              {formatCurrency(order.expectedNetSettlement)}
+                              {formatCurrency(order.organizerPayoutAmount)}
                             </span>
                           </div>
                         </div>

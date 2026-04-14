@@ -6,17 +6,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { LuCopy } from "react-icons/lu";
 
 import Card from "@/components/Card";
-import { getStoredCheckoutContext, storeOrderAccessContext } from "@/helpers/order-access";
+import {
+  getPaymentReferenceFromSearchParams,
+  getStoredCheckoutContext,
+  storeOrderAccessContext,
+} from "@/helpers/order-access";
 import { getOrderByPaymentReference } from "@/helpers/organizer-api";
-
-function getPaymentReference(searchParams: URLSearchParams) {
-  return (
-    searchParams.get("reference") ||
-    searchParams.get("trxref") ||
-    searchParams.get("transaction_ref") ||
-    ""
-  );
-}
 
 function RootPaymentCallbackClient() {
   const router = useRouter();
@@ -33,7 +28,9 @@ function RootPaymentCallbackClient() {
         }
       : getStoredCheckoutContext(),
   );
-  const [message, setMessage] = useState("We are confirming your payment...");
+  const [message, setMessage] = useState(
+    "We received your checkout return and are reopening your ticket status.",
+  );
   const [resolvedOrderId, setResolvedOrderId] = useState(storedContext.orderId || "");
   const [copied, setCopied] = useState(false);
 
@@ -58,7 +55,7 @@ function RootPaymentCallbackClient() {
       const organizer = storedContext.organizerSlug;
       const fallbackOrderId = storedContext.orderId;
       const fallbackEventId = storedContext.eventId;
-      const reference = getPaymentReference(searchParams);
+      const reference = getPaymentReferenceFromSearchParams(searchParams);
 
       if (!cancelled && fallbackOrderId) {
         setResolvedOrderId(fallbackOrderId);
@@ -68,7 +65,7 @@ function RootPaymentCallbackClient() {
         if (!cancelled) {
           setMessage(
             fallbackOrderId
-              ? "We couldn't open your ticket page automatically, but your order ID is ready below so you can continue from the status page."
+              ? "We couldn't open your ticket page automatically, but your order ID is ready below so you can continue from the order status page."
               : "We couldn't open your ticket page automatically. Please return to the event page and try again.",
           );
         }
@@ -110,10 +107,14 @@ function RootPaymentCallbackClient() {
       if (!orderId || !eventId) {
         if (!cancelled) {
           setMessage(
-            "We couldn't open your ticket page automatically yet. You can copy your order ID and continue from the status page.",
+            "We couldn't finish the redirect automatically yet. You can copy your order ID and continue from the order status page.",
           );
         }
         return;
+      }
+
+      if (!cancelled) {
+        setMessage("Checkout return confirmed. Taking you to your ticket status page now...");
       }
 
       router.replace(
@@ -139,7 +140,7 @@ function RootPaymentCallbackClient() {
       <div className="mx-auto max-w-2xl px-6 pt-28 pb-16">
         <Card>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-            Payment Processing
+            Returning to Ticket Status
           </h1>
           <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
             {message}
@@ -168,7 +169,7 @@ function RootPaymentCallbackClient() {
                   href={`/payments/order-status?orderId=${encodeURIComponent(resolvedOrderId)}`}
                   className="inline-flex h-11 items-center justify-center rounded-lg bg-purple-600 px-5 text-sm font-semibold text-white transition hover:bg-purple-700"
                 >
-                  Check Payment Status
+                  View Order Status
                 </Link>
               </div>
             </div>
