@@ -54,6 +54,13 @@ function StatusPill({
   );
 }
 
+function getOrderProcessingFeeTotal(order: {
+  paymentProcessingFeeTotal?: number;
+  paystackFeeTotal?: number;
+}) {
+  return order.paymentProcessingFeeTotal ?? order.paystackFeeTotal ?? 0;
+}
+
 function AdminOrdersClient() {
   const router = useRouter();
   const { token, user } = useAdminAuthSession();
@@ -161,8 +168,7 @@ function AdminOrdersClient() {
           <div className="space-y-5">
             {orders.length > 0 ? (
               orders.map((order) => {
-                const feeTotal =
-                  order.paymentProcessingFeeTotal ?? order.paystackFeeTotal ?? 0;
+                const feeTotal = getOrderProcessingFeeTotal(order);
                 const settlementTone =
                   order.settlementStatus === "settled"
                     ? "emerald"
@@ -189,7 +195,7 @@ function AdminOrdersClient() {
                           {order.buyerEmail}
                         </p>
                         <p className="mt-2 text-xs uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-                          {order.event.title} • @{order.organizer.slug}
+                          {order.event.title} | @{order.organizer.slug}
                         </p>
                       </div>
 
@@ -250,7 +256,7 @@ function AdminOrdersClient() {
 
                     <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
                       <p className="text-sm text-slate-600 dark:text-slate-300">
-                        Ref: {order.paymentReference || "No payment reference"}
+                        Order reference: {order.paymentReference || "Not available yet"}
                       </p>
                       <Link
                         href={`/dashboard/admin/orders/${order.id}`}

@@ -54,6 +54,13 @@ function StatusPill({
   );
 }
 
+function getOrderProcessingFeeTotal(order: {
+  paymentProcessingFeeTotal?: number;
+  paystackFeeTotal?: number;
+}) {
+  return order.paymentProcessingFeeTotal ?? order.paystackFeeTotal ?? 0;
+}
+
 type Props = {
   orderId: string;
 };
@@ -122,7 +129,7 @@ function AdminOrderDetailsClient({ orderId }: Props) {
   }
 
   const { order } = orderQuery.data;
-  const feeTotal = order.paymentProcessingFeeTotal ?? order.paystackFeeTotal ?? 0;
+  const feeTotal = getOrderProcessingFeeTotal(order);
   const settlementTone =
     order.settlementStatus === "settled"
       ? "emerald"
@@ -152,7 +159,7 @@ function AdminOrderDetailsClient({ orderId }: Props) {
                 {order.buyerName}
               </h1>
               <p className="mt-4 text-base leading-7 text-slate-600 dark:text-slate-300">
-                {order.buyerEmail} • {order.event.title} • @{order.organizer.slug}
+                {order.buyerEmail} | {order.event.title} | @{order.organizer.slug}
               </p>
             </div>
 
@@ -238,11 +245,13 @@ function AdminOrderDetailsClient({ orderId }: Props) {
               </div>
 
               <div className="mt-6 space-y-3 text-sm text-slate-600 dark:text-slate-300">
-                <p>Payment reference: {order.paymentReference || "No payment reference"}</p>
+                <p>Order reference: {order.paymentReference || "Not available yet"}</p>
                 <p>Paid at: {formatDateTime(order.paidAt)}</p>
                 <p>Settlement date: {formatDateTime(order.settlementDate)}</p>
                 <p>Settlement batch: {order.settlementBatchId || "No settlement batch"}</p>
-                <p>Transaction ID: {order.paystackTransactionId || "No transaction ID"}</p>
+                {order.paystackTransactionId ? (
+                  <p>Legacy transaction ID: {order.paystackTransactionId}</p>
+                ) : null}
               </div>
             </Card>
 

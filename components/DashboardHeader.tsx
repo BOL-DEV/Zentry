@@ -37,17 +37,24 @@ function DashboardHeader({ role, email }: Props) {
           { name: "Events", href: "/events" },
         ];
 
-  const isAdminRoute = pathname === "/dashboard/admin" || pathname.startsWith("/dashboard/admin/");
+  const isAdminRoute =
+    pathname === "/dashboard/admin" || pathname.startsWith("/dashboard/admin/");
 
   return (
     <header className="fixed top-0 z-50 w-full border-b border-purple-200/70 bg-purple-100/90 text-slate-900 backdrop-blur dark:border-white/10 dark:bg-slate-950/95 dark:text-white">
-      <div className="mx-auto flex items-center justify-between px-6 py-4 lg:max-w-7xl">
-        <Link href="/" className="flex items-center gap-3 text-lg font-semibold">
-          <span className="grid h-10 w-10 place-items-center rounded-xl bg-purple-600 text-2xl">
-            ⚡
-          </span>
-          <span className="text-xl font-bold text-purple-600">Zentry</span>
-        </Link>
+      <div
+        className={`mx-auto flex items-center px-6 py-4 lg:max-w-7xl ${
+          role === "admin" ? "justify-center" : "justify-between"
+        }`}
+      >
+        {role !== "admin" ? (
+          <Link href="/" className="flex items-center gap-3 text-lg font-semibold">
+            <span className="grid h-10 w-10 place-items-center rounded-xl bg-purple-600 text-2xl">
+              ƒs­
+            </span>
+            <span className="text-xl font-bold text-purple-600">Zentry</span>
+          </Link>
+        ) : null}
 
         <div className="flex items-center gap-3">
           <nav className="flex items-center">
@@ -63,7 +70,9 @@ function DashboardHeader({ role, email }: Props) {
                     <Link
                       href={item.href}
                       className={`rounded-xl p-3 font-semibold transition hover:bg-purple-200 hover:text-purple-700 dark:hover:bg-white/5 dark:hover:text-white ${
-                        active ? "bg-purple-200 text-purple-700 dark:bg-white/10 dark:text-white" : ""
+                        active
+                          ? "bg-purple-200 text-purple-700 dark:bg-white/10 dark:text-white"
+                          : ""
                       }`}
                     >
                       {item.name}

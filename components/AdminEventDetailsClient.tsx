@@ -41,6 +41,13 @@ function StatusPill({ children, tone }: { children: React.ReactNode; tone: "emer
   );
 }
 
+function getEventProcessingFeeTotal(stats: {
+  paymentProcessingFees?: number;
+  paystackFees?: number;
+}) {
+  return stats.paymentProcessingFees ?? stats.paystackFees ?? 0;
+}
+
 type Props = { eventId: string };
 
 function AdminEventDetailsClient({ eventId }: Props) {
@@ -106,7 +113,7 @@ function AdminEventDetailsClient({ eventId }: Props) {
   }
 
   const { event, stats, recentOrders } = eventQuery.data;
-  const feeValue = stats.paymentProcessingFees ?? stats.paystackFees ?? 0;
+  const feeValue = getEventProcessingFeeTotal(stats);
   const checkInRate = stats.totalTicketsSold > 0 ? Math.round((stats.totalCheckedInTickets / stats.totalTicketsSold) * 100) : 0;
 
   return (
@@ -124,7 +131,7 @@ function AdminEventDetailsClient({ eventId }: Props) {
             <div className="max-w-3xl">
               <p className="text-xs font-semibold uppercase tracking-[0.28em] text-purple-700 dark:text-purple-300">Event Detail</p>
               <h1 className="mt-3 text-4xl font-bold tracking-tight text-slate-950 sm:text-5xl dark:text-white">{event.title}</h1>
-              <p className="mt-4 text-base leading-7 text-slate-600 dark:text-slate-300">{event.organizer.name} • @{event.organizer.slug}</p>
+              <p className="mt-4 text-base leading-7 text-slate-600 dark:text-slate-300">{event.organizer.name} | @{event.organizer.slug}</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <StatusPill tone={event.isUpcoming ? "emerald" : "slate"}>{event.isUpcoming ? "Upcoming" : "Completed"}</StatusPill>
@@ -179,7 +186,7 @@ function AdminEventDetailsClient({ eventId }: Props) {
                       <div>
                         <p className="text-lg font-bold text-slate-950 dark:text-white">{order.buyerName}</p>
                         <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{order.buyerEmail}</p>
-                        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">Ref: {order.paymentReference || "No payment reference"}</p>
+                        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">Order reference: {order.paymentReference || "Not available yet"}</p>
                       </div>
                       <div className="text-right">
                         <p className="text-lg font-bold text-slate-950 dark:text-white">{formatCurrency(order.totalAmount)}</p>

@@ -8,7 +8,11 @@ import { useQuery } from "@tanstack/react-query";
 import { LuCheck, LuCopy, LuDownload, LuRefreshCw, LuX } from "react-icons/lu";
 
 import Card from "@/components/Card";
-import { getStoredCheckoutContext, storeOrderAccessContext } from "@/helpers/order-access";
+import {
+  getPaymentReferenceFromSearchParams,
+  getStoredCheckoutContext,
+  storeOrderAccessContext,
+} from "@/helpers/order-access";
 import {
   getOrderByPaymentReference,
   getOrderStatus,
@@ -17,15 +21,6 @@ import {
 } from "@/helpers/organizer-api";
 import { createTicketPayload } from "@/helpers/ticket";
 import type { ApiOrder, ApiTicket } from "@/helpers/type";
-
-function getPaymentReference(searchParams: URLSearchParams) {
-  return (
-    searchParams.get("reference") ||
-    searchParams.get("trxref") ||
-    searchParams.get("transaction_ref") ||
-    ""
-  );
-}
 
 function formatDateTime(value?: string | null) {
   if (!value) return "Unavailable";
@@ -117,7 +112,8 @@ function OrganizerCheckoutSuccessClient({ organizer }: { organizer: string }) {
     const params = new URLSearchParams(window.location.search);
     return {
       orderId: params.get("orderId") || storedContext.orderId,
-      paymentReference: getPaymentReference(params) || storedContext.paymentReference,
+      paymentReference:
+        getPaymentReferenceFromSearchParams(params) || storedContext.paymentReference,
       fallbackEventId: storedContext.eventId,
       storedOrder: storedContext.orderSnapshot,
       accessToken: storedContext.accessToken || "",
@@ -227,6 +223,7 @@ function OrganizerCheckoutSuccessClient({ organizer }: { organizer: string }) {
   const [showEmailNotice, setShowEmailNotice] = useState(false);
   const hasShownEmailNoticeRef = useRef(false);
   const [copied, setCopied] = useState(false);
+  const isPaid = Boolean(orderStatusQuery.data?.orderStatus?.isPaid);
 
   useEffect(() => {
     let isMounted = true;
@@ -349,6 +346,27 @@ function OrganizerCheckoutSuccessClient({ organizer }: { organizer: string }) {
     }
   }
 
+  function refreshPaymentProgress() {
+    void orderLookupQuery.refetch();
+    void orderStatusQuery.refetch();
+    void ticketsQuery.refetch();
+  }
+
+  const paymentStatusLabel =
+    orderStatusQuery.data?.orderStatus?.paymentStatus || displayOrder?.paymentStatus || "pending";
+  const heroTitle = data?.tickets?.length
+    ? "Your Tickets Are Ready"
+    : isPaid
+      ? "Payment Confirmed"
+      : "Payment Update";
+  const heroMessage = resolvedOrderId || callbackContext.paymentReference
+    ? data?.tickets?.length
+      ? "Your ticket details are ready below and a copy has been sent to your email."
+      : hasReturnedFromCheckout
+        ? "Checkout return received. We're confirming payment and generating your tickets."
+        : "We're preparing your order details and getting your ticket status ready."
+    : "We could not find your payment details yet. Please start again from the event page.";
+
   return (
     <main className="min-h-screen bg-purple-100 dark:bg-slate-950">
       <div className="relative">
@@ -384,14 +402,10 @@ function OrganizerCheckoutSuccessClient({ organizer }: { organizer: string }) {
 
             <div className="mt-6 text-center">
               <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl dark:text-white">
-                Payment Update
+                {heroTitle}
               </h1>
               <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                {resolvedOrderId || callbackContext.paymentReference
-                  ? callbackContext.paymentReference
-                    ? "Payment received. Your tickets are being processed now."
-                    : "We are checking your payment and preparing your tickets."
-                  : "We could not find your payment details yet. Please start again from the event page."}
+                {heroMessage}
               </p>
             </div>
 
@@ -414,7 +428,7 @@ function OrganizerCheckoutSuccessClient({ organizer }: { organizer: string }) {
                     Ticket processing in progress
                   </h2>
                   <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
-                    Confirming your payment and getting your tickets ready...
+                    Confirming your payment and preparing your tickets...
                   </p>
                 </div>
               </div>
@@ -429,75 +443,46 @@ function OrganizerCheckoutSuccessClient({ organizer }: { organizer: string }) {
                       Ticket processing in progress
                     </h2>
                     <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
-                      We&apos;re waiting for the backend to confirm your payment and generate your tickets.
+                      We&apos;re waiting for the payment confirmation to finish so your tickets can be issued.
                     </p>
                   </div>
 
-                {error ? (
-                  <p className="text-center text-sm text-slate-600 dark:text-slate-300">
-                    {error instanceof Error
-                      ? error.message
-                      : "We couldn't refresh your payment status just yet."}
-                  </p>
-                ) : null}
+                  {error ? (
+                    <p className="text-center text-sm text-slate-600 dark:text-slate-300">
+                      {error instanceof Error
+                        ? error.message
+                        : "We couldn't refresh your payment status just yet."}
+                    </p>
+                  ) : null}
 
-                {orderStatusQuery.data?.orderStatus ? (
-                  <div className="rounded-2xl border border-purple-200/70 bg-purple-50/80 px-4 py-4 text-sm dark:border-white/10 dark:bg-slate-950/70">
-                    <p className="font-semibold text-slate-900 dark:text-white">
-                      Current status:{" "}
-                      {orderStatusQuery.data.orderStatus.paymentStatus}
-                    </p>
-                    <p className="mt-1 text-slate-600 dark:text-slate-300">
-                      Payment reference:{" "}
-                      {orderStatusQuery.data.orderStatus.paymentReference ||
-                        callbackContext.paymentReference ||
-                        "Unavailable"}
-                    </p>
-                    <p className="mt-1 text-slate-600 dark:text-slate-300">
-                      Reservation expires:{" "}
-                      {formatDateTime(
-                        orderStatusQuery.data.orderStatus.reservationExpiresAt,
-                      )}
-                    </p>
-                    {hasReturnedFromCheckout ? (
-                      <p className="mt-2 text-slate-600 dark:text-slate-300">
-                        Squad has redirected you back successfully. We&apos;re waiting for the backend to confirm payment and generate your tickets.
+                  {orderStatusQuery.data?.orderStatus ? (
+                    <div className="rounded-2xl border border-purple-200/70 bg-purple-50/80 px-4 py-4 text-sm dark:border-white/10 dark:bg-slate-950/70">
+                      <p className="font-semibold text-slate-900 capitalize dark:text-white">
+                        Current status: {paymentStatusLabel}
                       </p>
-                    ) : null}
-                  </div>
-                ) : null}
-
-                {displayOrder?.checkoutUrl && !hasReturnedFromCheckout ? (
-                  <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 dark:border-emerald-500/20 dark:bg-emerald-500/10">
-                    <p className="text-xs font-semibold tracking-wide text-emerald-700 dark:text-emerald-200">
-                      COMPLETE PAYMENT
-                    </p>
-                    <p className="mt-3 text-sm text-emerald-900 dark:text-emerald-100">
-                      Your order has been created. Complete payment in Squad while this page stays open and keeps checking for confirmation.
-                    </p>
-                    <div className="mt-4 space-y-3">
-                      <a
-                        href={displayOrder.checkoutUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700"
-                      >
-                        Open Squad Checkout
-                      </a>
-                      <p className="text-xs text-emerald-800 dark:text-emerald-100/90">
-                        If Squad checkout did not stay open, use the button above to continue payment.
+                      <p className="mt-1 text-slate-600 dark:text-slate-300">
+                        Payment reference:{" "}
+                        {orderStatusQuery.data.orderStatus.paymentReference ||
+                          callbackContext.paymentReference ||
+                          "Unavailable"}
                       </p>
+                      <p className="mt-1 text-slate-600 dark:text-slate-300">
+                        Reservation expires:{" "}
+                        {formatDateTime(
+                          orderStatusQuery.data.orderStatus.reservationExpiresAt,
+                        )}
+                      </p>
+                      {hasReturnedFromCheckout ? (
+                        <p className="mt-2 text-slate-600 dark:text-slate-300">
+                          Squad has already returned you to Zentry. Ticket creation will continue automatically as soon as the payment confirmation lands.
+                        </p>
+                      ) : null}
                     </div>
-                  </div>
-                ) : null}
+                  ) : null}
 
                   <button
                     type="button"
-                    onClick={() => {
-                      void orderLookupQuery.refetch();
-                      void orderStatusQuery.refetch();
-                      void ticketsQuery.refetch();
-                    }}
+                    onClick={refreshPaymentProgress}
                     disabled={
                       orderLookupQuery.isFetching ||
                       orderStatusQuery.isFetching ||
@@ -510,12 +495,15 @@ function OrganizerCheckoutSuccessClient({ organizer }: { organizer: string }) {
                     orderStatusQuery.isFetching ||
                     ticketsQuery.isFetching
                       ? "Refreshing..."
-                      : "Check Again"}
+                      : "Refresh Status"}
                   </button>
                 </div>
               </div>
             ) : error || !data?.tickets?.length ? (
               <div className="mt-8 space-y-4 rounded-2xl border border-purple-200/70 bg-white/80 p-6 dark:border-white/10 dark:bg-slate-900/80">
+                <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                  Ticket generation is taking longer than expected.
+                </p>
                 <p className="text-sm text-slate-600 dark:text-slate-300">
                   {error instanceof Error
                     ? error.message
@@ -553,17 +541,14 @@ function OrganizerCheckoutSuccessClient({ organizer }: { organizer: string }) {
 
                 <button
                   type="button"
-                  onClick={() => {
-                    void orderStatusQuery.refetch();
-                    void ticketsQuery.refetch();
-                  }}
+                  onClick={refreshPaymentProgress}
                   disabled={orderStatusQuery.isFetching || ticketsQuery.isFetching}
                   className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-purple-600 px-4 text-sm font-semibold text-white transition hover:bg-purple-700 disabled:opacity-70"
                 >
                   <LuRefreshCw className="text-base" />
                   {orderStatusQuery.isFetching || ticketsQuery.isFetching
                     ? "Refreshing..."
-                    : "Check Again"}
+                    : "Refresh Status"}
                 </button>
               </div>
             ) : (
@@ -685,10 +670,7 @@ function OrganizerCheckoutSuccessClient({ organizer }: { organizer: string }) {
                 <div className="mt-8 space-y-3">
                   <button
                     type="button"
-                    onClick={() => {
-                      void orderStatusQuery.refetch();
-                      void ticketsQuery.refetch();
-                    }}
+                    onClick={refreshPaymentProgress}
                     disabled={
                       orderStatusQuery.isFetching || ticketsQuery.isFetching
                     }
