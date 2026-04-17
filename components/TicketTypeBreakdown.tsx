@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { LuDownload, LuPlus } from "react-icons/lu";
+import { LuDownload, LuPencil, LuPlus, LuSave } from "react-icons/lu";
 import OrganizerAttendeesList from "@/components/OrganizerAttendeesList";
 import Card from "@/components/Card";
 import LoadingPulseCard from "@/components/LoadingPulseCard";
@@ -12,6 +12,9 @@ import { useParams } from "next/navigation";
 import {
   createOrganizerDashboardTicketType,
   getOrganizerEventAttendees,
+  getOrganizerDashboardTicketTypesForEdit,
+  updateOrganizerDashboardTicketType,
+  updateOrganizerDashboardTicketTypeQuantity,
 } from "@/helpers/organizer-api";
 import type { TicketTypeBreak } from "@/helpers/type";
 
@@ -40,12 +43,25 @@ function TicketTypeBreakdown(props: Props) {
     | { type: "error"; text: string }
     | null
   >(null);
+  const [editingTicketId, setEditingTicketId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    description: "",
+    price: "",
+    quantityAvailable: "",
+    isActive: true,
+  });
   const verifyHref = organizer
     ? `/${organizer}/dashboard/${eventId}/verify`
     : `/dashboard/${eventId}/verify`;
   const attendeesQuery = useQuery({
     queryKey: ["dashboard-event-attendees", eventId],
     queryFn: () => getOrganizerEventAttendees(eventId),
+  });
+  const ticketTypesQuery = useQuery({
+    queryKey: ["dashboard-event-ticket-types", organizer, eventId],
+    queryFn: () => getOrganizerDashboardTicketTypesForEdit(organizer || "", eventId),
+    enabled: Boolean(organizer),
   });
   const createTicketTypeMutation = useMutation({
     mutationFn: () =>
@@ -84,6 +100,87 @@ function TicketTypeBreakdown(props: Props) {
       });
     },
   });
+  const updateTicketTypeMutation = useMutation({
+    mutationFn: () => {
+      if (!editingTicketId) {
+        throw new Error("Select a ticket type to update.");
+      }
+
+      return updateOrganizerDashboardTicketType(eventId, editingTicketId, {
+        name: editForm.name.trim(),
+        description: editForm.description.trim() || undefined,
+        price: Number(editForm.price),
+        isActive: editForm.isActive,
+      });
+    },
+    onSuccess: () => {
+      setFormMessage({
+        type: "success",
+        text: "Ticket type updated successfully.",
+      });
+      setEditingTicketId(null);
+      void queryClient.invalidateQueries({
+        queryKey: ["dashboard-event-ticket-types", organizer, eventId],
+      });
+      if (organizer) {
+        void queryClient.invalidateQueries({
+          queryKey: ["organizer-dashboard-event-details", organizer, eventId],
+        });
+        void queryClient.invalidateQueries({
+          queryKey: ["organizer-dashboard", organizer],
+        });
+      }
+    },
+    onError: (error) => {
+      setFormMessage({
+        type: "error",
+        text:
+          error instanceof Error
+            ? error.message
+            : "We couldn't update the ticket type.",
+      });
+    },
+  });
+  const updateQuantityMutation = useMutation({
+    mutationFn: () => {
+      if (!editingTicketId) {
+        throw new Error("Select a ticket type to update.");
+      }
+
+      return updateOrganizerDashboardTicketTypeQuantity(
+        eventId,
+        editingTicketId,
+        Number(editForm.quantityAvailable),
+      );
+    },
+    onSuccess: () => {
+      setFormMessage({
+        type: "success",
+        text: "Ticket quantity updated successfully.",
+      });
+      setEditingTicketId(null);
+      void queryClient.invalidateQueries({
+        queryKey: ["dashboard-event-ticket-types", organizer, eventId],
+      });
+      if (organizer) {
+        void queryClient.invalidateQueries({
+          queryKey: ["organizer-dashboard-event-details", organizer, eventId],
+        });
+        void queryClient.invalidateQueries({
+          queryKey: ["organizer-dashboard", organizer],
+        });
+      }
+    },
+    onError: (error) => {
+      setFormMessage({
+        type: "error",
+        text:
+          error instanceof Error
+            ? error.message
+            : "We couldn't update ticket inventory.",
+      });
+    },
+  });
 
   const ticketTypeRows = useMemo(() => {
     return ticketTypes.map((t) => {
@@ -94,6 +191,28 @@ function TicketTypeBreakdown(props: Props) {
       return { ...t, remaining, lineRevenue, pct };
     });
   }, [ticketTypes]);
+
+  function startEditingTicket(ticketId: string) {
+    const source = ticketTypesQuery.data?.find((ticket) => ticket._id === ticketId);
+
+    if (!source) {
+      setFormMessage({
+        type: "error",
+        text: "We couldn't load that ticket type for editing.",
+      });
+      return;
+    }
+
+    setEditingTicketId(ticketId);
+    setEditForm({
+      name: source.name,
+      description: source.description || "",
+      price: String(source.price),
+      quantityAvailable: String(source.quantityAvailable),
+      isActive: source.isActive,
+    });
+    setFormMessage(null);
+  }
 
   return (
     <div className="border-t border-slate-200 dark:border-white/10">
@@ -128,6 +247,16 @@ function TicketTypeBreakdown(props: Props) {
                   <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
                     {formatNumber(t.remaining)} remaining
                   </div>
+                  {organizer ? (
+                    <button
+                      type="button"
+                      onClick={() => startEditingTicket(t.id)}
+                      className="mt-3 inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+                    >
+                      <LuPencil className="text-sm" />
+                      Edit Tier
+                    </button>
+                  ) : null}
                 </div>
               </div>
 
@@ -142,6 +271,119 @@ function TicketTypeBreakdown(props: Props) {
                   aria-label={`${t.pct}% sold`}
                 />
               </div>
+
+              {editingTicketId === t.id ? (
+                <form
+                  className="mt-5 grid gap-4 md:grid-cols-2"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    setFormMessage(null);
+                    updateTicketTypeMutation.mutate();
+                  }}
+                >
+                  <input
+                    required
+                    value={editForm.name}
+                    onChange={(event) =>
+                      setEditForm((current) => ({
+                        ...current,
+                        name: event.target.value,
+                      }))
+                    }
+                    placeholder="Ticket name"
+                    className="h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-purple-600 focus:ring-4 focus:ring-purple-600/15 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:border-purple-400 dark:focus:ring-purple-400/20"
+                  />
+                  <input
+                    required
+                    type="number"
+                    min="0"
+                    value={editForm.price}
+                    onChange={(event) =>
+                      setEditForm((current) => ({
+                        ...current,
+                        price: event.target.value,
+                      }))
+                    }
+                    placeholder="Price"
+                    className="h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-purple-600 focus:ring-4 focus:ring-purple-600/15 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:border-purple-400 dark:focus:ring-purple-400/20"
+                  />
+                  <input
+                    value={editForm.description}
+                    onChange={(event) =>
+                      setEditForm((current) => ({
+                        ...current,
+                        description: event.target.value,
+                      }))
+                    }
+                    placeholder="Description"
+                    className="h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-purple-600 focus:ring-4 focus:ring-purple-600/15 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:border-purple-400 dark:focus:ring-purple-400/20"
+                  />
+                  <input
+                    required
+                    type="number"
+                    min={Math.max(1, t.sold)}
+                    value={editForm.quantityAvailable}
+                    onChange={(event) =>
+                      setEditForm((current) => ({
+                        ...current,
+                        quantityAvailable: event.target.value,
+                      }))
+                    }
+                    placeholder="Quantity Available"
+                    className="h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-purple-600 focus:ring-4 focus:ring-purple-600/15 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:border-purple-400 dark:focus:ring-purple-400/20"
+                  />
+                  <label className="md:col-span-2 inline-flex items-center gap-3 text-sm font-medium text-slate-700 dark:text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={editForm.isActive}
+                      onChange={(event) =>
+                        setEditForm((current) => ({
+                          ...current,
+                          isActive: event.target.checked,
+                        }))
+                      }
+                      className="h-4 w-4 rounded border-slate-300 text-purple-700 focus:ring-purple-500"
+                    />
+                    Ticket type is active
+                  </label>
+
+                  <div className="md:col-span-2 flex flex-wrap gap-3">
+                    <button
+                      type="submit"
+                      disabled={updateTicketTypeMutation.isPending || updateQuantityMutation.isPending}
+                      className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-purple-700 px-4 text-sm font-semibold text-white transition hover:bg-purple-800 disabled:cursor-not-allowed disabled:opacity-70"
+                    >
+                      <LuSave className="text-base" />
+                      {updateTicketTypeMutation.isPending
+                        ? "Saving Tier..."
+                        : "Save Tier Details"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormMessage(null);
+                        updateQuantityMutation.mutate();
+                      }}
+                      disabled={updateTicketTypeMutation.isPending || updateQuantityMutation.isPending}
+                      className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-70 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+                    >
+                      {updateQuantityMutation.isPending
+                        ? "Updating Inventory..."
+                        : "Update Inventory"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingTicketId(null);
+                        setFormMessage(null);
+                      }}
+                      className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              ) : null}
             </div>
           ))}
         </div>

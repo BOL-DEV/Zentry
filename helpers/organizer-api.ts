@@ -845,6 +845,30 @@ export async function getOrganizerGalleryData(
     .map(mapGalleryItem);
 }
 
+export async function getOrganizerGalleryItemsForEdit(
+  slug: string,
+): Promise<ApiGalleryItem[]> {
+  const gallery = await fetchOrganizerGallery(slug);
+
+  return gallery
+    .slice()
+    .sort((left, right) => left.displayOrder - right.displayOrder);
+}
+
+export async function getOrganizerGalleryItem(
+  slug: string,
+  galleryItemId: string,
+): Promise<ApiGalleryItem> {
+  const gallery = await fetchOrganizerGallery(slug);
+  const item = gallery.find((entry) => entry._id === galleryItemId);
+
+  if (!item) {
+    throw new Error("Gallery item not found.");
+  }
+
+  return item;
+}
+
 export async function createOrganizerGalleryItem(
   input: {
     imageUrl: string;
@@ -862,6 +886,65 @@ export async function createOrganizerGalleryItem(
   });
 
   return response.data.galleryItem;
+}
+
+export async function updateOrganizerGalleryItem(
+  galleryItemId: string,
+  input: Partial<{
+    imageUrl: string;
+    caption: string;
+    altText: string;
+    displayOrder: number;
+  }>,
+) {
+  const response = await apiFetch<{
+    galleryItem: ApiGalleryItem;
+  }>(`/organizer/dashboard/gallery/${galleryItemId}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+    auth: true,
+  });
+
+  return response.data.galleryItem;
+}
+
+export async function getOrganizerProfileForEdit(
+  slug: string,
+): Promise<{
+  organizer: ApiOrganizer;
+}> {
+  const organizer = await fetchOrganizer(slug);
+
+  return { organizer };
+}
+
+export async function updateOrganizerProfile(
+  input: Partial<{
+    logoUrl: string;
+    bannerUrl: string;
+    heroTitle: string;
+    heroSubtitle: string;
+    about: string;
+    contactEmail: string;
+    contactPhone: string;
+    location: string;
+    bankDetails: {
+      bankName?: string;
+      bankCode?: string;
+      accountNumber?: string;
+      accountName?: string;
+    };
+  }>,
+) {
+  const response = await apiFetch<{
+    organizer: ApiOrganizer;
+  }>(`/organizer/dashboard/profile`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+    auth: true,
+  });
+
+  return response.data.organizer;
 }
 
 export async function loginDashboardUser(input: {
@@ -986,6 +1069,37 @@ export async function getAdminOrganizers(input?: {
     organizers: response.data.organizers,
     pagination: response.pagination,
     results: response.results,
+  };
+}
+
+export async function getOrganizerDashboardEventForEdit(
+  slug: string,
+  eventId: string,
+): Promise<{
+  event: {
+    id: string;
+    title: string;
+    description: string;
+    date: string;
+    location: string;
+    posterUrl: string;
+    dressCode?: string;
+    policies?: string;
+  };
+}> {
+  const data = await fetchOrganizerEvent(slug, eventId);
+
+  return {
+    event: {
+      id: data.event._id,
+      title: data.event.title,
+      description: data.event.description || "",
+      date: data.event.date,
+      location: data.event.location || "",
+      posterUrl: data.event.posterUrl || "",
+      dressCode: data.event.dressCode || undefined,
+      policies: data.event.policies || undefined,
+    },
   };
 }
 
@@ -1197,17 +1311,144 @@ export async function createAdminOrganizer(input: {
   contactEmail: string;
   contactPhone: string;
   location: string;
-  paystackSubaccountCode?: string;
+  bankDetails?: {
+    bankName?: string;
+    bankCode?: string;
+    accountNumber?: string;
+    accountName?: string;
+  };
 }) {
   const response = await apiFetch<{
     organizer: ApiOrganizer;
-  }>(`/organizer`, {
+  }>(`/admin/organizers`, {
     method: "POST",
     body: JSON.stringify(input),
     auth: "admin",
   });
 
   return response.data.organizer;
+}
+
+export async function updateAdminOrganizer(
+  organizerId: string,
+  input: Partial<{
+    name: string;
+    logoUrl: string;
+    bannerUrl: string;
+    heroTitle: string;
+    heroSubtitle: string;
+    about: string;
+    contactEmail: string;
+    contactPhone: string;
+    location: string;
+    bankDetails: {
+      bankName?: string;
+      bankCode?: string;
+      accountNumber?: string;
+      accountName?: string;
+    };
+  }>,
+) {
+  const response = await apiFetch<{
+    organizer: ApiOrganizer;
+  }>(`/admin/organizers/${organizerId}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+    auth: "admin",
+  });
+
+  return response.data.organizer;
+}
+
+export async function getAdminOrganizerGalleryItemsForEdit(slug: string) {
+  return fetchOrganizerGallery(slug);
+}
+
+export async function updateAdminOrganizerGalleryItem(
+  organizerId: string,
+  galleryItemId: string,
+  input: Partial<{
+    imageUrl: string;
+    caption: string;
+    altText: string;
+    displayOrder: number;
+  }>,
+) {
+  const response = await apiFetch<{
+    galleryItem: ApiGalleryItem;
+  }>(`/admin/organizers/${organizerId}/gallery/${galleryItemId}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+    auth: "admin",
+  });
+
+  return response.data.galleryItem;
+}
+
+export async function updateAdminEvent(
+  eventId: string,
+  input: Partial<{
+    title: string;
+    description: string;
+    date: string;
+    location: string;
+    posterUrl: string;
+    dressCode: string;
+    policies: string;
+  }>,
+) {
+  const response = await apiFetch<{
+    event: ApiEvent;
+  }>(`/admin/events/${eventId}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+    auth: "admin",
+  });
+
+  return response.data.event;
+}
+
+export async function getAdminEventTicketTypesForEdit(slug: string, eventId: string) {
+  return fetchEventTicketTypes(slug, eventId);
+}
+
+export async function updateAdminEventTicketType(
+  eventId: string,
+  ticketTypeId: string,
+  input: Partial<{
+    name: string;
+    description: string;
+    price: number;
+    isActive: boolean;
+  }>,
+) {
+  const response = await apiFetch<{
+    event: { id: string; title: string };
+    ticketType: ApiTicketType;
+  }>(`/admin/events/${eventId}/ticket-types/${ticketTypeId}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+    auth: "admin",
+  });
+
+  return response.data.ticketType;
+}
+
+export async function updateAdminEventTicketTypeQuantity(
+  eventId: string,
+  ticketTypeId: string,
+  quantityAvailable: number,
+) {
+  const response = await apiFetch<{
+    event: { id: string; title: string };
+    ticketType: ApiTicketType;
+  }>(`/admin/events/${eventId}/ticket-types/${ticketTypeId}/quantity`, {
+    method: "PATCH",
+    body: JSON.stringify({ quantityAvailable }),
+    auth: "admin",
+  });
+
+  return response.data.ticketType;
 }
 
 export async function getOrganizerScannerSummary(eventId: string) {
@@ -1252,6 +1493,81 @@ export async function createOrganizerDashboardEvent(input: {
   return response.data.event;
 }
 
+export async function updateOrganizerDashboardEvent(
+  eventId: string,
+  input: Partial<{
+    title: string;
+    description: string;
+    date: string;
+    location: string;
+    posterUrl: string;
+    dressCode: string;
+    policies: string;
+  }>,
+) {
+  const response = await apiFetch<{
+    event: ApiEvent;
+  }>(`/organizer/dashboard/events/${eventId}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+    auth: true,
+  });
+
+  return response.data.event;
+}
+
+export async function getOrganizerDashboardTicketTypesForEdit(
+  slug: string,
+  eventId: string,
+) {
+  return fetchEventTicketTypes(slug, eventId);
+}
+
+export async function updateOrganizerDashboardTicketType(
+  eventId: string,
+  ticketTypeId: string,
+  input: Partial<{
+    name: string;
+    description: string;
+    price: number;
+    isActive: boolean;
+  }>,
+) {
+  const response = await apiFetch<{
+    event: { id: string; title: string };
+    ticketType: ApiTicketType;
+  }>(
+    `/organizer/dashboard/events/${eventId}/ticket-types/${ticketTypeId}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(input),
+      auth: true,
+    },
+  );
+
+  return response.data.ticketType;
+}
+
+export async function updateOrganizerDashboardTicketTypeQuantity(
+  eventId: string,
+  ticketTypeId: string,
+  quantityAvailable: number,
+) {
+  const response = await apiFetch<{
+    event: { id: string; title: string };
+    ticketType: ApiTicketType;
+  }>(
+    `/organizer/dashboard/events/${eventId}/ticket-types/${ticketTypeId}/quantity`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ quantityAvailable }),
+      auth: true,
+    },
+  );
+
+  return response.data.ticketType;
+}
+
 export async function createOrganizerDashboardTicketType(
   eventId: string,
   input: {
@@ -1294,13 +1610,28 @@ export async function getStaffSessions(staffId: string): Promise<{
   sessions: ApiStaffSession[];
 }> {
   const response = await apiFetch<{
-    sessions: ApiStaffSession[];
+    sessions: Array<
+      ApiStaffSession & {
+        _id?: string;
+        lastSeenAt?: string;
+        updatedAt?: string;
+      }
+    >;
   }>(`/organizer/dashboard/staff/${staffId}/sessions`, {
     auth: true,
   });
 
   return {
-    sessions: response.data.sessions ?? [],
+    sessions: (response.data.sessions ?? []).map((session) => ({
+      id: session.id || session._id || "",
+      deviceName: session.deviceName,
+      userAgent: session.userAgent,
+      ipAddress: session.ipAddress,
+      lastActivityAt:
+        session.lastActivityAt || session.lastSeenAt || session.updatedAt,
+      createdAt: session.createdAt,
+      isActive: session.isActive,
+    })),
   };
 }
 

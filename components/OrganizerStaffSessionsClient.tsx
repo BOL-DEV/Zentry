@@ -47,6 +47,11 @@ function OrganizerStaffSessionsClient({ organizer }: { organizer: string }) {
   const { token, user: authUser } = useAuthSession();
   const [staffIdInput, setStaffIdInput] = useState(searchParams.get("staffId") || "");
   const [activeStaffId, setActiveStaffId] = useState(searchParams.get("staffId") || "");
+  const [message, setMessage] = useState<
+    | { type: "success"; text: string }
+    | { type: "error"; text: string }
+    | null
+  >(null);
 
   useEffect(() => {
     if (!token) {
@@ -76,8 +81,21 @@ function OrganizerStaffSessionsClient({ organizer }: { organizer: string }) {
     mutationFn: ({ staffId, sessionId }: { staffId: string; sessionId: string }) =>
       logoutStaffSession(staffId, sessionId),
     onSuccess: async () => {
+      setMessage({
+        type: "success",
+        text: "Staff device revoked successfully.",
+      });
       await queryClient.invalidateQueries({
         queryKey: ["organizer-staff-sessions", organizer, activeStaffId],
+      });
+    },
+    onError: (error) => {
+      setMessage({
+        type: "error",
+        text:
+          error instanceof Error
+            ? error.message
+            : "We couldn't revoke that device right now.",
       });
     },
   });
@@ -85,8 +103,21 @@ function OrganizerStaffSessionsClient({ organizer }: { organizer: string }) {
   const logoutAllMutation = useMutation({
     mutationFn: (staffId: string) => logoutAllStaffSessions(staffId),
     onSuccess: async () => {
+      setMessage({
+        type: "success",
+        text: "All active staff devices were revoked successfully.",
+      });
       await queryClient.invalidateQueries({
         queryKey: ["organizer-staff-sessions", organizer, activeStaffId],
+      });
+    },
+    onError: (error) => {
+      setMessage({
+        type: "error",
+        text:
+          error instanceof Error
+            ? error.message
+            : "We couldn't revoke all staff sessions right now.",
       });
     },
   });
@@ -140,7 +171,16 @@ function OrganizerStaffSessionsClient({ organizer }: { organizer: string }) {
             />
             <button
               type="button"
-              onClick={() => setActiveStaffId(staffIdInput.trim())}
+              onClick={() => {
+                const nextStaffId = staffIdInput.trim();
+                setMessage(null);
+                setActiveStaffId(nextStaffId);
+                router.replace(
+                  nextStaffId
+                    ? `/${organizer}/dashboard/staff-sessions?staffId=${encodeURIComponent(nextStaffId)}`
+                    : `/${organizer}/dashboard/staff-sessions`,
+                );
+              }}
               className="inline-flex h-12 items-center justify-center rounded-xl bg-purple-600 px-5 text-sm font-semibold text-white transition hover:bg-purple-700"
             >
               Load Sessions
@@ -159,6 +199,18 @@ function OrganizerStaffSessionsClient({ organizer }: { organizer: string }) {
           <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
             Use the staff user ID returned when staff accounts are created to review and revoke active staff devices.
           </p>
+
+          {message ? (
+            <div
+              className={`mt-4 rounded-xl border px-4 py-3 text-sm ${
+                message.type === "success"
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-200"
+                  : "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-200"
+              }`}
+            >
+              {message.text}
+            </div>
+          ) : null}
         </section>
 
         {!activeStaffId ? (
@@ -208,14 +260,6 @@ function OrganizerStaffSessionsClient({ organizer }: { organizer: string }) {
                 {logoutAllMutation.isPending ? "Logging Out..." : "Logout All Devices"}
               </button>
             </section>
-
-            {logoutAllMutation.isError ? (
-              <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-200">
-                {logoutAllMutation.error instanceof Error
-                  ? logoutAllMutation.error.message
-                  : "We couldn't revoke all staff sessions right now."}
-              </div>
-            ) : null}
 
             <section className="mt-6 space-y-4">
               {sessions.length ? (
