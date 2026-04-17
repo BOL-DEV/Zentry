@@ -1,10 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { LuArrowLeft, LuArrowUpRight, LuCalendarDays, LuMail, LuMapPin, LuPhone, LuPower, LuShieldCheck } from "react-icons/lu";
+import {
+  LuArrowLeft,
+  LuArrowUpRight,
+  LuCalendarDays,
+  LuMail,
+  LuMapPin,
+  LuImage,
+  LuPhone,
+  LuPower,
+  LuSave,
+  LuShieldCheck,
+} from "react-icons/lu";
 
 import Card from "@/components/Card";
 import DashboardHeader from "@/components/DashboardHeader";
@@ -15,8 +26,10 @@ import { isAuthIssue } from "@/helpers/auth-redirect";
 import { formatCurrency } from "@/helpers/format";
 import {
   getAdminOrganizerDetail,
+  getAdminOrganizerGalleryItemsForEdit,
   getAdminProfile,
   toggleAdminOrganizerActive,
+  updateAdminOrganizerGalleryItem,
 } from "@/helpers/organizer-api";
 
 function formatDateTime(value?: string | null) {
@@ -35,11 +48,7 @@ function formatDateTime(value?: string | null) {
   }).format(date);
 }
 
-function StatusPill({
-  active,
-}: {
-  active: boolean;
-}) {
+function StatusPill({ active }: { active: boolean }) {
   return (
     <span
       className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
@@ -61,6 +70,18 @@ function AdminOrganizerDetailsClient({ organizerId }: Props) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { token, user } = useAdminAuthSession();
+  const [editingGalleryId, setEditingGalleryId] = useState<string | null>(null);
+  const [galleryForm, setGalleryForm] = useState({
+    imageUrl: "",
+    caption: "",
+    altText: "",
+    displayOrder: "",
+  });
+  const [galleryMessage, setGalleryMessage] = useState<
+    | { type: "success"; text: string }
+    | { type: "error"; text: string }
+    | null
+  >(null);
 
   const profileQuery = useQuery({
     queryKey: ["admin-profile"],
@@ -73,6 +94,15 @@ function AdminOrganizerDetailsClient({ organizerId }: Props) {
     queryKey: ["admin-organizer", organizerId],
     queryFn: () => getAdminOrganizerDetail(organizerId),
     enabled: Boolean(token) && Boolean(profileQuery.data?.admin),
+    retry: false,
+  });
+  const galleryQuery = useQuery({
+    queryKey: ["admin-organizer-gallery", organizerId, organizerQuery.data?.organizer.slug],
+    queryFn: () =>
+      getAdminOrganizerGalleryItemsForEdit(
+        organizerQuery.data?.organizer.slug || "",
+      ),
+    enabled: Boolean(token) && Boolean(profileQuery.data?.admin) && Boolean(organizerQuery.data?.organizer.slug),
     retry: false,
   });
 
@@ -119,6 +149,39 @@ function AdminOrganizerDetailsClient({ organizerId }: Props) {
       );
     },
   });
+  const updateGalleryMutation = useMutation({
+    mutationFn: () => {
+      if (!editingGalleryId) {
+        throw new Error("Select a gallery item to update.");
+      }
+
+      return updateAdminOrganizerGalleryItem(organizerId, editingGalleryId, {
+        imageUrl: galleryForm.imageUrl.trim(),
+        caption: galleryForm.caption.trim(),
+        altText: galleryForm.altText.trim(),
+        displayOrder: Number(galleryForm.displayOrder || 0),
+      });
+    },
+    onSuccess: async () => {
+      setGalleryMessage({
+        type: "success",
+        text: "Gallery item updated successfully.",
+      });
+      setEditingGalleryId(null);
+      await queryClient.invalidateQueries({
+        queryKey: ["admin-organizer-gallery", organizerId],
+      });
+    },
+    onError: (error) => {
+      setGalleryMessage({
+        type: "error",
+        text:
+          error instanceof Error
+            ? error.message
+            : "We couldn't update that gallery item.",
+      });
+    },
+  });
 
   useEffect(() => {
     if (!token) {
@@ -152,7 +215,11 @@ function AdminOrganizerDetailsClient({ organizerId }: Props) {
     );
   }
 
-  if (profileQuery.isLoading || profileQuery.isFetching || organizerQuery.isLoading) {
+  if (
+    profileQuery.isLoading ||
+    profileQuery.isFetching ||
+    organizerQuery.isLoading
+  ) {
     return (
       <FullPageLoader
         title="Loading organizer details"
@@ -161,7 +228,12 @@ function AdminOrganizerDetailsClient({ organizerId }: Props) {
     );
   }
 
-  if (profileQuery.error || organizerQuery.error || !profileQuery.data?.admin || !organizerQuery.data) {
+  if (
+    profileQuery.error ||
+    organizerQuery.error ||
+    !profileQuery.data?.admin ||
+    !organizerQuery.data
+  ) {
     const message =
       profileQuery.error instanceof Error
         ? profileQuery.error.message
@@ -173,7 +245,11 @@ function AdminOrganizerDetailsClient({ organizerId }: Props) {
       <main className="min-h-screen bg-purple-100 dark:bg-slate-950/90">
         <DashboardHeader
           role="admin"
-          email={profileQuery.data?.admin.email || user?.email || "Platform workspace"}
+          email={
+            profileQuery.data?.admin.email ||
+            user?.email ||
+            "Platform workspace"
+          }
         />
         <div className="mx-auto max-w-5xl px-6 pt-28 pb-16">
           <Card className="text-sm text-rose-700 dark:text-rose-300">
@@ -190,11 +266,34 @@ function AdminOrganizerDetailsClient({ organizerId }: Props) {
       ? Math.round((stats.totalCheckedInTickets / stats.totalTicketsSold) * 100)
       : 0;
 
+  function startEditingGalleryItem(galleryItemId: string) {
+    const item = galleryQuery.data?.find((entry) => entry._id === galleryItemId);
+
+    if (!item) {
+      setGalleryMessage({
+        type: "error",
+        text: "We couldn't load that gallery item for editing.",
+      });
+      return;
+    }
+
+    setEditingGalleryId(galleryItemId);
+    setGalleryForm({
+      imageUrl: item.imageUrl || "",
+      caption: item.caption || "",
+      altText: item.altText || "",
+      displayOrder: String(item.displayOrder ?? 0),
+    });
+    setGalleryMessage(null);
+  }
+
   return (
     <main className="min-h-screen bg-purple-100 dark:bg-slate-950/90">
       <DashboardHeader
         role="admin"
-        email={profileQuery.data.admin.email || user?.email || "Platform workspace"}
+        email={
+          profileQuery.data.admin.email || user?.email || "Platform workspace"
+        }
       />
 
       <section className="border-b border-purple-200/70 bg-white/80 pt-28 pb-12 dark:border-white/10 dark:bg-slate-950/90">
@@ -219,11 +318,18 @@ function AdminOrganizerDetailsClient({ organizerId }: Props) {
               </div>
               <p className="mt-4 text-base leading-7 text-slate-600 dark:text-slate-300">
                 @{organizer.slug}
-                {organizer.heroTitle ? ` • ${organizer.heroTitle}` : ""}
+                {organizer.heroTitle ? ` | ${organizer.heroTitle}` : ""}
               </p>
             </div>
 
             <div className="flex flex-wrap gap-3">
+              <Link
+                href={`/dashboard/admin/organizers/${organizerId}/edit`}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+              >
+                Edit Organizer
+                <LuArrowUpRight className="text-base" />
+              </Link>
               <Link
                 href={`/${organizer.slug}`}
                 className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
@@ -281,6 +387,29 @@ function AdminOrganizerDetailsClient({ organizerId }: Props) {
                     {organizer.contactPhone || "No contact phone"}
                   </p>
                 </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-5 dark:border-white/10 dark:bg-white/[0.04]">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                    Location
+                  </p>
+                  <p className="mt-3 flex items-center gap-2 text-sm font-semibold text-slate-950 dark:text-white">
+                    <LuMapPin className="text-base text-purple-600 dark:text-purple-300" />
+                    {organizer.location || "No location set"}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-5 dark:border-white/10 dark:bg-white/[0.04]">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                    Bank Account
+                  </p>
+                  <p className="mt-3 text-sm font-semibold text-slate-950 dark:text-white">
+                    {organizer.bankDetails?.accountName || "No payout account set"}
+                  </p>
+                  <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                    {organizer.bankDetails?.bankName || "Bank name missing"}
+                    {organizer.bankDetails?.accountNumber
+                      ? ` | ${organizer.bankDetails.accountNumber}`
+                      : ""}
+                  </p>
+                </div>
                 <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-5 dark:border-white/10 dark:bg-white/[0.04] md:col-span-2">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
                     About
@@ -289,6 +418,173 @@ function AdminOrganizerDetailsClient({ organizerId }: Props) {
                     {organizer.about || organizer.heroSubtitle || "No organizer profile copy yet."}
                   </p>
                 </div>
+              </div>
+            </Card>
+
+            <Card className="border-slate-200/80 bg-white/90 dark:border-white/10 dark:bg-white/5">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">
+                    Gallery
+                  </p>
+                  <h2 className="mt-2 text-2xl font-bold text-slate-950 dark:text-white">
+                    Update organizer gallery items
+                  </h2>
+                </div>
+                <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/15 dark:text-fuchsia-300">
+                  <LuImage className="text-xl" />
+                </div>
+              </div>
+
+              {galleryMessage ? (
+                <div
+                  className={`mt-6 rounded-2xl border px-4 py-3 text-sm ${
+                    galleryMessage.type === "success"
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300"
+                      : "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300"
+                  }`}
+                >
+                  {galleryMessage.text}
+                </div>
+              ) : null}
+
+              <div className="mt-6 space-y-4">
+                {galleryQuery.isLoading ? (
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-5 text-sm text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300">
+                    Loading organizer gallery...
+                  </div>
+                ) : galleryQuery.error ? (
+                  <div className="rounded-2xl border border-rose-200 bg-rose-50/90 p-5 text-sm text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300">
+                    {galleryQuery.error instanceof Error
+                      ? galleryQuery.error.message
+                      : "We couldn't load organizer gallery items right now."}
+                  </div>
+                ) : galleryQuery.data && galleryQuery.data.length > 0 ? (
+                  galleryQuery.data.map((item) => (
+                    <div
+                      key={item._id}
+                      className="rounded-2xl border border-slate-200 bg-slate-50/90 p-5 dark:border-white/10 dark:bg-white/[0.04]"
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-4">
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-lg font-bold text-slate-950 dark:text-white">
+                            {item.caption || "Untitled gallery image"}
+                          </p>
+                          <p className="mt-2 break-all text-sm text-slate-600 dark:text-slate-300">
+                            {item.imageUrl}
+                          </p>
+                          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                            Alt text: {item.altText || "Not provided"}
+                          </p>
+                          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                            Display order: {item.displayOrder ?? 0}
+                          </p>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => startEditingGalleryItem(item._id)}
+                          className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+                        >
+                          Edit Item
+                        </button>
+                      </div>
+
+                      {editingGalleryId === item._id ? (
+                        <div className="mt-5 rounded-2xl border border-purple-200 bg-white p-5 dark:border-purple-500/20 dark:bg-slate-950/80">
+                          <div className="grid gap-4 md:grid-cols-2">
+                            <label className="block md:col-span-2">
+                              <span className="text-sm font-semibold text-slate-900 dark:text-white">
+                                Image URL
+                              </span>
+                              <input
+                                type="url"
+                                value={galleryForm.imageUrl}
+                                onChange={(event) =>
+                                  setGalleryForm((current) => ({
+                                    ...current,
+                                    imageUrl: event.target.value,
+                                  }))
+                                }
+                                className="mt-2 h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-purple-500 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                              />
+                            </label>
+                            <label className="block">
+                              <span className="text-sm font-semibold text-slate-900 dark:text-white">
+                                Caption
+                              </span>
+                              <input
+                                value={galleryForm.caption}
+                                onChange={(event) =>
+                                  setGalleryForm((current) => ({
+                                    ...current,
+                                    caption: event.target.value,
+                                  }))
+                                }
+                                className="mt-2 h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-purple-500 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                              />
+                            </label>
+                            <label className="block">
+                              <span className="text-sm font-semibold text-slate-900 dark:text-white">
+                                Alt Text
+                              </span>
+                              <input
+                                value={galleryForm.altText}
+                                onChange={(event) =>
+                                  setGalleryForm((current) => ({
+                                    ...current,
+                                    altText: event.target.value,
+                                  }))
+                                }
+                                className="mt-2 h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-purple-500 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                              />
+                            </label>
+                            <label className="block">
+                              <span className="text-sm font-semibold text-slate-900 dark:text-white">
+                                Display Order
+                              </span>
+                              <input
+                                type="number"
+                                min="0"
+                                value={galleryForm.displayOrder}
+                                onChange={(event) =>
+                                  setGalleryForm((current) => ({
+                                    ...current,
+                                    displayOrder: event.target.value,
+                                  }))
+                                }
+                                className="mt-2 h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-purple-500 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                              />
+                            </label>
+                          </div>
+
+                          <div className="mt-5 flex flex-wrap gap-3">
+                            <button
+                              type="button"
+                              onClick={() => updateGalleryMutation.mutate()}
+                              disabled={updateGalleryMutation.isPending}
+                              className="inline-flex items-center gap-2 rounded-xl bg-purple-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-70"
+                            >
+                              <LuSave className="text-base" />
+                              {updateGalleryMutation.isPending ? "Saving..." : "Save Gallery Item"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditingGalleryId(null)}
+                              className="inline-flex items-center rounded-xl border border-transparent px-3 py-2 text-sm font-semibold text-slate-500 transition hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  ))
+                ) : (
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-5 text-sm text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300">
+                    No gallery items available for this organizer yet.
+                  </div>
+                )}
               </div>
             </Card>
 

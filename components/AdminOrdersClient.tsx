@@ -54,13 +54,6 @@ function StatusPill({
   );
 }
 
-function getOrderProcessingFeeTotal(order: {
-  paymentProcessingFeeTotal?: number;
-  paystackFeeTotal?: number;
-}) {
-  return order.paymentProcessingFeeTotal ?? order.paystackFeeTotal ?? 0;
-}
-
 function AdminOrdersClient() {
   const router = useRouter();
   const { token, user } = useAdminAuthSession();
@@ -168,7 +161,6 @@ function AdminOrdersClient() {
           <div className="space-y-5">
             {orders.length > 0 ? (
               orders.map((order) => {
-                const feeTotal = getOrderProcessingFeeTotal(order);
                 const settlementTone =
                   order.settlementStatus === "settled"
                     ? "emerald"
@@ -219,7 +211,7 @@ function AdminOrdersClient() {
                       </div>
                     </div>
 
-                    <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                    <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
                       <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-4 dark:border-white/10 dark:bg-white/[0.04]">
                         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
                           Total Amount
@@ -238,10 +230,20 @@ function AdminOrdersClient() {
                       </div>
                       <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-4 dark:border-white/10 dark:bg-white/[0.04]">
                         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-                          Processing Fees
+                          Organizer Payout
                         </p>
                         <p className="mt-2 text-2xl font-bold text-slate-950 dark:text-white">
-                          {formatCurrency(feeTotal)}
+                          {formatCurrency(order.organizerPayoutAmount || 0)}
+                        </p>
+                      </div>
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-4 dark:border-white/10 dark:bg-white/[0.04]">
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                          Squad Fees
+                        </p>
+                        <p className="mt-2 text-2xl font-bold text-slate-950 dark:text-white">
+                          {formatCurrency(
+                            (order.squadGatewayFee ?? 0) + (order.squadTransferFee ?? 0),
+                          )}
                         </p>
                       </div>
                       <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-4 dark:border-white/10 dark:bg-white/[0.04]">

@@ -99,11 +99,14 @@ export type ApiAdminOrganizerDetail = {
     name: string;
     slug: string;
     logoUrl?: string;
+    bannerUrl?: string;
     heroTitle?: string;
     heroSubtitle?: string;
     about?: string;
     contactEmail?: string;
     contactPhone?: string;
+    location?: string;
+    bankDetails?: ApiBankDetails;
     isActive: boolean;
     createdAt: string;
     updatedAt: string;
@@ -135,9 +138,9 @@ export type ApiAdminOrderSummary = {
   paymentStatus: "pending" | "paid" | "cancelled";
   paidAt?: string;
   platformFeeTotal?: number;
-  paystackFeeTotal?: number;
-  paymentProcessingFeeTotal?: number;
-  expectedNetSettlement?: number;
+  squadGatewayFee?: number;
+  squadTransferFee?: number;
+  organizerPayoutAmount?: number;
   settlementStatus?: "pending" | "processing" | "settled" | "failed";
   settlementBatchId?: string;
   settlementDate?: string | null;
@@ -166,13 +169,12 @@ export type ApiAdminOrderDetail = {
     paymentStatus: "pending" | "paid" | "cancelled";
     paidAt?: string;
     platformFeeTotal?: number;
-    paystackFeeTotal?: number;
-    paymentProcessingFeeTotal?: number;
-    expectedNetSettlement?: number;
+    squadGatewayFee?: number;
+    squadTransferFee?: number;
+    organizerPayoutAmount?: number;
     settlementStatus?: "pending" | "processing" | "settled" | "failed";
     settlementBatchId?: string;
     settlementDate?: string | null;
-    paystackTransactionId?: string;
     createdAt: string;
     updatedAt: string;
     event: {
@@ -249,9 +251,9 @@ export type ApiAdminEventDetail = {
     totalPaidOrders: number;
     grossRevenue: number;
     platformFees: number;
-    paystackFees?: number;
-    paymentProcessingFees?: number;
-    expectedNetSettlement: number;
+    squadGatewayFees?: number;
+    squadTransferFees?: number;
+    organizerPayoutAmount: number;
     totalTicketsSold: number;
     totalCheckedInTickets: number;
   };
@@ -336,6 +338,13 @@ export type ApiAdminCreatedUser = {
   isActive: boolean;
 };
 
+export type ApiBankDetails = {
+  bankName?: string;
+  bankCode?: string;
+  accountNumber?: string;
+  accountName?: string;
+};
+
 export type ApiOrganizer = {
   _id?: string;
   name: string;
@@ -350,6 +359,7 @@ export type ApiOrganizer = {
   location: string;
   isActive?: boolean;
   paystackSubaccountCode?: string;
+  bankDetails?: ApiBankDetails;
   createdAt: string;
   updatedAt: string;
 };

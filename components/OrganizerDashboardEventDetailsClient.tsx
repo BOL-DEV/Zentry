@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -132,6 +133,11 @@ function OrganizerDashboardEventDetailsClient({
 
   const event = data.eventDetails.event;
   const scanner = data.scannerSummary.scannerSummary;
+  const squadFeeTotal =
+    data.settlementSummary
+      ? data.settlementSummary.summary.squadGatewayFees +
+        data.settlementSummary.summary.squadTransferFees
+      : 0;
   const { dateText, timeText } = splitDateAndTime(event.dateTimeText);
   const locationText = event.locationText?.trim() || "Location to be announced";
   const heroImageSrc = event.imageUrl?.trim() || buildEventHeroFallback(event.title);
@@ -150,6 +156,15 @@ function OrganizerDashboardEventDetailsClient({
           backHref={`/${organizer}/dashboard`}
           backLabel="Back to Dashboard"
         />
+
+        <div className="mt-4 flex justify-end">
+          <Link
+            href={`/${organizer}/dashboard/${eventId}/edit`}
+            className="inline-flex h-11 items-center justify-center rounded-lg border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+          >
+            Edit Event
+          </Link>
+        </div>
 
         <section className="mt-8 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/5">
           <div className="relative h-[18rem] w-full sm:h-[24rem]">
@@ -209,6 +224,13 @@ function OrganizerDashboardEventDetailsClient({
           />
         </section>
 
+        <section className="mt-8">
+          <TicketTypeBreakdown
+            ticketTypes={data.eventDetails.ticketTypeBreakdown}
+            eventId={eventId}
+          />
+        </section>
+
         {data.settlementSummary ? (
           <section className="mt-8">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -217,7 +239,7 @@ function OrganizerDashboardEventDetailsClient({
                   Settlement Summary
                 </h2>
                 <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                  Follow confirmed sales, fee deductions, and payout progress for this event.
+                  Follow confirmed sales, total Squad deductions, and organizer payout totals for this event.
                 </p>
               </div>
 
@@ -239,16 +261,6 @@ function OrganizerDashboardEventDetailsClient({
                 icon={<LuUsers className="text-lg" />}
               />
               <InfoCard
-                label="Pending Settlement"
-                value={formatCurrency(data.settlementSummary.summary.pendingSettlement)}
-                icon={<LuClock3 className="text-lg" />}
-              />
-              <InfoCard
-                label="Settled Payouts"
-                value={formatCurrency(data.settlementSummary.summary.settled)}
-                icon={<LuQrCode className="text-lg" />}
-              />
-              <InfoCard
                 label="Organizer Payout"
                 value={formatCurrency(
                   data.settlementSummary.summary.organizerPayoutAmount,
@@ -264,17 +276,8 @@ function OrganizerDashboardEventDetailsClient({
                 icon={<LuUsers className="text-lg" />}
               />
               <InfoCard
-                label="Squad Gateway Fees"
-                value={formatCurrency(
-                  data.settlementSummary.summary.squadGatewayFees,
-                )}
-                icon={<LuUsers className="text-lg" />}
-              />
-              <InfoCard
-                label="Squad Transfer Fees"
-                value={formatCurrency(
-                  data.settlementSummary.summary.squadTransferFees,
-                )}
+                label="Squad Fees"
+                value={formatCurrency(squadFeeTotal)}
                 icon={<LuRefreshCw className="text-lg" />}
               />
               <InfoCard
@@ -304,7 +307,7 @@ function OrganizerDashboardEventDetailsClient({
                   Paid Orders for This Event
                 </h3>
                 <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                  Gross amount, organizer payout value, and current settlement state for each paid order.
+                  Gross amount, organizer payout value, and current backend settlement state for each paid order.
                 </p>
               </div>
 
@@ -377,13 +380,6 @@ function OrganizerDashboardEventDetailsClient({
             </div>
           </section>
         ) : null}
-
-        <section className="mt-8">
-          <TicketTypeBreakdown
-            ticketTypes={data.eventDetails.ticketTypeBreakdown}
-            eventId={eventId}
-          />
-        </section>
       </div>
     </main>
   );

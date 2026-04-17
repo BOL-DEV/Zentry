@@ -162,6 +162,8 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
   }
 
   const nextEvent = data.nextEvent;
+  const squadFeeTotal =
+    data.totals.squadGatewayFees + data.totals.squadTransferFees;
 
   return (
     <main className="bg-purple-100 dark:bg-slate-950/90">
@@ -181,32 +183,48 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
               </span>
             </h2>
 
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="mt-8 flex flex-wrap gap-3">
               <Link
                 href={`/${organizer}/dashboard/create`}
-                className="inline-flex h-11 items-center justify-center rounded-lg bg-emerald-600 px-5 text-sm font-semibold text-white transition hover:bg-emerald-700"
+                className="inline-flex min-h-11 items-center justify-center rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700"
               >
                 Create Event
               </Link>
 
               <Link
                 href={`/${organizer}/dashboard/gallery/create`}
-                className="inline-flex h-11 items-center justify-center rounded-lg bg-amber-500 px-5 text-sm font-semibold text-slate-950 transition hover:bg-amber-400"
+                className="inline-flex min-h-11 items-center justify-center rounded-xl bg-amber-500 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-amber-400"
               >
                 Add Gallery Image
               </Link>
 
               <Link
+                href={`/${organizer}/dashboard/gallery`}
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-purple-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+              >
+                Manage Gallery
+                <LuArrowUpRight className="text-base" />
+              </Link>
+
+              <Link
                 href={`/${organizer}/dashboard/events`}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-purple-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-purple-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
               >
                 Manage Events
                 <LuArrowUpRight className="text-base" />
               </Link>
 
               <Link
+                href={`/${organizer}/dashboard/profile`}
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-purple-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+              >
+                Edit Profile
+                <LuArrowUpRight className="text-base" />
+              </Link>
+
+              <Link
                 href={`/${organizer}/dashboard/staff-sessions`}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-purple-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-purple-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
               >
                 Staff Sessions
                 <LuArrowUpRight className="text-base" />
@@ -313,7 +331,8 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
           </h3>
           <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-slate-600 dark:text-slate-300">
-              Review confirmed sales, fee deductions, and which funds are still pending versus already settled to your organizer account.
+              Review confirmed sales, total Squad deductions, and the organizer
+              payout amount across your paid orders.
             </p>
 
             <button
@@ -337,24 +356,9 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
               icon={<TbCoin size={20} />}
             />
             <StatCard
-              title="Pending Settlement"
-              value={formatCurrency(data.totals.pendingSettlement)}
-              helper="Confirmed order value still moving through settlement"
-              icon={<LuTrendingUp size={20} />}
-            />
-            <StatCard
-              title="Settled Payouts"
-              value={formatCurrency(data.totals.settledRevenue)}
-              helper="Funds already marked as settled for payout"
-              icon={<LuCircleCheck size={20} />}
-            />
-          </div>
-
-          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <StatCard
               title="Organizer Payout Amount"
               value={formatCurrency(data.totals.organizerPayoutAmount)}
-              helper="Projected organizer-side amount after platform and Squad deductions"
+              helper="Net organizer amount after platform fees plus Squad gateway and transfer deductions"
               icon={<LuArrowUpRight size={20} />}
             />
             <StatCard
@@ -364,20 +368,14 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
               icon={<LuChartColumnIncreasing size={20} />}
             />
             <StatCard
-              title="Squad Gateway Fees"
-              value={formatCurrency(data.totals.squadGatewayFees)}
+              title="Squad Fees"
+              value={formatCurrency(squadFeeTotal)}
               helper={`${formatNumber(data.totals.totalEventsWithSales)} events currently contributing sales`}
               icon={<LuUsers size={20} />}
             />
           </div>
 
-          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <StatCard
-              title="Squad Transfer Fees"
-              value={formatCurrency(data.totals.squadTransferFees)}
-              helper="Transfer costs recorded across organizer payouts"
-              icon={<LuRefreshCw size={20} />}
-            />
+          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-1">
             <StatCard
               title="Events With Sales"
               value={formatNumber(data.totals.totalEventsWithSales)}
@@ -388,7 +386,13 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
 
           {settlementSyncMutation.isSuccess && settlementSyncMutation.data ? (
             <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-100">
-              Refreshed settlement data. Matched {formatNumber(settlementSyncMutation.data.ordersMatched)} eligible orders, attempted {formatNumber(settlementSyncMutation.data.payoutsAttempted)} payouts, and completed {formatNumber(settlementSyncMutation.data.payoutsSucceeded)} successfully.
+              Refreshed settlement data. Matched{" "}
+              {formatNumber(settlementSyncMutation.data.ordersMatched)} eligible
+              orders, attempted{" "}
+              {formatNumber(settlementSyncMutation.data.payoutsAttempted)}{" "}
+              payouts, and completed{" "}
+              {formatNumber(settlementSyncMutation.data.payoutsSucceeded)}{" "}
+              successfully.
             </div>
           ) : null}
 
@@ -408,7 +412,8 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
                     Event Settlement Breakdown
                   </h4>
                   <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                    A per-event view of confirmed sales, pending amounts, and settled payouts.
+                    A per-event view of confirmed sales, Squad fees, and
+                    organizer payout totals.
                   </p>
                 </div>
 
@@ -418,8 +423,8 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
                       <tr>
                         <th className="px-5 py-4 font-semibold">Event</th>
                         <th className="px-5 py-4 font-semibold">Confirmed</th>
-                        <th className="px-5 py-4 font-semibold">Pending</th>
-                        <th className="px-5 py-4 font-semibold">Settled</th>
+                        <th className="px-5 py-4 font-semibold">Squad Fees</th>
+                        <th className="px-5 py-4 font-semibold">Payout</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200 dark:divide-white/10">
@@ -438,10 +443,13 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
                             {formatCurrency(event.confirmedSales)}
                           </td>
                           <td className="px-5 py-4">
-                            {formatCurrency(event.pendingSettlement)}
+                            {formatCurrency(
+                              (event.squadGatewayFees ?? 0) +
+                                (event.squadTransferFees ?? 0),
+                            )}
                           </td>
                           <td className="px-5 py-4">
-                            {formatCurrency(event.settled)}
+                            {formatCurrency(event.organizerPayoutAmount)}
                           </td>
                         </tr>
                       ))}

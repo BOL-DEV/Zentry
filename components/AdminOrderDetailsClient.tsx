@@ -54,13 +54,6 @@ function StatusPill({
   );
 }
 
-function getOrderProcessingFeeTotal(order: {
-  paymentProcessingFeeTotal?: number;
-  paystackFeeTotal?: number;
-}) {
-  return order.paymentProcessingFeeTotal ?? order.paystackFeeTotal ?? 0;
-}
-
 type Props = {
   orderId: string;
 };
@@ -129,7 +122,7 @@ function AdminOrderDetailsClient({ orderId }: Props) {
   }
 
   const { order } = orderQuery.data;
-  const feeTotal = getOrderProcessingFeeTotal(order);
+  const squadFeeTotal = (order.squadGatewayFee ?? 0) + (order.squadTransferFee ?? 0);
   const settlementTone =
     order.settlementStatus === "settled"
       ? "emerald"
@@ -231,16 +224,16 @@ function AdminOrderDetailsClient({ orderId }: Props) {
                   <p className="mt-2 text-2xl font-bold text-slate-950 dark:text-white">{formatCurrency(order.totalAmount)}</p>
                 </div>
                 <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-4 dark:border-white/10 dark:bg-white/[0.04]">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Expected Net</p>
-                  <p className="mt-2 text-2xl font-bold text-slate-950 dark:text-white">{formatCurrency(order.expectedNetSettlement || 0)}</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Organizer Payout</p>
+                  <p className="mt-2 text-2xl font-bold text-slate-950 dark:text-white">{formatCurrency(order.organizerPayoutAmount || 0)}</p>
                 </div>
                 <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-4 dark:border-white/10 dark:bg-white/[0.04]">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Platform Fees</p>
                   <p className="mt-2 text-2xl font-bold text-slate-950 dark:text-white">{formatCurrency(order.platformFeeTotal || 0)}</p>
                 </div>
                 <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-4 dark:border-white/10 dark:bg-white/[0.04]">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Processing Fees</p>
-                  <p className="mt-2 text-2xl font-bold text-slate-950 dark:text-white">{formatCurrency(feeTotal)}</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Squad Fees</p>
+                  <p className="mt-2 text-2xl font-bold text-slate-950 dark:text-white">{formatCurrency(squadFeeTotal)}</p>
                 </div>
               </div>
 
@@ -249,9 +242,6 @@ function AdminOrderDetailsClient({ orderId }: Props) {
                 <p>Paid at: {formatDateTime(order.paidAt)}</p>
                 <p>Settlement date: {formatDateTime(order.settlementDate)}</p>
                 <p>Settlement batch: {order.settlementBatchId || "No settlement batch"}</p>
-                {order.paystackTransactionId ? (
-                  <p>Legacy transaction ID: {order.paystackTransactionId}</p>
-                ) : null}
               </div>
             </Card>
 

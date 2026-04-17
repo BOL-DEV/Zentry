@@ -58,7 +58,7 @@ function DashboardHeader({ role, email }: Props) {
 
         <div className="flex items-center gap-3">
           <nav className="flex items-center">
-            <ul className="hidden list-none items-center gap-8 pr-6 text-xs font-medium uppercase tracking-[0.3em] text-slate-700 dark:text-slate-300 lg:flex">
+            <ul className="hidden list-none items-center gap-3 pr-4 text-sm font-semibold tracking-[0.08em] text-slate-700 dark:text-slate-300 xl:flex">
               {menuData.map((item) => {
                 const active =
                   item.href === "/"
@@ -69,7 +69,7 @@ function DashboardHeader({ role, email }: Props) {
                   <li key={item.name}>
                     <Link
                       href={item.href}
-                      className={`rounded-xl p-3 font-semibold transition hover:bg-purple-200 hover:text-purple-700 dark:hover:bg-white/5 dark:hover:text-white ${
+                      className={`inline-flex min-h-11 items-center justify-center whitespace-nowrap rounded-xl px-4 py-3 transition hover:bg-purple-200 hover:text-purple-700 dark:hover:bg-white/5 dark:hover:text-white ${
                         active
                           ? "bg-purple-200 text-purple-700 dark:bg-white/10 dark:text-white"
                           : ""
@@ -82,7 +82,7 @@ function DashboardHeader({ role, email }: Props) {
               })}
             </ul>
 
-            <div className="hidden items-center gap-4 border-l border-purple-200/70 pl-4 pr-4 dark:border-white/10 lg:flex">
+            <div className="hidden items-center gap-4 border-l border-purple-200/70 pl-4 pr-4 dark:border-white/10 xl:flex">
               <span className="max-w-55 truncate text-sm text-slate-600 dark:text-slate-300">
                 {email}
               </span>
