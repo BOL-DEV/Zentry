@@ -628,6 +628,16 @@ function AdminOrganizerDetailsClient({ organizerId }: Props) {
                           </p>
                         </div>
                       </div>
+
+                      <div className="mt-4 flex justify-end">
+                        <Link
+                          href={`/dashboard/admin/events/${event.id}`}
+                          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+                        >
+                          Open Event
+                          <LuArrowUpRight className="text-base" />
+                        </Link>
+                      </div>
                     </div>
                   ))
                 ) : (

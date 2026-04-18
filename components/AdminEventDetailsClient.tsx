@@ -9,12 +9,15 @@ import { LuArrowLeft, LuCalendarDays, LuMail, LuMapPin, LuPhone, LuReceiptText, 
 import Card from "@/components/Card";
 import DashboardHeader from "@/components/DashboardHeader";
 import FullPageLoader from "@/components/FullPageLoader";
+import OrganizerAttendeesList from "@/components/OrganizerAttendeesList";
 import { clearAdminAuthToken, setAdminAuthUser } from "@/helpers/admin-auth";
 import { useAdminAuthSession } from "@/helpers/admin-auth-client";
 import { isAuthIssue } from "@/helpers/auth-redirect";
 import { formatCurrency } from "@/helpers/format";
 import {
+  getAdminEventAttendees,
   getAdminEventDetail,
+  getAdminEventScannerSummary,
   getAdminEventTicketTypesForEdit,
   getAdminProfile,
   updateAdminEventTicketType,
@@ -88,6 +91,18 @@ function AdminEventDetailsClient({ eventId }: Props) {
         eventId,
       ),
     enabled: Boolean(token) && Boolean(profileQuery.data?.admin) && Boolean(eventQuery.data?.event.organizer.slug),
+    retry: false,
+  });
+  const scannerSummaryQuery = useQuery({
+    queryKey: ["admin-event-scanner-summary", eventId],
+    queryFn: () => getAdminEventScannerSummary(eventId),
+    enabled: Boolean(token) && Boolean(profileQuery.data?.admin),
+    retry: false,
+  });
+  const attendeesQuery = useQuery({
+    queryKey: ["admin-event-attendees", eventId],
+    queryFn: () => getAdminEventAttendees(eventId),
+    enabled: Boolean(token) && Boolean(profileQuery.data?.admin),
     retry: false,
   });
 
@@ -478,6 +493,71 @@ function AdminEventDetailsClient({ eventId }: Props) {
                 )}
               </div>
             </Card>
+
+            <div className="space-y-4">
+              {scannerSummaryQuery.isLoading ? (
+                <Card className="border-slate-200/80 bg-white/90 text-sm text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+                  Loading scanner summary...
+                </Card>
+              ) : scannerSummaryQuery.error ? (
+                <Card className="border-rose-200 text-sm text-rose-700 dark:border-rose-500/20 dark:text-rose-300">
+                  {scannerSummaryQuery.error instanceof Error
+                    ? scannerSummaryQuery.error.message
+                    : "We couldn't load the scanner summary right now."}
+                </Card>
+              ) : scannerSummaryQuery.data ? (
+                <Card className="border-slate-200/80 bg-white/90 dark:border-white/10 dark:bg-white/5">
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">
+                    Scanner Summary
+                  </p>
+                  <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-4 dark:border-white/10 dark:bg-white/[0.04]">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Sold</p>
+                      <p className="mt-2 text-2xl font-bold text-slate-950 dark:text-white">
+                        {scannerSummaryQuery.data.scannerSummary.totalTicketsSold}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-4 dark:border-white/10 dark:bg-white/[0.04]">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Checked In</p>
+                      <p className="mt-2 text-2xl font-bold text-slate-950 dark:text-white">
+                        {scannerSummaryQuery.data.scannerSummary.totalCheckedIn}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-4 dark:border-white/10 dark:bg-white/[0.04]">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Unchecked</p>
+                      <p className="mt-2 text-2xl font-bold text-slate-950 dark:text-white">
+                        {scannerSummaryQuery.data.scannerSummary.totalUnchecked}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-4 dark:border-white/10 dark:bg-white/[0.04]">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Check-in Rate</p>
+                      <p className="mt-2 text-2xl font-bold text-slate-950 dark:text-white">
+                        {scannerSummaryQuery.data.scannerSummary.checkInPercentage}%
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              ) : null}
+
+              {attendeesQuery.isLoading ? (
+                <Card className="border-slate-200/80 bg-white/90 text-sm text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+                  Loading attendees...
+                </Card>
+              ) : attendeesQuery.error ? (
+                <Card className="border-rose-200 text-sm text-rose-700 dark:border-rose-500/20 dark:text-rose-300">
+                  {attendeesQuery.error instanceof Error
+                    ? attendeesQuery.error.message
+                    : "We couldn't load attendees right now."}
+                </Card>
+              ) : (
+                <OrganizerAttendeesList
+                  attendees={attendeesQuery.data?.attendees ?? []}
+                  title="Attendees"
+                  description="Admin-side attendee visibility for this event, including ticket type and check-in status."
+                  maxHeightClass="max-h-[32rem]"
+                />
+              )}
+            </div>
           </div>
 
           <div className="space-y-8">

@@ -14,16 +14,16 @@ function OffersHeroSection() {
 
         <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:justify-center">
           <Link
-            href="/login"
+            href="/organizer-request"
             className="flex items-center justify-center rounded-lg bg-purple-600 px-6 py-3 font-semibold text-white transition hover:bg-purple-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-purple-600/30 dark:focus-visible:ring-purple-400/30"
           >
-            Create Your Event
+            Apply as Organizer
           </Link>
           <Link
-            href="#pricing"
+            href="/login"
             className="flex items-center justify-center rounded-lg border-2 border-purple-600 px-6 py-3 font-semibold text-purple-600 transition hover:bg-purple-700 hover:text-white focus:outline-none focus-visible:ring-4 focus-visible:ring-purple-600/20 dark:focus-visible:ring-purple-400/20"
           >
-            View Pricing
+            Organizer Login
           </Link>
         </div>
       </div>

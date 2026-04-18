@@ -338,6 +338,48 @@ export type ApiAdminCreatedUser = {
   isActive: boolean;
 };
 
+export type ApiOrganizerRequest = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  about: string;
+  location: string;
+  preferredSlug: string;
+  logoUrl: string;
+  bannerUrl: string;
+  heroTitle: string;
+  heroSubtitle: string;
+  bankDetails?: ApiBankDetails;
+  status: "pending" | "approved" | "rejected";
+  reviewNote: string;
+  approvedAt?: string | null;
+  rejectedAt?: string | null;
+  createdOrganizerId?: string | null;
+  createdDashboardUserId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ApiOrganizerRequestApproval = {
+  organizer: {
+    id: string;
+    name: string;
+    slug: string;
+    contactEmail: string;
+    isActive: boolean;
+  };
+  dashboardUser: {
+    id: string;
+    organizerId: string;
+    fullName: string;
+    email: string;
+    role: "organizer";
+    isActive: boolean;
+  };
+  temporaryPassword: string;
+};
+
 export type ApiBankDetails = {
   bankName?: string;
   bankCode?: string;
@@ -358,6 +400,8 @@ export type ApiOrganizer = {
   contactPhone: string;
   location: string;
   isActive?: boolean;
+  staffSessionLimit?: number;
+  organizerSessionLimit?: number;
   paystackSubaccountCode?: string;
   bankDetails?: ApiBankDetails;
   createdAt: string;
@@ -471,6 +515,17 @@ export type ApiDashboardSummary = {
   totalOrders: number;
   totalTicketsSold: number;
   totalRevenue: number;
+};
+
+export type ApiDashboardUser = {
+  id: string;
+  organizerId: string;
+  fullName: string;
+  email: string;
+  role: "organizer" | "staff";
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type ApiDashboardEventStat = {

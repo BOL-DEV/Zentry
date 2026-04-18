@@ -223,10 +223,10 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
               </Link>
 
               <Link
-                href={`/${organizer}/dashboard/staff-sessions`}
+                href={`/${organizer}/dashboard/staff`}
                 className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-purple-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
               >
-                Staff Sessions
+                Staff Management
                 <LuArrowUpRight className="text-base" />
               </Link>
             </div>
