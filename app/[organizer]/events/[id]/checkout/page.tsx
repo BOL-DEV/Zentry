@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+
 import OrganizerCheckoutClient from "@/components/OrganizerCheckoutClient";
 
 type Props = {
@@ -7,7 +9,11 @@ type Props = {
 async function Page({ params }: Props) {
   const { organizer, id } = await params;
 
-  return <OrganizerCheckoutClient organizer={organizer} eventId={id} />;
+  return (
+    <Suspense fallback={null}>
+      <OrganizerCheckoutClient organizer={organizer} eventId={id} />
+    </Suspense>
+  );
 }
 
 export default Page;

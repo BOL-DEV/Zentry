@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+
 import OrganizerStaffSessionsClient from "@/components/OrganizerStaffSessionsClient";
 
 type Props = {
@@ -7,7 +9,11 @@ type Props = {
 async function Page({ params }: Props) {
   const { organizer } = await params;
 
-  return <OrganizerStaffSessionsClient organizer={organizer} />;
+  return (
+    <Suspense fallback={null}>
+      <OrganizerStaffSessionsClient organizer={organizer} />
+    </Suspense>
+  );
 }
 
 export default Page;

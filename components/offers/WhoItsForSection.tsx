@@ -7,24 +7,28 @@ type Audience = {
 
 const audiences: Audience[] = [
   {
-    title: "Concert Organizers",
-    description: "Sell tickets fast and keep entry moving smoothly.",
+    title: "Concert and nightlife organizers",
+    description: "Move tickets fast and keep entry control tight when crowd pressure is high.",
   },
   {
-    title: "Campus Events",
-    description: "Run club nights, shows, and student programs with control.",
+    title: "Campus and youth-led events",
+    description: "Run recurring programs with branded visibility, staff access, and cleaner check-in.",
   },
   {
-    title: "Conferences",
-    description: "Handle multi-ticket entry and attendee tracking at scale.",
+    title: "Conferences and summits",
+    description: "Support multiple ticket tiers, attendee verification, and organized event operations.",
   },
   {
-    title: "Corporate Events",
-    description: "Validate attendance and report outcomes with confidence.",
+    title: "Corporate and brand activations",
+    description: "Keep attendance, validation, and reporting polished for clients and internal teams.",
   },
   {
-    title: "Religious Programs",
-    description: "Manage registrations and secure check-in for large gatherings.",
+    title: "Religious and community gatherings",
+    description: "Handle large turnout with more structure across registration, access, and verification.",
+  },
+  {
+    title: "Multi-organizer event platforms",
+    description: "Operate a controlled network where admin oversight and organizer branding both matter.",
   },
 ];
 
@@ -32,18 +36,23 @@ function WhoItsForSection() {
   return (
     <section className="px-6 py-16">
       <div className="mx-auto max-w-7xl">
-        <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-4xl">
-          Who It’s For
-        </h2>
+        <div className="max-w-2xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-violet-600 dark:text-violet-300">
+            Best Fit
+          </p>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-4xl">
+            Built for teams that treat events like operations, not guesswork.
+          </h2>
+        </div>
 
         <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {audiences.map((a) => (
-            <Card key={a.title} className="h-full">
+          {audiences.map((audience) => (
+            <Card key={audience.title} className="h-full">
               <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
-                {a.title}
+                {audience.title}
               </h3>
-              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                {a.description}
+              <p className="mt-2 text-sm leading-7 text-slate-600 dark:text-slate-300">
+                {audience.description}
               </p>
             </Card>
           ))}

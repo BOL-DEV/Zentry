@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
-import { LuArrowUpRight, LuShieldCheck, LuTicket } from "react-icons/lu";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { LuArrowUpRight, LuFilterX, LuScanLine, LuSearch, LuShieldCheck, LuTicket } from "react-icons/lu";
 
 import Card from "@/components/Card";
 import DashboardHeader from "@/components/DashboardHeader";
@@ -12,7 +12,7 @@ import FullPageLoader from "@/components/FullPageLoader";
 import { clearAdminAuthToken, setAdminAuthUser } from "@/helpers/admin-auth";
 import { useAdminAuthSession } from "@/helpers/admin-auth-client";
 import { isAuthIssue } from "@/helpers/auth-redirect";
-import { getAdminProfile, getAdminTickets } from "@/helpers/organizer-api";
+import { getAdminProfile, getAdminTickets, verifyAdminTicket } from "@/helpers/organizer-api";
 
 function formatDateTime(value?: string | null) {
   if (!value) return "Unavailable";
@@ -52,8 +52,56 @@ function StatusPill({
 
 function AdminTicketsClient() {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { token, user } = useAdminAuthSession();
-  const [page, setPage] = useState(1);
+  const queryClient = useQueryClient();
+  const [page, setPage] = useState(() => Number(searchParams.get("page") || "1") || 1);
+  const [ticketCode, setTicketCode] = useState("");
+  const [search, setSearch] = useState(() => searchParams.get("search") || "");
+  const [statusFilter, setStatusFilter] = useState(
+    () => searchParams.get("status") || "all",
+  );
+  const [eventId, setEventId] = useState(() => searchParams.get("eventId") || "");
+  const [organizerId, setOrganizerId] = useState(() => searchParams.get("organizerId") || "");
+  const [verificationMessage, setVerificationMessage] = useState<
+    | { type: "success"; text: string }
+    | { type: "error"; text: string }
+    | null
+  >(null);
+
+  function updateListUrl(nextState: {
+    page?: number;
+    search?: string;
+    status?: string;
+    eventId?: string;
+    organizerId?: string;
+  }) {
+    const params = new URLSearchParams(searchParams.toString());
+    const resolvedPage = nextState.page ?? page;
+    const resolvedSearch = nextState.search ?? search;
+    const resolvedStatus = nextState.status ?? statusFilter;
+    const resolvedEventId = nextState.eventId ?? eventId;
+    const resolvedOrganizerId = nextState.organizerId ?? organizerId;
+
+    if (resolvedPage > 1) params.set("page", String(resolvedPage));
+    else params.delete("page");
+
+    if (resolvedSearch.trim()) params.set("search", resolvedSearch.trim());
+    else params.delete("search");
+
+    if (resolvedStatus !== "all") params.set("status", resolvedStatus);
+    else params.delete("status");
+
+    if (resolvedEventId.trim()) params.set("eventId", resolvedEventId.trim());
+    else params.delete("eventId");
+
+    if (resolvedOrganizerId.trim()) params.set("organizerId", resolvedOrganizerId.trim());
+    else params.delete("organizerId");
+
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname);
+  }
 
   const profileQuery = useQuery({
     queryKey: ["admin-profile"],
@@ -63,11 +111,46 @@ function AdminTicketsClient() {
   });
 
   const ticketsQuery = useQuery({
-    queryKey: ["admin-tickets", page],
-    queryFn: () => getAdminTickets({ page, limit: 10 }),
+    queryKey: ["admin-tickets", page, search, statusFilter, eventId, organizerId],
+    queryFn: () =>
+      getAdminTickets({
+        page,
+        limit: 10,
+        search: search.trim() || undefined,
+        status:
+          statusFilter === "all"
+            ? undefined
+            : (statusFilter as "valid" | "checked-in"),
+        eventId: eventId.trim() || undefined,
+        organizerId: organizerId.trim() || undefined,
+      }),
     enabled: Boolean(token) && Boolean(profileQuery.data?.admin),
     retry: false,
     placeholderData: (previousData) => previousData,
+  });
+
+  const verifyTicketMutation = useMutation({
+    mutationFn: () => verifyAdminTicket(ticketCode.trim()),
+    onSuccess: async (ticket) => {
+      setVerificationMessage({
+        type: "success",
+        text: `Ticket ${ticket.ticketCode} verified successfully.`,
+      });
+      setTicketCode("");
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["admin-tickets"] }),
+        queryClient.invalidateQueries({ queryKey: ["admin-ticket"] }),
+      ]);
+    },
+    onError: (error) => {
+      setVerificationMessage({
+        type: "error",
+        text:
+          error instanceof Error
+            ? error.message
+            : "We couldn't verify that ticket right now.",
+      });
+    },
   });
 
   useEffect(() => {
@@ -154,6 +237,137 @@ function AdminTicketsClient() {
 
       <section className="bg-white dark:bg-slate-950">
         <div className="mx-auto max-w-7xl px-6 py-10">
+          <Card className="border-slate-200/80 bg-white/90 dark:border-white/10 dark:bg-white/5">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <div className="max-w-2xl">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">
+                  Admin Verification
+                </p>
+                <h2 className="mt-2 text-2xl font-bold text-slate-950 dark:text-white">
+                  Verify a ticket code directly
+                </h2>
+                <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                  Use the new admin verification endpoint to check in a guest without switching into an organizer workspace.
+                </p>
+              </div>
+
+              <div className="flex w-full max-w-xl flex-col gap-3 sm:flex-row">
+                <input
+                  value={ticketCode}
+                  onChange={(event) => setTicketCode(event.target.value)}
+                  placeholder="Enter ticket code"
+                  className="h-12 flex-1 rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-purple-600 focus:ring-4 focus:ring-purple-600/15 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!ticketCode.trim()) {
+                      setVerificationMessage({
+                        type: "error",
+                        text: "Enter a ticket code to verify.",
+                      });
+                      return;
+                    }
+                    verifyTicketMutation.mutate();
+                  }}
+                  disabled={verifyTicketMutation.isPending}
+                  className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-purple-600 px-5 text-sm font-semibold text-white transition hover:bg-purple-700 disabled:opacity-70"
+                >
+                  <LuScanLine className="text-base" />
+                  {verifyTicketMutation.isPending ? "Verifying..." : "Verify Ticket"}
+                </button>
+              </div>
+            </div>
+
+            {verificationMessage ? (
+              <div
+                className={`mt-4 rounded-2xl border px-4 py-3 text-sm ${
+                  verificationMessage.type === "success"
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300"
+                    : "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300"
+                }`}
+              >
+                {verificationMessage.text}
+              </div>
+            ) : null}
+          </Card>
+
+          <Card className="border-slate-200/80 bg-white/90 dark:border-white/10 dark:bg-white/5">
+            <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_180px_220px_220px_auto]">
+              <label className="relative block">
+                <LuSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  value={search}
+                  onChange={(event) => {
+                    const nextValue = event.target.value;
+                    setSearch(nextValue);
+                    setPage(1);
+                    updateListUrl({ search: nextValue, page: 1 });
+                  }}
+                  placeholder="Search code, buyer, or email"
+                  className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:border-purple-600 focus:ring-4 focus:ring-purple-600/15 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                />
+              </label>
+              <select
+                value={statusFilter}
+                onChange={(event) => {
+                  const nextValue = event.target.value;
+                  setStatusFilter(nextValue);
+                  setPage(1);
+                  updateListUrl({ status: nextValue, page: 1 });
+                }}
+                className="h-12 rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-purple-600 focus:ring-4 focus:ring-purple-600/15 dark:border-white/10 dark:bg-white/5 dark:text-white"
+              >
+                <option value="all">All statuses</option>
+                <option value="valid">Valid</option>
+                <option value="checked-in">Checked in</option>
+              </select>
+              <input
+                value={eventId}
+                onChange={(event) => {
+                  const nextValue = event.target.value;
+                  setEventId(nextValue);
+                  setPage(1);
+                  updateListUrl({ eventId: nextValue, page: 1 });
+                }}
+                placeholder="Event ID"
+                className="h-12 rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-purple-600 focus:ring-4 focus:ring-purple-600/15 dark:border-white/10 dark:bg-white/5 dark:text-white"
+              />
+              <input
+                value={organizerId}
+                onChange={(event) => {
+                  const nextValue = event.target.value;
+                  setOrganizerId(nextValue);
+                  setPage(1);
+                  updateListUrl({ organizerId: nextValue, page: 1 });
+                }}
+                placeholder="Organizer ID"
+                className="h-12 rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-purple-600 focus:ring-4 focus:ring-purple-600/15 dark:border-white/10 dark:bg-white/5 dark:text-white"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch("");
+                  setStatusFilter("all");
+                  setEventId("");
+                  setOrganizerId("");
+                  setPage(1);
+                  updateListUrl({
+                    search: "",
+                    status: "all",
+                    eventId: "",
+                    organizerId: "",
+                    page: 1,
+                  });
+                }}
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+              >
+                <LuFilterX className="text-base" />
+                Reset
+              </button>
+            </div>
+          </Card>
+
           <div className="space-y-5">
             {tickets.length > 0 ? (
               tickets.map((ticket) => (
@@ -245,7 +459,13 @@ function AdminTicketsClient() {
             <div className="mt-8 flex items-center justify-between gap-4">
               <button
                 type="button"
-                onClick={() => setPage((current) => Math.max(1, current - 1))}
+                onClick={() =>
+                  setPage((current) => {
+                    const nextPage = Math.max(1, current - 1);
+                    updateListUrl({ page: nextPage });
+                    return nextPage;
+                  })
+                }
                 disabled={page <= 1}
                 className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
               >
@@ -257,7 +477,11 @@ function AdminTicketsClient() {
               <button
                 type="button"
                 onClick={() =>
-                  setPage((current) => Math.min(pagination.totalPages || current, current + 1))
+                  setPage((current) => {
+                    const nextPage = Math.min(pagination.totalPages || current, current + 1);
+                    updateListUrl({ page: nextPage });
+                    return nextPage;
+                  })
                 }
                 disabled={page >= (pagination.totalPages || page)}
                 className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"

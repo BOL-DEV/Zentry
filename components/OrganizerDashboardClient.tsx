@@ -7,7 +7,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   LuArrowUpRight,
   LuChartColumnIncreasing,
-  LuCircleCheck,
   LuRefreshCw,
   LuTrendingUp,
   LuUsers,
@@ -199,14 +198,6 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
               </Link>
 
               <Link
-                href={`/${organizer}/dashboard/gallery`}
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-purple-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
-              >
-                Manage Gallery
-                <LuArrowUpRight className="text-base" />
-              </Link>
-
-              <Link
                 href={`/${organizer}/dashboard/events`}
                 className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-purple-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
               >
@@ -223,27 +214,12 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
               </Link>
 
               <Link
-                href={`/${organizer}/dashboard/staff-sessions`}
+                href={`/${organizer}/dashboard/staff`}
                 className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-purple-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
               >
-                Staff Sessions
+                Staff Management
                 <LuArrowUpRight className="text-base" />
               </Link>
-            </div>
-
-            <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-slate-600 dark:text-slate-300">
-              <span className="inline-flex items-center gap-2">
-                <LuCircleCheck className="text-emerald-600 dark:text-emerald-300" />
-                Live sales snapshot
-              </span>
-              <span className="inline-flex items-center gap-2">
-                <LuCircleCheck className="text-emerald-600 dark:text-emerald-300" />
-                Ticket breakdown
-              </span>
-              <span className="inline-flex items-center gap-2">
-                <LuCircleCheck className="text-emerald-600 dark:text-emerald-300" />
-                Check-in tracking
-              </span>
             </div>
           </div>
 
@@ -277,15 +253,6 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
                       {formatCurrency(nextEvent?.revenue ?? 0)}
                     </p>
                   </div>
-                </div>
-
-                <div className="mt-6">
-                  <Link
-                    href={`/${organizer}/dashboard/events`}
-                    className="inline-flex h-11 w-full items-center justify-center rounded-lg bg-purple-600 px-5 text-sm font-semibold text-white transition hover:bg-purple-700"
-                  >
-                    View Your Events
-                  </Link>
                 </div>
               </div>
             </div>

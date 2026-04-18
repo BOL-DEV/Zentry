@@ -6,6 +6,9 @@ import type {
   ApiAdminAnalytics,
   ApiAdminAuthResponse,
   ApiAdminCreatedUser,
+  ApiDashboardUser,
+  ApiOrganizerRequest,
+  ApiOrganizerRequestApproval,
   ApiAdminEventDetail,
   ApiAdminEventSummary,
   ApiAdminOrganizerDetail,
@@ -38,6 +41,7 @@ import type {
   OrganizerGalleryItem,
   OrganizerPastEvent,
   OrganizerProfile,
+  PublicLandingPastEvent,
   TicketType,
   TicketTypeBreak,
 } from "@/helpers/type";
@@ -78,6 +82,47 @@ type ApiPublicEventListItem = ApiEvent & {
   organizerSlug?: string;
   slug?: string;
   organizer_slug?: string;
+};
+
+type ApiDashboardUserRecord = {
+  _id?: string;
+  id?: string;
+  organizerId?: string;
+  fullName: string;
+  email: string;
+  role: "organizer" | "staff";
+  isActive?: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type ApiOrganizerRequestRecord = {
+  _id?: string;
+  id?: string;
+  name: string;
+  email: string;
+  phone?: string;
+  about?: string;
+  location?: string;
+  preferredSlug?: string;
+  logoUrl?: string;
+  bannerUrl?: string;
+  heroTitle?: string;
+  heroSubtitle?: string;
+  bankDetails?: {
+    bankName?: string;
+    bankCode?: string;
+    accountNumber?: string;
+    accountName?: string;
+  };
+  status: "pending" | "approved" | "rejected";
+  reviewNote?: string;
+  approvedAt?: string | null;
+  rejectedAt?: string | null;
+  createdOrganizerId?: string | null;
+  createdDashboardUserId?: string | null;
+  createdAt: string;
+  updatedAt: string;
 };
 
 function titleCase(value: string) {
@@ -217,6 +262,26 @@ function mapPastEvent(
   };
 }
 
+function mapPublicLandingPastEvent(event: ApiEvent): PublicLandingPastEvent {
+  const organizerName =
+    typeof event.organizerId === "string"
+      ? event.organizerName || "Featured organizer"
+      : event.organizerName || event.organizerId?.name || "Featured organizer";
+
+  return {
+    id: event._id,
+    eventId: event.eventId || event._id,
+    organizerSlug:
+      event.organizerSlug ||
+      (typeof event.organizerId === "string" ? "" : event.organizerId?.slug || ""),
+    organizerName,
+    title: event.title,
+    dateText: formatDateText(new Date(event.date)),
+    imageUrl: getEventImageUrl(event),
+    metaText: event.location || organizerName,
+  };
+}
+
 function mapTicketBreak(ticketType: ApiTicketType): TicketTypeBreak {
   return {
     id: ticketType._id,
@@ -297,6 +362,14 @@ async function fetchAllEvents() {
   const response = await apiFetch<{
     events: ApiPublicEventListItem[];
   }>(`/events`);
+
+  return response.data.events;
+}
+
+async function fetchPublicPastEvents(limit = 4) {
+  const response = await apiFetch<{
+    events: ApiEvent[];
+  }>(`/events/past?page=1&limit=${limit}`);
 
   return response.data.events;
 }
@@ -473,6 +546,14 @@ export async function getPublicOrganizers(): Promise<ApiOrganizer[]> {
   return organizers
     .slice()
     .sort((left, right) => left.name.localeCompare(right.name));
+}
+
+export async function getPublicLandingPastEvents(
+  limit = 4,
+): Promise<PublicLandingPastEvent[]> {
+  const events = await fetchPublicPastEvents(limit);
+
+  return events.map(mapPublicLandingPastEvent);
 }
 
 export async function getOrganizerEventsPageData(slug: string) {
@@ -947,6 +1028,19 @@ export async function updateOrganizerProfile(
   return response.data.organizer;
 }
 
+export async function changeDashboardPassword(input: {
+  currentPassword: string;
+  newPassword: string;
+}) {
+  const response = await apiFetch<Record<string, never>>(`/auth/change-password`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+    auth: true,
+  });
+
+  return response;
+}
+
 export async function loginDashboardUser(input: {
   email: string;
   password: string;
@@ -1039,6 +1133,34 @@ export async function getAdminAnalytics() {
   return response.data;
 }
 
+export async function submitOrganizerRequest(input: {
+  name: string;
+  email: string;
+  phone?: string;
+  about?: string;
+  location?: string;
+  preferredSlug?: string;
+  logoUrl?: string;
+  bannerUrl?: string;
+  heroTitle?: string;
+  heroSubtitle?: string;
+  bankDetails?: {
+    bankName?: string;
+    bankCode?: string;
+    accountNumber?: string;
+    accountName?: string;
+  };
+}) {
+  const response = await apiFetch<{
+    request: ApiOrganizerRequestRecord;
+  }>(`/organizer-requests`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+
+  return mapOrganizerRequest(response.data.request);
+}
+
 export async function getAdminOrganizers(input?: {
   page?: number;
   limit?: number;
@@ -1069,6 +1191,120 @@ export async function getAdminOrganizers(input?: {
     organizers: response.data.organizers,
     pagination: response.pagination,
     results: response.results,
+  };
+}
+
+export async function getAdminOrganizerRequests(input?: {
+  page?: number;
+  limit?: number;
+  status?: "pending" | "approved" | "rejected";
+  search?: string;
+}) {
+  const params = new URLSearchParams();
+  params.set("page", String(input?.page ?? 1));
+  params.set("limit", String(input?.limit ?? 20));
+
+  if (input?.status) {
+    params.set("status", input.status);
+  }
+
+  if (input?.search?.trim()) {
+    params.set("search", input.search.trim());
+  }
+
+  const response = (await apiFetch<{
+    requests: ApiOrganizerRequestRecord[];
+  }>(`/admin/organizer-requests?${params.toString()}`, {
+    auth: "admin",
+  })) as ApiListEnvelope<{
+    requests: ApiOrganizerRequestRecord[];
+  }>;
+
+  return {
+    requests: (response.data.requests ?? []).map(mapOrganizerRequest),
+    pagination: response.pagination,
+    results: response.results,
+  };
+}
+
+export async function getAdminOrganizerRequestDetail(requestId: string) {
+  const response = await apiFetch<{
+    request: ApiOrganizerRequestRecord;
+  }>(`/admin/organizer-requests/${requestId}`, {
+    auth: "admin",
+  });
+
+  return mapOrganizerRequest(response.data.request);
+}
+
+export async function approveAdminOrganizerRequest(
+  requestId: string,
+  input?: { reviewNote?: string },
+) {
+  const response = await apiFetch<ApiOrganizerRequestApproval>(
+    `/admin/organizer-requests/${requestId}/approve`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(input ?? {}),
+      auth: "admin",
+    },
+  );
+
+  return response.data;
+}
+
+export async function rejectAdminOrganizerRequest(
+  requestId: string,
+  input?: { reviewNote?: string },
+) {
+  const response = await apiFetch<{
+    request: ApiOrganizerRequestRecord;
+  }>(`/admin/organizer-requests/${requestId}/reject`, {
+    method: "PATCH",
+    body: JSON.stringify(input ?? {}),
+    auth: "admin",
+  });
+
+  return mapOrganizerRequest(response.data.request);
+}
+
+function mapDashboardUser(user: ApiDashboardUserRecord): ApiDashboardUser {
+  return {
+    id: user.id || user._id || "",
+    organizerId: user.organizerId || "",
+    fullName: user.fullName,
+    email: user.email,
+    role: user.role,
+    isActive: Boolean(user.isActive),
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+  };
+}
+
+function mapOrganizerRequest(
+  request: ApiOrganizerRequestRecord,
+): ApiOrganizerRequest {
+  return {
+    id: request.id || request._id || "",
+    name: request.name,
+    email: request.email,
+    phone: request.phone || "",
+    about: request.about || "",
+    location: request.location || "",
+    preferredSlug: request.preferredSlug || "",
+    logoUrl: request.logoUrl || "",
+    bannerUrl: request.bannerUrl || "",
+    heroTitle: request.heroTitle || "",
+    heroSubtitle: request.heroSubtitle || "",
+    bankDetails: request.bankDetails,
+    status: request.status,
+    reviewNote: request.reviewNote || "",
+    approvedAt: request.approvedAt ?? null,
+    rejectedAt: request.rejectedAt ?? null,
+    createdOrganizerId: request.createdOrganizerId ?? null,
+    createdDashboardUserId: request.createdDashboardUserId ?? null,
+    createdAt: request.createdAt,
+    updatedAt: request.updatedAt,
   };
 }
 
@@ -1114,6 +1350,33 @@ export async function getAdminOrganizerDetail(organizerId: string) {
   return response.data;
 }
 
+export async function getAdminOrganizerDashboardUsers(
+  organizerId: string,
+  input?: {
+    role?: "organizer" | "staff";
+    page?: number;
+    limit?: number;
+  },
+) {
+  const params = new URLSearchParams();
+  params.set("page", String(input?.page ?? 1));
+  params.set("limit", String(input?.limit ?? 20));
+
+  if (input?.role) {
+    params.set("role", input.role);
+  }
+
+  const response = await apiFetch<{
+    users: ApiDashboardUserRecord[];
+  }>(`/admin/organizers/${organizerId}/dashboard-users?${params.toString()}`, {
+    auth: "admin",
+  });
+
+  return {
+    users: (response.data.users ?? []).map(mapDashboardUser),
+  };
+}
+
 export async function toggleAdminOrganizerActive(organizerId: string) {
   const response = await apiFetch<{
     organizer: {
@@ -1124,6 +1387,62 @@ export async function toggleAdminOrganizerActive(organizerId: string) {
     };
   }>(`/admin/organizers/${organizerId}/toggle-active`, {
     method: "PATCH",
+    auth: "admin",
+  });
+
+  return response.data.organizer;
+}
+
+export async function resetAdminOrganizerDashboardUserPassword(
+  organizerId: string,
+  userId: string,
+  input: { newPassword: string },
+) {
+  const response = await apiFetch<{
+    user: ApiDashboardUserRecord;
+  }>(`/admin/organizers/${organizerId}/dashboard-users/${userId}/reset-password`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+    auth: "admin",
+  });
+
+  return mapDashboardUser(response.data.user);
+}
+
+export async function updateAdminOrganizerStaffSessionLimit(
+  organizerId: string,
+  input: { staffSessionLimit: number },
+) {
+  const response = await apiFetch<{
+    organizer: {
+      id: string;
+      name: string;
+      slug: string;
+      staffSessionLimit: number;
+    };
+  }>(`/admin/organizers/${organizerId}/staff-session-limit`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+    auth: "admin",
+  });
+
+  return response.data.organizer;
+}
+
+export async function updateAdminOrganizerSessionLimit(
+  organizerId: string,
+  input: { organizerSessionLimit: number },
+) {
+  const response = await apiFetch<{
+    organizer: {
+      id: string;
+      name: string;
+      slug: string;
+      organizerSessionLimit: number;
+    };
+  }>(`/admin/organizers/${organizerId}/organizer-session-limit`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
     auth: "admin",
   });
 
@@ -1451,6 +1770,41 @@ export async function updateAdminEventTicketTypeQuantity(
   return response.data.ticketType;
 }
 
+export async function getAdminEventScannerSummary(eventId: string) {
+  const response = await apiFetch<{
+    event: { id: string; title: string; date: string; location: string };
+    scannerSummary: ApiScannerSummary;
+  }>(`/admin/events/${eventId}/scanner-summary`, {
+    auth: "admin",
+  });
+
+  return response.data;
+}
+
+export async function getAdminEventAttendees(eventId: string) {
+  const response = await apiFetch<{
+    event: { id: string; title: string };
+    attendees: ApiEventAttendee[];
+  }>(`/admin/events/${eventId}/attendees`, {
+    auth: "admin",
+  });
+
+  return response.data;
+}
+
+export async function verifyAdminTicket(ticketCode: string): Promise<ApiTicket> {
+  const response = await apiFetch<{ ticket: ApiTicket }>(
+    `/admin/tickets/verify`,
+    {
+      method: "POST",
+      body: JSON.stringify({ ticketCode }),
+      auth: "admin",
+    },
+  );
+
+  return response.data.ticket;
+}
+
 export async function getOrganizerScannerSummary(eventId: string) {
   const response = await apiFetch<{
     event: { id: string; title: string; date: string; location: string };
@@ -1635,6 +1989,34 @@ export async function getStaffSessions(staffId: string): Promise<{
   };
 }
 
+export async function getOrganizerDashboardUsers(): Promise<{
+  users: ApiDashboardUser[];
+}> {
+  const response = await apiFetch<{
+    users: ApiDashboardUserRecord[];
+  }>(`/organizer/dashboard/users`, {
+    auth: true,
+  });
+
+  return {
+    users: (response.data.users ?? []).map(mapDashboardUser),
+  };
+}
+
+export async function getOrganizerDashboardStaff(): Promise<{
+  staff: ApiDashboardUser[];
+}> {
+  const response = await apiFetch<{
+    staff: ApiDashboardUserRecord[];
+  }>(`/organizer/dashboard/staff`, {
+    auth: true,
+  });
+
+  return {
+    staff: (response.data.staff ?? []).map(mapDashboardUser),
+  };
+}
+
 export async function logoutStaffSession(
   staffId: string,
   sessionId: string,
@@ -1655,6 +2037,22 @@ export async function logoutAllStaffSessions(staffId: string) {
     `/organizer/dashboard/staff/${staffId}/logout-all`,
     {
       method: "PATCH",
+      auth: true,
+    },
+  );
+
+  return response;
+}
+
+export async function resetOrganizerStaffPassword(
+  staffId: string,
+  input: { newPassword: string },
+) {
+  const response = await apiFetch<Record<string, never>>(
+    `/organizer/dashboard/staff/${staffId}/password`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(input),
       auth: true,
     },
   );

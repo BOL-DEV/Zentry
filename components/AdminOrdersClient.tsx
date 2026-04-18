@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { LuArrowUpRight, LuCreditCard } from "react-icons/lu";
+import { LuArrowUpRight, LuCreditCard, LuFilterX, LuSearch } from "react-icons/lu";
 
 import Card from "@/components/Card";
 import DashboardHeader from "@/components/DashboardHeader";
@@ -56,8 +56,61 @@ function StatusPill({
 
 function AdminOrdersClient() {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { token, user } = useAdminAuthSession();
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(() => Number(searchParams.get("page") || "1") || 1);
+  const [search, setSearch] = useState(() => searchParams.get("search") || "");
+  const [paymentStatus, setPaymentStatus] = useState(
+    () => searchParams.get("paymentStatus") || "all",
+  );
+  const [settlementStatus, setSettlementStatus] = useState(
+    () => searchParams.get("settlementStatus") || "all",
+  );
+  const [eventId, setEventId] = useState(() => searchParams.get("eventId") || "");
+  const [organizerId, setOrganizerId] = useState(() => searchParams.get("organizerId") || "");
+
+  function updateListUrl(nextState: {
+    page?: number;
+    search?: string;
+    paymentStatus?: string;
+    settlementStatus?: string;
+    eventId?: string;
+    organizerId?: string;
+  }) {
+    const params = new URLSearchParams(searchParams.toString());
+    const resolvedPage = nextState.page ?? page;
+    const resolvedSearch = nextState.search ?? search;
+    const resolvedPaymentStatus = nextState.paymentStatus ?? paymentStatus;
+    const resolvedSettlementStatus =
+      nextState.settlementStatus ?? settlementStatus;
+    const resolvedEventId = nextState.eventId ?? eventId;
+    const resolvedOrganizerId = nextState.organizerId ?? organizerId;
+
+    if (resolvedPage > 1) params.set("page", String(resolvedPage));
+    else params.delete("page");
+
+    if (resolvedSearch.trim()) params.set("search", resolvedSearch.trim());
+    else params.delete("search");
+
+    if (resolvedPaymentStatus !== "all") params.set("paymentStatus", resolvedPaymentStatus);
+    else params.delete("paymentStatus");
+
+    if (resolvedSettlementStatus !== "all") {
+      params.set("settlementStatus", resolvedSettlementStatus);
+    } else {
+      params.delete("settlementStatus");
+    }
+
+    if (resolvedEventId.trim()) params.set("eventId", resolvedEventId.trim());
+    else params.delete("eventId");
+
+    if (resolvedOrganizerId.trim()) params.set("organizerId", resolvedOrganizerId.trim());
+    else params.delete("organizerId");
+
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname);
+  }
 
   const profileQuery = useQuery({
     queryKey: ["admin-profile"],
@@ -67,8 +120,31 @@ function AdminOrdersClient() {
   });
 
   const ordersQuery = useQuery({
-    queryKey: ["admin-orders", page],
-    queryFn: () => getAdminOrders({ page, limit: 10 }),
+    queryKey: [
+      "admin-orders",
+      page,
+      search,
+      paymentStatus,
+      settlementStatus,
+      eventId,
+      organizerId,
+    ],
+    queryFn: () =>
+      getAdminOrders({
+        page,
+        limit: 10,
+        search: search.trim() || undefined,
+        paymentStatus:
+          paymentStatus === "all"
+            ? undefined
+            : (paymentStatus as "pending" | "paid" | "cancelled"),
+        settlementStatus:
+          settlementStatus === "all"
+            ? undefined
+            : (settlementStatus as "pending" | "processing" | "settled" | "failed"),
+        eventId: eventId.trim() || undefined,
+        organizerId: organizerId.trim() || undefined,
+      }),
     enabled: Boolean(token) && Boolean(profileQuery.data?.admin),
     retry: false,
     placeholderData: (previousData) => previousData,
@@ -158,6 +234,101 @@ function AdminOrdersClient() {
 
       <section className="bg-white dark:bg-slate-950">
         <div className="mx-auto max-w-7xl px-6 py-10">
+          <Card className="border-slate-200/80 bg-white/90 dark:border-white/10 dark:bg-white/5">
+            <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_180px_200px_220px_220px_auto]">
+              <label className="relative block">
+                <LuSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  value={search}
+                  onChange={(event) => {
+                    const nextValue = event.target.value;
+                    setSearch(nextValue);
+                    setPage(1);
+                    updateListUrl({ search: nextValue, page: 1 });
+                  }}
+                  placeholder="Search buyer or reference"
+                  className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:border-purple-600 focus:ring-4 focus:ring-purple-600/15 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                />
+              </label>
+              <select
+                value={paymentStatus}
+                onChange={(event) => {
+                  const nextValue = event.target.value;
+                  setPaymentStatus(nextValue);
+                  setPage(1);
+                  updateListUrl({ paymentStatus: nextValue, page: 1 });
+                }}
+                className="h-12 rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-purple-600 focus:ring-4 focus:ring-purple-600/15 dark:border-white/10 dark:bg-white/5 dark:text-white"
+              >
+                <option value="all">All payments</option>
+                <option value="paid">Paid</option>
+                <option value="pending">Pending</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+              <select
+                value={settlementStatus}
+                onChange={(event) => {
+                  const nextValue = event.target.value;
+                  setSettlementStatus(nextValue);
+                  setPage(1);
+                  updateListUrl({ settlementStatus: nextValue, page: 1 });
+                }}
+                className="h-12 rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-purple-600 focus:ring-4 focus:ring-purple-600/15 dark:border-white/10 dark:bg-white/5 dark:text-white"
+              >
+                <option value="all">All settlements</option>
+                <option value="pending">Pending</option>
+                <option value="processing">Processing</option>
+                <option value="settled">Settled</option>
+                <option value="failed">Failed</option>
+              </select>
+              <input
+                value={eventId}
+                onChange={(event) => {
+                  const nextValue = event.target.value;
+                  setEventId(nextValue);
+                  setPage(1);
+                  updateListUrl({ eventId: nextValue, page: 1 });
+                }}
+                placeholder="Event ID"
+                className="h-12 rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-purple-600 focus:ring-4 focus:ring-purple-600/15 dark:border-white/10 dark:bg-white/5 dark:text-white"
+              />
+              <input
+                value={organizerId}
+                onChange={(event) => {
+                  const nextValue = event.target.value;
+                  setOrganizerId(nextValue);
+                  setPage(1);
+                  updateListUrl({ organizerId: nextValue, page: 1 });
+                }}
+                placeholder="Organizer ID"
+                className="h-12 rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-purple-600 focus:ring-4 focus:ring-purple-600/15 dark:border-white/10 dark:bg-white/5 dark:text-white"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch("");
+                  setPaymentStatus("all");
+                  setSettlementStatus("all");
+                  setEventId("");
+                  setOrganizerId("");
+                  setPage(1);
+                  updateListUrl({
+                    search: "",
+                    paymentStatus: "all",
+                    settlementStatus: "all",
+                    eventId: "",
+                    organizerId: "",
+                    page: 1,
+                  });
+                }}
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+              >
+                <LuFilterX className="text-base" />
+                Reset
+              </button>
+            </div>
+          </Card>
+
           <div className="space-y-5">
             {orders.length > 0 ? (
               orders.map((order) => {
@@ -282,7 +453,13 @@ function AdminOrdersClient() {
             <div className="mt-8 flex items-center justify-between gap-4">
               <button
                 type="button"
-                onClick={() => setPage((current) => Math.max(1, current - 1))}
+                onClick={() =>
+                  setPage((current) => {
+                    const nextPage = Math.max(1, current - 1);
+                    updateListUrl({ page: nextPage });
+                    return nextPage;
+                  })
+                }
                 disabled={page <= 1}
                 className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
               >
@@ -294,7 +471,11 @@ function AdminOrdersClient() {
               <button
                 type="button"
                 onClick={() =>
-                  setPage((current) => Math.min(pagination.totalPages || current, current + 1))
+                  setPage((current) => {
+                    const nextPage = Math.min(pagination.totalPages || current, current + 1);
+                    updateListUrl({ page: nextPage });
+                    return nextPage;
+                  })
                 }
                 disabled={page >= (pagination.totalPages || page)}
                 className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"

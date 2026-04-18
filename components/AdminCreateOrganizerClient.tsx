@@ -444,6 +444,9 @@ function AdminCreateOrganizerClient() {
             </p>
             <div className="mt-5 space-y-4 text-sm leading-7 text-slate-600 dark:text-slate-300">
               <p>
+                Admin-controlled organizer creation still works, but the new public onboarding path now starts with organizer requests for review and approval.
+              </p>
+              <p>
                 The backend auto-generates the organizer slug from the name and now accepts bank details directly on admin organizer creation.
               </p>
               <p>
@@ -456,7 +459,14 @@ function AdminCreateOrganizerClient() {
               </p>
             </div>
 
-            <div className="mt-6">
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link
+                href="/dashboard/admin/organizer-requests"
+                className="inline-flex items-center gap-2 text-sm font-semibold text-purple-700 transition hover:text-purple-800 dark:text-purple-300 dark:hover:text-purple-200"
+              >
+                Review organizer requests
+                <LuArrowUpRight className="text-base" />
+              </Link>
               <Link
                 href="/dashboard/admin/users/create"
                 className="inline-flex items-center gap-2 text-sm font-semibold text-purple-700 transition hover:text-purple-800 dark:text-purple-300 dark:hover:text-purple-200"
