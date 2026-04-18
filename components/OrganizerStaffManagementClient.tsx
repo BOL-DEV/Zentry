@@ -152,7 +152,7 @@ function OrganizerStaffManagementClient({ organizer }: { organizer: string }) {
         <WorkspaceTopbar
           eyebrow="Staff Management"
           title="Manage your event team."
-          description="Review organizer and staff dashboard accounts, confirm who still has access, and open each staff member's security view for sessions and password resets."
+          description="Open each staff member's security view from here."
           backHref={`/${organizer}/dashboard`}
           backLabel="Back to Dashboard"
         />
@@ -184,9 +184,6 @@ function OrganizerStaffManagementClient({ organizer }: { organizer: string }) {
               <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
                 Dashboard Access
               </h2>
-              <p className="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-300">
-                This list comes from the organizer dashboard users endpoint in the updated API. Organizer password changes stay in profile settings, while each staff member now has one dedicated security view for sessions and password resets.
-              </p>
             </div>
 
             <div className="flex flex-wrap gap-3">
@@ -261,15 +258,15 @@ function OrganizerStaffManagementClient({ organizer }: { organizer: string }) {
                           </Link>
                         ) : (
                           <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
-                            Organizer accounts use the main dashboard and profile settings for password changes.
+                            Organizer password changes stay in profile settings.
                           </div>
                         )}
 
-                        <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
-                          {isStaff
-                            ? "Open the staff security view to reset passwords, review active devices, and revoke sessions."
-                            : "Organizer accounts stay on the main dashboard and do not need staff device controls."}
-                        </div>
+                        {isStaff ? null : (
+                          <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+                            Organizer accounts do not use staff device controls.
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

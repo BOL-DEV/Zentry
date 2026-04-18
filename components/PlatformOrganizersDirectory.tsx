@@ -170,13 +170,6 @@ function PlatformOrganizersDirectory({
               Organizer profiles will appear here as soon as they are available
               on the platform.
             </p>
-            <Link
-              href="/organizer-request"
-              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100"
-            >
-              Apply as Organizer
-              <LuArrowUpRight className="text-base" />
-            </Link>
           </div>
         )}
       </section>

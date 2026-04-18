@@ -107,6 +107,8 @@ export type ApiAdminOrganizerDetail = {
     contactPhone?: string;
     location?: string;
     bankDetails?: ApiBankDetails;
+    staffSessionLimit?: number;
+    organizerSessionLimit?: number;
     isActive: boolean;
     createdAt: string;
     updatedAt: string;
@@ -419,6 +421,7 @@ export type ApiEvent = {
         name?: string;
       };
   organizerSlug?: string;
+  organizerName?: string;
   title: string;
   description: string;
   location: string;
@@ -653,6 +656,17 @@ export type OrganizerPastEvent = {
   dateText: string;
   ticketsSold: number;
   imageUrl: string;
+};
+
+export type PublicLandingPastEvent = {
+  id: string;
+  eventId: string;
+  organizerSlug: string;
+  organizerName: string;
+  title: string;
+  dateText: string;
+  imageUrl: string;
+  metaText: string;
 };
 
 export type OrganizerSocialLinks = {

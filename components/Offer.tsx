@@ -24,7 +24,7 @@ function Offer() {
         />
         <OfferCard
           icon={<GiPartyPopper />}
-          title="Premium Entertainment"
+          title="Real Time Analysis"
           description="Track sales, attendance, and attendee demographics in real-time."
         />
         <OfferCard

@@ -7,17 +7,17 @@ import ReliabilitySection from "@/components/offers/ReliabilitySection";
 import WhoItsForSection from "@/components/offers/WhoItsForSection";
 
 function Page() {
-    return (
-        <main className="bg-purple-100 dark:bg-slate-950/90">
-            <OffersHeroSection />
-            <HowItWorksSection />
-            <FeaturesBreakdownSection />
-            <ReliabilitySection />
-            <PricingSection />
-            <WhoItsForSection />
-            <FaqSection />
-        </main>
-    );
+  return (
+    <main className="bg-linear-to-b from-purple-100 via-white to-purple-100 dark:from-slate-950 dark:via-slate-950/95 dark:to-slate-900">
+      <OffersHeroSection />
+      <HowItWorksSection />
+      <FeaturesBreakdownSection />
+      <ReliabilitySection />
+      <PricingSection />
+      <WhoItsForSection />
+      <FaqSection />
+    </main>
+  );
 }
 
 export default Page;

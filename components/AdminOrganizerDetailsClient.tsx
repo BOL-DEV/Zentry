@@ -8,6 +8,7 @@ import {
   LuArrowLeft,
   LuArrowUpRight,
   LuCalendarDays,
+  LuKeyRound,
   LuMail,
   LuMapPin,
   LuImage,
@@ -26,9 +27,13 @@ import { isAuthIssue } from "@/helpers/auth-redirect";
 import { formatCurrency } from "@/helpers/format";
 import {
   getAdminOrganizerDetail,
+  getAdminOrganizerDashboardUsers,
   getAdminOrganizerGalleryItemsForEdit,
   getAdminProfile,
+  resetAdminOrganizerDashboardUserPassword,
   toggleAdminOrganizerActive,
+  updateAdminOrganizerSessionLimit,
+  updateAdminOrganizerStaffSessionLimit,
   updateAdminOrganizerGalleryItem,
 } from "@/helpers/organizer-api";
 
@@ -82,6 +87,29 @@ function AdminOrganizerDetailsClient({ organizerId }: Props) {
     | { type: "error"; text: string }
     | null
   >(null);
+  const [sessionLimitForm, setSessionLimitForm] = useState({
+    organizerSessionLimit: "",
+    staffSessionLimit: "",
+  });
+  const [sessionLimitMessage, setSessionLimitMessage] = useState<
+    | { type: "success"; text: string }
+    | { type: "error"; text: string }
+    | null
+  >(null);
+  const [resetPasswordForm, setResetPasswordForm] = useState<{
+    userId: string | null;
+    newPassword: string;
+    confirmPassword: string;
+  }>({
+    userId: null,
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [resetPasswordMessage, setResetPasswordMessage] = useState<
+    | { type: "success"; text: string }
+    | { type: "error"; text: string }
+    | null
+  >(null);
 
   const profileQuery = useQuery({
     queryKey: ["admin-profile"],
@@ -103,6 +131,16 @@ function AdminOrganizerDetailsClient({ organizerId }: Props) {
         organizerQuery.data?.organizer.slug || "",
       ),
     enabled: Boolean(token) && Boolean(profileQuery.data?.admin) && Boolean(organizerQuery.data?.organizer.slug),
+    retry: false,
+  });
+  const dashboardUsersQuery = useQuery({
+    queryKey: ["admin-organizer-dashboard-users", organizerId],
+    queryFn: () =>
+      getAdminOrganizerDashboardUsers(organizerId, {
+        page: 1,
+        limit: 50,
+      }),
+    enabled: Boolean(token) && Boolean(profileQuery.data?.admin),
     retry: false,
   });
 
@@ -179,6 +217,126 @@ function AdminOrganizerDetailsClient({ organizerId }: Props) {
           error instanceof Error
             ? error.message
             : "We couldn't update that gallery item.",
+      });
+    },
+  });
+  const updateStaffLimitMutation = useMutation({
+    mutationFn: () =>
+      updateAdminOrganizerStaffSessionLimit(organizerId, {
+        staffSessionLimit: Number(sessionLimitForm.staffSessionLimit),
+      }),
+    onSuccess: async (updatedOrganizer) => {
+      setSessionLimitMessage({
+        type: "success",
+        text: "Staff session limit updated successfully.",
+      });
+      setSessionLimitForm((current) => ({
+        ...current,
+        staffSessionLimit: String(updatedOrganizer.staffSessionLimit),
+      }));
+      queryClient.setQueryData(
+        ["admin-organizer", organizerId],
+        (current: Awaited<ReturnType<typeof getAdminOrganizerDetail>> | undefined) =>
+          current
+            ? {
+                ...current,
+                organizer: {
+                  ...current.organizer,
+                  staffSessionLimit: updatedOrganizer.staffSessionLimit,
+                },
+              }
+            : current,
+      );
+      await queryClient.invalidateQueries({
+        queryKey: ["admin-organizer", organizerId],
+      });
+    },
+    onError: (error) => {
+      setSessionLimitMessage({
+        type: "error",
+        text:
+          error instanceof Error
+            ? error.message
+            : "We couldn't update the staff session limit.",
+      });
+    },
+  });
+  const updateOrganizerLimitMutation = useMutation({
+    mutationFn: () =>
+      updateAdminOrganizerSessionLimit(organizerId, {
+        organizerSessionLimit: Number(sessionLimitForm.organizerSessionLimit),
+      }),
+    onSuccess: async (updatedOrganizer) => {
+      setSessionLimitMessage({
+        type: "success",
+        text: "Organizer session limit updated successfully.",
+      });
+      setSessionLimitForm((current) => ({
+        ...current,
+        organizerSessionLimit: String(updatedOrganizer.organizerSessionLimit),
+      }));
+      queryClient.setQueryData(
+        ["admin-organizer", organizerId],
+        (current: Awaited<ReturnType<typeof getAdminOrganizerDetail>> | undefined) =>
+          current
+            ? {
+                ...current,
+                organizer: {
+                  ...current.organizer,
+                  organizerSessionLimit: updatedOrganizer.organizerSessionLimit,
+                },
+              }
+            : current,
+      );
+      await queryClient.invalidateQueries({
+        queryKey: ["admin-organizer", organizerId],
+      });
+    },
+    onError: (error) => {
+      setSessionLimitMessage({
+        type: "error",
+        text:
+          error instanceof Error
+            ? error.message
+            : "We couldn't update the organizer session limit.",
+      });
+    },
+  });
+  const resetDashboardUserPasswordMutation = useMutation({
+    mutationFn: () => {
+      if (!resetPasswordForm.userId) {
+        throw new Error("Select a dashboard user first.");
+      }
+
+      return resetAdminOrganizerDashboardUserPassword(
+        organizerId,
+        resetPasswordForm.userId,
+        {
+          newPassword: resetPasswordForm.newPassword,
+        },
+      );
+    },
+    onSuccess: async (updatedUser) => {
+      setResetPasswordMessage({
+        type: "success",
+        text: `Password reset successfully for ${updatedUser.fullName}. They must log in again.`,
+      });
+      setResetPasswordForm({
+        userId: null,
+        newPassword: "",
+        confirmPassword: "",
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["admin-organizer-dashboard-users", organizerId],
+      });
+    },
+    onError: (error) => {
+      setResetPasswordMessage({
+        type: "error",
+        text:
+          error instanceof Error
+            ? error.message
+            : "We couldn't reset that dashboard user password.",
       });
     },
   });
@@ -261,6 +419,11 @@ function AdminOrganizerDetailsClient({ organizerId }: Props) {
   }
 
   const { organizer, stats, recentEvents } = organizerQuery.data;
+  const dashboardUsers = dashboardUsersQuery.data?.users ?? [];
+  const resolvedOrganizerSessionLimit =
+    sessionLimitForm.organizerSessionLimit || String(organizer.organizerSessionLimit ?? 1);
+  const resolvedStaffSessionLimit =
+    sessionLimitForm.staffSessionLimit || String(organizer.staffSessionLimit ?? 3);
   const checkInRate =
     stats.totalTicketsSold > 0
       ? Math.round((stats.totalCheckedInTickets / stats.totalTicketsSold) * 100)
@@ -408,6 +571,24 @@ function AdminOrganizerDetailsClient({ organizerId }: Props) {
                     {organizer.bankDetails?.accountNumber
                       ? ` | ${organizer.bankDetails.accountNumber}`
                       : ""}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-5 dark:border-white/10 dark:bg-white/[0.04]">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                    Organizer Sessions
+                  </p>
+                  <p className="mt-3 text-sm font-semibold text-slate-950 dark:text-white">
+                    {organizer.organizerSessionLimit ?? 1} active device
+                    {(organizer.organizerSessionLimit ?? 1) === 1 ? "" : "s"}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-5 dark:border-white/10 dark:bg-white/[0.04]">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                    Staff Sessions
+                  </p>
+                  <p className="mt-3 text-sm font-semibold text-slate-950 dark:text-white">
+                    {organizer.staffSessionLimit ?? 3} active device
+                    {(organizer.staffSessionLimit ?? 3) === 1 ? "" : "s"} per staff
                   </p>
                 </div>
                 <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-5 dark:border-white/10 dark:bg-white/[0.04] md:col-span-2">
@@ -654,6 +835,130 @@ function AdminOrganizerDetailsClient({ organizerId }: Props) {
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">
+                    Session Policy
+                  </p>
+                  <h2 className="mt-2 text-2xl font-bold text-slate-950 dark:text-white">
+                    Admin session limits
+                  </h2>
+                </div>
+                <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300">
+                  <LuShieldCheck className="text-xl" />
+                </div>
+              </div>
+
+              <p className="mt-4 text-sm text-slate-600 dark:text-slate-300">
+                Control how many active devices the organizer account can keep and how many concurrent devices each staff account can use.
+              </p>
+
+              <div className="mt-6 grid gap-4 md:grid-cols-2">
+                <label className="block">
+                  <span className="text-sm font-semibold text-slate-900 dark:text-white">
+                    Organizer Session Limit
+                  </span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="20"
+                    value={resolvedOrganizerSessionLimit}
+                    onChange={(event) => {
+                      setSessionLimitMessage(null);
+                      setSessionLimitForm((current) => ({
+                        ...current,
+                        organizerSessionLimit: event.target.value,
+                      }));
+                    }}
+                    className="mt-2 h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-purple-500 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                  />
+                  <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                    Allowed backend range: 1 to 20 active devices.
+                  </p>
+                </label>
+
+                <label className="block">
+                  <span className="text-sm font-semibold text-slate-900 dark:text-white">
+                    Staff Session Limit
+                  </span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="20"
+                    value={resolvedStaffSessionLimit}
+                    onChange={(event) => {
+                      setSessionLimitMessage(null);
+                      setSessionLimitForm((current) => ({
+                        ...current,
+                        staffSessionLimit: event.target.value,
+                      }));
+                    }}
+                    className="mt-2 h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-purple-500 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                  />
+                  <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                    Applied per staff account under this organizer.
+                  </p>
+                </label>
+              </div>
+
+              {sessionLimitMessage ? (
+                <div
+                  className={`mt-5 rounded-2xl border px-4 py-3 text-sm ${
+                    sessionLimitMessage.type === "success"
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300"
+                      : "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300"
+                  }`}
+                >
+                  {sessionLimitMessage.text}
+                </div>
+              ) : null}
+
+                <div className="mt-5 flex flex-wrap gap-3">
+                  <button
+                  type="button"
+                  onClick={() => {
+                    const nextValue = Number(resolvedOrganizerSessionLimit);
+                    if (!Number.isInteger(nextValue) || nextValue < 1 || nextValue > 20) {
+                      setSessionLimitMessage({
+                        type: "error",
+                        text: "Organizer session limit must be a whole number between 1 and 20.",
+                      });
+                      return;
+                    }
+
+                    updateOrganizerLimitMutation.mutate();
+                  }}
+                  disabled={updateOrganizerLimitMutation.isPending || updateStaffLimitMutation.isPending}
+                  className="inline-flex items-center gap-2 rounded-xl bg-purple-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  <LuSave className="text-base" />
+                  {updateOrganizerLimitMutation.isPending ? "Saving..." : "Save Organizer Limit"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextValue = Number(resolvedStaffSessionLimit);
+                    if (!Number.isInteger(nextValue) || nextValue < 1 || nextValue > 20) {
+                      setSessionLimitMessage({
+                        type: "error",
+                        text: "Staff session limit must be a whole number between 1 and 20.",
+                      });
+                      return;
+                    }
+
+                    updateStaffLimitMutation.mutate();
+                  }}
+                  disabled={updateStaffLimitMutation.isPending || updateOrganizerLimitMutation.isPending}
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-70 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+                >
+                  <LuSave className="text-base" />
+                  {updateStaffLimitMutation.isPending ? "Saving..." : "Save Staff Limit"}
+                </button>
+              </div>
+            </Card>
+
+            <Card className="border-slate-200/80 bg-white/90 dark:border-white/10 dark:bg-white/5">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">
                     Revenue + Tickets
                   </p>
                   <h2 className="mt-2 text-2xl font-bold text-slate-950 dark:text-white">
@@ -717,6 +1022,192 @@ function AdminOrganizerDetailsClient({ organizerId }: Props) {
                     {stats.totalCheckedInTickets} checked in
                   </p>
                 </div>
+              </div>
+            </Card>
+
+            <Card className="border-slate-200/80 bg-white/90 dark:border-white/10 dark:bg-white/5">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">
+                    Dashboard Users
+                  </p>
+                  <h2 className="mt-2 text-2xl font-bold text-slate-950 dark:text-white">
+                    Reset organizer or staff passwords
+                  </h2>
+                </div>
+                <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
+                  <LuKeyRound className="text-xl" />
+                </div>
+              </div>
+
+              <p className="mt-4 text-sm text-slate-600 dark:text-slate-300">
+                This uses the new admin dashboard-user password reset endpoint under the selected organizer.
+              </p>
+
+              {resetPasswordMessage ? (
+                <div
+                  className={`mt-5 rounded-2xl border px-4 py-3 text-sm ${
+                    resetPasswordMessage.type === "success"
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300"
+                      : "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300"
+                  }`}
+                >
+                  {resetPasswordMessage.text}
+                </div>
+              ) : null}
+
+              <div className="mt-6 space-y-4">
+                {dashboardUsersQuery.isLoading ? (
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-5 text-sm text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300">
+                    Loading dashboard users...
+                  </div>
+                ) : dashboardUsersQuery.error ? (
+                  <div className="rounded-2xl border border-rose-200 bg-rose-50/90 p-5 text-sm text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300">
+                    {dashboardUsersQuery.error instanceof Error
+                      ? dashboardUsersQuery.error.message
+                      : "We couldn't load dashboard users for this organizer."}
+                  </div>
+                ) : dashboardUsers.length ? (
+                  dashboardUsers.map((dashboardUser) => {
+                    const isEditing = resetPasswordForm.userId === dashboardUser.id;
+
+                    return (
+                      <div
+                        key={dashboardUser.id}
+                        className="rounded-2xl border border-slate-200 bg-slate-50/90 p-5 dark:border-white/10 dark:bg-white/[0.04]"
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-4">
+                          <div>
+                            <p className="text-lg font-bold text-slate-950 dark:text-white">
+                              {dashboardUser.fullName}
+                            </p>
+                            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                              {dashboardUser.email}
+                            </p>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              <span className="inline-flex rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-white/10 dark:text-slate-200">
+                                {dashboardUser.role}
+                              </span>
+                              <span
+                                className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                                  dashboardUser.isActive
+                                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300"
+                                    : "bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-300"
+                                }`}
+                              >
+                                {dashboardUser.isActive ? "active" : "inactive"}
+                              </span>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setResetPasswordMessage(null);
+                              setResetPasswordForm((current) =>
+                                current.userId === dashboardUser.id
+                                  ? {
+                                      userId: null,
+                                      newPassword: "",
+                                      confirmPassword: "",
+                                    }
+                                  : {
+                                      userId: dashboardUser.id,
+                                      newPassword: "",
+                                      confirmPassword: "",
+                                    },
+                              );
+                            }}
+                            className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+                          >
+                            {isEditing ? "Cancel Reset" : "Reset Password"}
+                          </button>
+                        </div>
+
+                        {isEditing ? (
+                          <div className="mt-5 rounded-2xl border border-purple-200 bg-white p-5 dark:border-purple-500/20 dark:bg-slate-950/80">
+                            <div className="grid gap-4 md:grid-cols-2">
+                              <label className="block">
+                                <span className="text-sm font-semibold text-slate-900 dark:text-white">
+                                  New Password
+                                </span>
+                                <input
+                                  type="password"
+                                  value={resetPasswordForm.newPassword}
+                                  onChange={(event) =>
+                                    setResetPasswordForm((current) => ({
+                                      ...current,
+                                      newPassword: event.target.value,
+                                    }))
+                                  }
+                                  className="mt-2 h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-purple-500 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                                />
+                              </label>
+
+                              <label className="block">
+                                <span className="text-sm font-semibold text-slate-900 dark:text-white">
+                                  Confirm Password
+                                </span>
+                                <input
+                                  type="password"
+                                  value={resetPasswordForm.confirmPassword}
+                                  onChange={(event) =>
+                                    setResetPasswordForm((current) => ({
+                                      ...current,
+                                      confirmPassword: event.target.value,
+                                    }))
+                                  }
+                                  className="mt-2 h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-purple-500 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                                />
+                              </label>
+                            </div>
+
+                            <div className="mt-5 flex flex-wrap gap-3">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setResetPasswordMessage(null);
+
+                                  if (resetPasswordForm.newPassword.length < 8) {
+                                    setResetPasswordMessage({
+                                      type: "error",
+                                      text: "New password must be at least 8 characters long.",
+                                    });
+                                    return;
+                                  }
+
+                                  if (
+                                    resetPasswordForm.newPassword !==
+                                    resetPasswordForm.confirmPassword
+                                  ) {
+                                    setResetPasswordMessage({
+                                      type: "error",
+                                      text: "Password confirmation must match.",
+                                    });
+                                    return;
+                                  }
+
+                                  resetDashboardUserPasswordMutation.mutate();
+                                }}
+                                disabled={resetDashboardUserPasswordMutation.isPending}
+                                className="inline-flex items-center gap-2 rounded-xl bg-purple-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-70"
+                              >
+                                <LuSave className="text-base" />
+                                {resetDashboardUserPasswordMutation.isPending
+                                  ? "Resetting..."
+                                  : "Save New Password"}
+                              </button>
+                            </div>
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-5 text-sm text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300">
+                    No dashboard users were returned for this organizer.
+                  </div>
+                )}
               </div>
             </Card>
 

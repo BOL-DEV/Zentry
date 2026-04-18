@@ -41,6 +41,7 @@ import type {
   OrganizerGalleryItem,
   OrganizerPastEvent,
   OrganizerProfile,
+  PublicLandingPastEvent,
   TicketType,
   TicketTypeBreak,
 } from "@/helpers/type";
@@ -261,6 +262,26 @@ function mapPastEvent(
   };
 }
 
+function mapPublicLandingPastEvent(event: ApiEvent): PublicLandingPastEvent {
+  const organizerName =
+    typeof event.organizerId === "string"
+      ? event.organizerName || "Featured organizer"
+      : event.organizerName || event.organizerId?.name || "Featured organizer";
+
+  return {
+    id: event._id,
+    eventId: event.eventId || event._id,
+    organizerSlug:
+      event.organizerSlug ||
+      (typeof event.organizerId === "string" ? "" : event.organizerId?.slug || ""),
+    organizerName,
+    title: event.title,
+    dateText: formatDateText(new Date(event.date)),
+    imageUrl: getEventImageUrl(event),
+    metaText: event.location || organizerName,
+  };
+}
+
 function mapTicketBreak(ticketType: ApiTicketType): TicketTypeBreak {
   return {
     id: ticketType._id,
@@ -341,6 +362,14 @@ async function fetchAllEvents() {
   const response = await apiFetch<{
     events: ApiPublicEventListItem[];
   }>(`/events`);
+
+  return response.data.events;
+}
+
+async function fetchPublicPastEvents(limit = 4) {
+  const response = await apiFetch<{
+    events: ApiEvent[];
+  }>(`/events/past?page=1&limit=${limit}`);
 
   return response.data.events;
 }
@@ -517,6 +546,14 @@ export async function getPublicOrganizers(): Promise<ApiOrganizer[]> {
   return organizers
     .slice()
     .sort((left, right) => left.name.localeCompare(right.name));
+}
+
+export async function getPublicLandingPastEvents(
+  limit = 4,
+): Promise<PublicLandingPastEvent[]> {
+  const events = await fetchPublicPastEvents(limit);
+
+  return events.map(mapPublicLandingPastEvent);
 }
 
 export async function getOrganizerEventsPageData(slug: string) {
@@ -1313,6 +1350,33 @@ export async function getAdminOrganizerDetail(organizerId: string) {
   return response.data;
 }
 
+export async function getAdminOrganizerDashboardUsers(
+  organizerId: string,
+  input?: {
+    role?: "organizer" | "staff";
+    page?: number;
+    limit?: number;
+  },
+) {
+  const params = new URLSearchParams();
+  params.set("page", String(input?.page ?? 1));
+  params.set("limit", String(input?.limit ?? 20));
+
+  if (input?.role) {
+    params.set("role", input.role);
+  }
+
+  const response = await apiFetch<{
+    users: ApiDashboardUserRecord[];
+  }>(`/admin/organizers/${organizerId}/dashboard-users?${params.toString()}`, {
+    auth: "admin",
+  });
+
+  return {
+    users: (response.data.users ?? []).map(mapDashboardUser),
+  };
+}
+
 export async function toggleAdminOrganizerActive(organizerId: string) {
   const response = await apiFetch<{
     organizer: {
@@ -1323,6 +1387,62 @@ export async function toggleAdminOrganizerActive(organizerId: string) {
     };
   }>(`/admin/organizers/${organizerId}/toggle-active`, {
     method: "PATCH",
+    auth: "admin",
+  });
+
+  return response.data.organizer;
+}
+
+export async function resetAdminOrganizerDashboardUserPassword(
+  organizerId: string,
+  userId: string,
+  input: { newPassword: string },
+) {
+  const response = await apiFetch<{
+    user: ApiDashboardUserRecord;
+  }>(`/admin/organizers/${organizerId}/dashboard-users/${userId}/reset-password`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+    auth: "admin",
+  });
+
+  return mapDashboardUser(response.data.user);
+}
+
+export async function updateAdminOrganizerStaffSessionLimit(
+  organizerId: string,
+  input: { staffSessionLimit: number },
+) {
+  const response = await apiFetch<{
+    organizer: {
+      id: string;
+      name: string;
+      slug: string;
+      staffSessionLimit: number;
+    };
+  }>(`/admin/organizers/${organizerId}/staff-session-limit`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+    auth: "admin",
+  });
+
+  return response.data.organizer;
+}
+
+export async function updateAdminOrganizerSessionLimit(
+  organizerId: string,
+  input: { organizerSessionLimit: number },
+) {
+  const response = await apiFetch<{
+    organizer: {
+      id: string;
+      name: string;
+      slug: string;
+      organizerSessionLimit: number;
+    };
+  }>(`/admin/organizers/${organizerId}/organizer-session-limit`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
     auth: "admin",
   });
 

@@ -1,10 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useMutation } from "@tanstack/react-query";
 import {
-  LuArrowUpRight,
   LuBadgeCheck,
   LuBuilding2,
   LuImage,
@@ -37,30 +35,6 @@ const defaultForm = {
   accountNumber: "",
   accountName: "",
 };
-
-function SectionCard({
-  icon,
-  title,
-  description,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="rounded-[26px] border border-slate-200 bg-white/80 p-5 shadow-sm dark:border-white/10 dark:bg-white/[0.04]">
-      <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-purple-100 text-purple-700 dark:bg-cyan-400/12 dark:text-cyan-300">
-        {icon}
-      </div>
-      <p className="mt-4 text-sm font-semibold text-slate-950 dark:text-white">
-        {title}
-      </p>
-      <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-        {description}
-      </p>
-    </div>
-  );
-}
 
 function OrganizerRequestFormClient() {
   const [form, setForm] = useState(defaultForm);
@@ -110,7 +84,7 @@ function OrganizerRequestFormClient() {
             </p>
 
             <h1 className="mt-6 max-w-3xl text-4xl font-bold tracking-tight text-slate-950 sm:text-5xl dark:text-white">
-              Launch your branded organizer space with a request flow that fits EventFlow.
+              Launch your branded organizer space with a request flow that fits Zentry.
             </h1>
             <p className="mt-5 max-w-2xl text-base leading-7 text-slate-600 dark:text-slate-300">
               Submit your team details, branding assets, and payout information in one pass. Once approved, the platform creates your real organizer workspace and dashboard account.
@@ -124,44 +98,6 @@ function OrganizerRequestFormClient() {
               <div className="inline-flex items-center gap-2 rounded-full bg-white/85 px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm dark:border dark:border-cyan-400/10 dark:bg-[#081427]/85 dark:text-white">
                 <LuBuilding2 className="text-cyan-600 dark:text-cyan-300" />
                 White-label organizer setup
-              </div>
-            </div>
-
-            <div className="mt-10 grid gap-4 sm:grid-cols-2">
-              <SectionCard
-                icon={<LuBuilding2 className="text-lg" />}
-                title="Core request"
-                description="Share your organizer name, contact details, location, and preferred slug so the review team can place you correctly."
-              />
-              <SectionCard
-                icon={<LuImage className="text-lg" />}
-                title="Branding ready"
-                description="Provide logo, banner, hero title, and hero subtitle so approval can translate directly into a polished public profile."
-              />
-              <SectionCard
-                icon={<LuLandmark className="text-lg" />}
-                title="Payout aware"
-                description="Include bank details if you want finance-ready onboarding from the start instead of following up later."
-              />
-              <SectionCard
-                icon={<LuBadgeCheck className="text-lg" />}
-                title="Approval path"
-                description="Admins approve or reject requests first, and only approved submissions become real organizers and dashboard accounts."
-              />
-            </div>
-
-            <div className="mt-10 rounded-[30px] border border-slate-200 bg-white/75 p-6 shadow-sm dark:border-cyan-400/10 dark:bg-[linear-gradient(180deg,rgba(8,20,39,0.9),rgba(4,11,23,0.95))] dark:shadow-[0_24px_60px_rgba(0,0,0,0.35)]">
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">
-                Already onboarded?
-              </p>
-              <div className="mt-4 flex flex-wrap gap-3">
-                <Link
-                  href="/login"
-                  className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 dark:border dark:border-cyan-400/20 dark:bg-cyan-400/12 dark:text-cyan-100 dark:hover:bg-cyan-400/18"
-                >
-                  Organizer Login
-                  <LuArrowUpRight className="text-base" />
-                </Link>
               </div>
             </div>
           </div>

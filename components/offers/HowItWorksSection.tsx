@@ -8,38 +8,39 @@ type Step = {
 
 const steps: Step[] = [
   {
-    stepLabel: "Step 1",
-    title: "Create Event",
-    bullets: ["Upload flyer", "Set date & location", "Configure ticket types"],
-  },
-  {
-    stepLabel: "Step 2",
-    title: "Sell Tickets",
+    stepLabel: "Stage 1",
+    title: "Get approved and set your brand",
     bullets: [
-      "Secure checkout",
-      "Automatic ticket generation",
-      "Unique QR code per ticket",
-      "Email delivery",
+      "Submit an organizer request",
+      "Complete organizer profile and branding",
+      "Prepare your public event presence",
     ],
   },
   {
-    stepLabel: "Step 3",
-    title: "Validate Entry",
+    stepLabel: "Stage 2",
+    title: "Launch events and sell tickets",
     bullets: [
-      "QR code scanning",
-      "Instant validation",
-      "Prevent duplicate check-ins",
-      "Real-time check-in tracking",
+      "Create event pages with ticket types",
+      "Collect orders through secure checkout",
+      "Issue QR-backed tickets automatically",
     ],
   },
   {
-    stepLabel: "Step 4",
-    title: "Track Performance",
+    stepLabel: "Stage 3",
+    title: "Run entry with staff control",
     bullets: [
-      "Live revenue dashboard",
-      "Ticket sales analytics",
-      "Attendee management",
-      "Export reports",
+      "Manage organizer and staff access",
+      "Verify tickets with live QR scans",
+      "Monitor sessions and revoke when needed",
+    ],
+  },
+  {
+    stepLabel: "Stage 4",
+    title: "Review performance and reconcile",
+    bullets: [
+      "Track ticket sales and check-ins",
+      "Review attendees and event activity",
+      "Keep admin oversight and reporting aligned",
     ],
   },
 ];
@@ -48,22 +49,27 @@ function HowItWorksSection() {
   return (
     <section className="px-6 py-16">
       <div className="mx-auto max-w-7xl">
-        <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-4xl">
-          How It Works
-        </h2>
+        <div className="max-w-2xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-violet-600 dark:text-violet-300">
+            Workflow
+          </p>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-4xl">
+            How Zentry moves from onboarding to event-day control.
+          </h2>
+        </div>
 
         <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {steps.map((s) => (
-            <Card key={s.title} className="h-full">
+          {steps.map((step) => (
+            <Card key={step.title} className="h-full">
               <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-600 dark:text-slate-300">
-                {s.stepLabel}
+                {step.stepLabel}
               </p>
               <h3 className="mt-3 text-xl font-semibold text-slate-900 dark:text-white">
-                {s.title}
+                {step.title}
               </h3>
-              <ul className="mt-4 list-disc space-y-2 pl-5 text-sm text-slate-600 dark:text-slate-300">
-                {s.bullets.map((b) => (
-                  <li key={b}>{b}</li>
+              <ul className="mt-4 list-disc space-y-2 pl-5 text-sm leading-7 text-slate-600 dark:text-slate-300">
+                {step.bullets.map((bullet) => (
+                  <li key={bullet}>{bullet}</li>
                 ))}
               </ul>
             </Card>

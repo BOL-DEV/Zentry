@@ -21,7 +21,7 @@ function OrganizerManageGalleryClient({ organizer }: { organizer: string }) {
         <WorkspaceTopbar
           eyebrow="Organizer Workspace"
           title="Manage Gallery"
-          description="Review, update, and expand the organizer gallery from one dashboard surface."
+          description="Update your organizer gallery."
           backHref={`/${organizer}/dashboard`}
           backLabel="Back to Dashboard"
         />
@@ -39,7 +39,7 @@ function OrganizerManageGalleryClient({ organizer }: { organizer: string }) {
           <section className="mt-8">
             <FullPageLoader
               title="Loading gallery items"
-              description="Bringing in your current gallery images."
+              description="Loading your gallery images."
             />
           </section>
         ) : error || !data ? (

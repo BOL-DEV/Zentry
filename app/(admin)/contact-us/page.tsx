@@ -1,18 +1,26 @@
 "use client";
 
 import Card from "@/components/Card";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { IoCallOutline, IoMailOutline, IoTimeOutline } from "react-icons/io5";
 
 function Page() {
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [feedback, setFeedback] = useState<{
+        type: "success" | "error";
+        message: string;
+    } | null>(null);
+
     const inputStyles =
         "h-12 w-full rounded-lg border border-purple-200 bg-white px-4 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-purple-600 focus:ring-4 focus:ring-purple-600/15 dark:border-white/10 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-500 dark:focus:border-purple-400 dark:focus:ring-purple-400/20";
 
     const textareaStyles =
         "min-h-36 w-full resize-none rounded-lg border border-purple-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-purple-600 focus:ring-4 focus:ring-purple-600/15 dark:border-white/10 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-500 dark:focus:border-purple-400 dark:focus:ring-purple-400/20";
 
-    const onSubmit = useCallback((e: React.FormEvent<HTMLFormElement>) => {
+    const onSubmit = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        setFeedback(null);
+
         const formData = new FormData(e.currentTarget);
 
         const name = String(formData.get("name") ?? "").trim();
@@ -20,17 +28,52 @@ function Page() {
         const subject = String(formData.get("subject") ?? "").trim();
         const message = String(formData.get("message") ?? "").trim();
 
-        const to = "support@zentry.com";
-        const computedSubject = subject || "Zentry Contact";
-        const body = [`Name: ${name}`, `Email: ${email}`, "", message]
-            .filter(Boolean)
-            .join("\n");
+        setIsSubmitting(true);
 
-        const mailto = `mailto:${to}?subject=${encodeURIComponent(
-            computedSubject
-        )}&body=${encodeURIComponent(body)}`;
+        try {
+            const response = await fetch("/api/contact", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    name,
+                    email,
+                    subject,
+                    message,
+                }),
+            });
 
-        window.location.assign(mailto);
+            const payload = (await response.json().catch(() => null)) as
+                | { message?: string; data?: { message?: string } }
+                | null;
+
+            if (!response.ok) {
+                throw new Error(
+                    payload?.message ||
+                    payload?.data?.message ||
+                    "We could not send your message right now."
+                );
+            }
+
+            e.currentTarget.reset();
+            setFeedback({
+                type: "success",
+                message:
+                    payload?.data?.message ||
+                    "Your message has been sent successfully.",
+            });
+        } catch (error) {
+            setFeedback({
+                type: "error",
+                message:
+                    error instanceof Error
+                        ? error.message
+                        : "We could not send your message right now.",
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
     }, []);
 
     return (
@@ -189,14 +232,27 @@ function Page() {
 
                                 <button
                                     type="submit"
+                                    disabled={isSubmitting}
                                     className="mt-2 h-12 w-full rounded-lg bg-purple-600 font-semibold text-white transition hover:bg-purple-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-purple-600/30 hover:dark:bg-purple-500 dark:focus-visible:ring-purple-400/30 hover:cursor-pointer"
                                 >
-                                    Send message
+                                    {isSubmitting ? "Sending..." : "Send message"}
                                 </button>
 
-                                <p className="text-xs text-slate-500 dark:text-slate-400">
-                                    This opens your email client to send the message.
-                                </p>
+                                {feedback ? (
+                                    <p
+                                        className={`text-sm ${
+                                            feedback.type === "success"
+                                                ? "text-emerald-600 dark:text-emerald-300"
+                                                : "text-rose-600 dark:text-rose-300"
+                                        }`}
+                                    >
+                                        {feedback.message}
+                                    </p>
+                                ) : (
+                                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                                        Your message will be sent directly to the Zentry support inbox.
+                                    </p>
+                                )}
                             </form>
                         </Card>
                     </div>
