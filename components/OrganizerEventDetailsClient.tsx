@@ -51,7 +51,7 @@ function OrganizerEventDetailsClient({
       organizerSlug={organizer}
       organizer={{
         name: data.organizer.name,
-        tagline: data.organizer.heroTitle || "Creating unforgettable experiences",
+        tagline: data.organizer.heroTitle || data.organizer.name,
         profileHref: `/${organizer}`,
       }}
     />

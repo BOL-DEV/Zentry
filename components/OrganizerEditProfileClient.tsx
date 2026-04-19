@@ -35,10 +35,6 @@ function OrganizerEditProfileClient({ organizer }: Props) {
     | { type: "error"; text: string }
     | null
   >(null);
-  const [sessionLimits, setSessionLimits] = useState({
-    organizerSessionLimit: 0,
-    staffSessionLimit: 0,
-  });
   const [form, setForm] = useState({
     logoUrl: "",
     bannerUrl: "",
@@ -80,10 +76,6 @@ function OrganizerEditProfileClient({ organizer }: Props) {
           bankCode: data.organizer.bankDetails?.bankCode || "",
           accountNumber: data.organizer.bankDetails?.accountNumber || "",
           accountName: data.organizer.bankDetails?.accountName || "",
-        });
-        setSessionLimits({
-          organizerSessionLimit: data.organizer.organizerSessionLimit ?? 0,
-          staffSessionLimit: data.organizer.staffSessionLimit ?? 0,
         });
       } catch (error) {
         if (!active) return;
@@ -301,41 +293,6 @@ function OrganizerEditProfileClient({ organizer }: Props) {
                       />
                     </div>
                   ))}
-                </div>
-              </section>
-
-              <section className="space-y-6 border-t border-slate-200 pt-8 dark:border-white/10">
-                <div>
-                  <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-                    Session Limits
-                  </h2>
-                  <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                    The backend now controls how many active organizer and staff devices can stay signed in at once.
-                  </p>
-                </div>
-                <div className="grid gap-6 md:grid-cols-2">
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-5 dark:border-white/10 dark:bg-white/[0.04]">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-                      Organizer Sessions
-                    </p>
-                    <p className="mt-2 text-2xl font-bold text-slate-950 dark:text-white">
-                      {sessionLimits.organizerSessionLimit || "Not set"}
-                    </p>
-                    <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                      Your workspace now follows the organizer session limit returned by the backend.
-                    </p>
-                  </div>
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-5 dark:border-white/10 dark:bg-white/[0.04]">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-                      Staff Sessions
-                    </p>
-                    <p className="mt-2 text-2xl font-bold text-slate-950 dark:text-white">
-                      {sessionLimits.staffSessionLimit || "Not set"}
-                    </p>
-                    <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                      Staff device limits also come from your organizer settings on the backend.
-                    </p>
-                  </div>
                 </div>
               </section>
 

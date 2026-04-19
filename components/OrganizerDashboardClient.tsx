@@ -198,6 +198,14 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
               </Link>
 
               <Link
+                href={`/${organizer}/dashboard/gallery`}
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-purple-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+              >
+                Manage Gallery
+                <LuArrowUpRight className="text-base" />
+              </Link>
+
+              <Link
                 href={`/${organizer}/dashboard/events`}
                 className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-purple-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
               >
@@ -311,7 +319,7 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
               <LuRefreshCw className="text-base" />
               {settlementSyncMutation.isPending
                 ? "Retrying..."
-                : "Retry Squad Payouts"}
+                : "Retry Payouts"}
             </button>
           </div>
 
@@ -325,7 +333,7 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
             <StatCard
               title="Organizer Payout Amount"
               value={formatCurrency(data.totals.organizerPayoutAmount)}
-              helper="Net organizer amount after platform fees plus Squad gateway and transfer deductions"
+              helper="Net organizer amount after platform fees plus gateway deductions"
               icon={<LuArrowUpRight size={20} />}
             />
             <StatCard
