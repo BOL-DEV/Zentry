@@ -28,6 +28,27 @@ function isProbablyUrl(value: string) {
   return /^https?:\/\//i.test(value);
 }
 
+function OrganizerLandingEmptyState({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
+  return (
+    <Card className="border-dashed border-purple-200/80 bg-white/80 dark:border-white/10 dark:bg-white/5">
+      <div className="flex flex-col gap-2 py-2">
+        <p className="text-base font-semibold text-slate-900 dark:text-white">
+          {title}
+        </p>
+        <p className="text-sm leading-7 text-slate-600 dark:text-slate-300">
+          {description}
+        </p>
+      </div>
+    </Card>
+  );
+}
+
 function OrganizerHomeClient({ organizer }: { organizer: string }) {
   const { data, isLoading, error } = useQuery({
     queryKey: ["organizer-overview", organizer],
@@ -244,19 +265,19 @@ function OrganizerHomeClient({ organizer }: { organizer: string }) {
         </div>
       </section>
 
-      {featuredEvent ? (
-        <section className="mx-auto max-w-6xl px-6 py-16">
-          <div className="flex items-end justify-between gap-6">
-            <div>
-              <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-                Featured Event
-              </h2>
-              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                The next big thing. Don&apos;t miss it.
-              </p>
-            </div>
+      <section className="mx-auto max-w-6xl px-6 py-16">
+        <div className="flex items-end justify-between gap-6">
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+              Featured Event
+            </h2>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+              The next big thing. Don&apos;t miss it.
+            </p>
           </div>
+        </div>
 
+        {featuredEvent ? (
           <div className="mt-8 overflow-hidden rounded-2xl border border-purple-200/70 bg-white shadow-sm dark:border-white/10 dark:bg-white/5">
             <div className="grid gap-0 lg:grid-cols-12">
               <div className="relative h-64 w-full lg:col-span-5 lg:h-full">
@@ -308,8 +329,15 @@ function OrganizerHomeClient({ organizer }: { organizer: string }) {
               </div>
             </div>
           </div>
-        </section>
-      ) : null}
+        ) : (
+          <div className="mt-8">
+            <OrganizerLandingEmptyState
+              title="No featured event yet"
+              description="This organizer has not highlighted a next event yet. Check back soon for the next headline experience."
+            />
+          </div>
+        )}
+      </section>
 
       <section id="upcoming" className="mx-auto max-w-6xl px-6 py-16">
         <div className="flex flex-col gap-2">
@@ -321,59 +349,68 @@ function OrganizerHomeClient({ organizer }: { organizer: string }) {
           </p>
         </div>
 
-        <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {upcomingEvents.map((event) => {
-            const startingPrice = getStartingPrice(
-              event.ticketTypes.map((ticket) => ticket.price),
-            );
+        {upcomingEvents.length > 0 ? (
+          <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {upcomingEvents.map((event) => {
+              const startingPrice = getStartingPrice(
+                event.ticketTypes.map((ticket) => ticket.price),
+              );
 
-            return (
-              <Card key={event.id} className="overflow-hidden p-0">
-                <div className="relative h-44 w-full">
-                  <Image
-                    src={event.imageUrl}
-                    alt={event.title}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                  />
-                </div>
-
-                <div className="p-6">
-                  <h3 className="text-lg font-bold tracking-tight text-slate-900 dark:text-white">
-                    {event.title}
-                  </h3>
-
-                  <div className="mt-3 flex flex-col gap-2 text-sm text-slate-600 dark:text-slate-300">
-                    <span className="inline-flex items-center gap-2">
-                      <LuCalendar className="text-[var(--primary-color)]" />
-                      {event.dateTimeText}
-                    </span>
-                    <span className="inline-flex items-center gap-2">
-                      <LuMapPin className="text-[var(--primary-color)]" />
-                      {event.locationText}
-                    </span>
+              return (
+                <Card key={event.id} className="overflow-hidden p-0">
+                  <div className="relative h-44 w-full">
+                    <Image
+                      src={event.imageUrl}
+                      alt={event.title}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                    />
                   </div>
 
-                  <div className="mt-4 flex items-center justify-between">
-                    <p className="text-sm font-semibold text-slate-900 dark:text-white">
-                      {startingPrice > 0
-                        ? `From ${formatCurrency(startingPrice)}`
-                        : "Free"}
-                    </p>
-                    <Link
-                      href={`/${organizer}/events/${event.id}`}
-                      className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--primary-color)] hover:opacity-90"
-                    >
-                      View Details
-                      <LuArrowUpRight className="text-base" />
-                    </Link>
+                  <div className="p-6">
+                    <h3 className="text-lg font-bold tracking-tight text-slate-900 dark:text-white">
+                      {event.title}
+                    </h3>
+
+                    <div className="mt-3 flex flex-col gap-2 text-sm text-slate-600 dark:text-slate-300">
+                      <span className="inline-flex items-center gap-2">
+                        <LuCalendar className="text-[var(--primary-color)]" />
+                        {event.dateTimeText}
+                      </span>
+                      <span className="inline-flex items-center gap-2">
+                        <LuMapPin className="text-[var(--primary-color)]" />
+                        {event.locationText}
+                      </span>
+                    </div>
+
+                    <div className="mt-4 flex items-center justify-between">
+                      <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                        {startingPrice > 0
+                          ? `From ${formatCurrency(startingPrice)}`
+                          : "Free"}
+                      </p>
+                      <Link
+                        href={`/${organizer}/events/${event.id}`}
+                        className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--primary-color)] hover:opacity-90"
+                      >
+                        View Details
+                        <LuArrowUpRight className="text-base" />
+                      </Link>
+                    </div>
                   </div>
-                </div>
-              </Card>
-            );
-          })}
-        </div>
+                </Card>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="mt-8">
+            <OrganizerLandingEmptyState
+              title="No upcoming events yet"
+              description="There are no additional upcoming events published right now. New dates will appear here once this organizer schedules more experiences."
+            />
+          </div>
+        )}
 
         <div className="mt-10">
           <Link
@@ -395,44 +432,53 @@ function OrganizerHomeClient({ organizer }: { organizer: string }) {
           </p>
         </div>
 
-        <div className="mt-8 flex gap-4 overflow-x-auto pb-2">
-          {data.pastEvents.map((event) => (
-            <div key={event.id} className="min-w-[280px]">
-              <Card className="overflow-hidden p-0">
-                <Link
-                  href={`/${organizer}/gallery`}
-                  aria-label={`View ${event.title} images`}
-                  className="group block"
-                >
-                  <div className="relative h-36 w-full">
-                    <Image
-                      src={event.imageUrl}
-                      alt={event.title}
-                      fill
-                      className="object-cover transition group-hover:scale-[1.02]"
-                      sizes="280px"
-                    />
-                    <div className="absolute inset-0 bg-slate-950/0 transition group-hover:bg-slate-950/10" />
-                    <div className="absolute bottom-3 left-3 rounded-lg bg-[var(--primary-color)] px-3 py-1 text-xs font-semibold text-white shadow-sm">
-                      View gallery
+        {data.pastEvents.length > 0 ? (
+          <div className="mt-8 flex gap-4 overflow-x-auto pb-2">
+            {data.pastEvents.map((event) => (
+              <div key={event.id} className="min-w-[280px]">
+                <Card className="overflow-hidden p-0">
+                  <Link
+                    href={`/${organizer}/gallery`}
+                    aria-label={`View ${event.title} images`}
+                    className="group block"
+                  >
+                    <div className="relative h-36 w-full">
+                      <Image
+                        src={event.imageUrl}
+                        alt={event.title}
+                        fill
+                        className="object-cover transition group-hover:scale-[1.02]"
+                        sizes="280px"
+                      />
+                      <div className="absolute inset-0 bg-slate-950/0 transition group-hover:bg-slate-950/10" />
+                      <div className="absolute bottom-3 left-3 rounded-lg bg-[var(--primary-color)] px-3 py-1 text-xs font-semibold text-white shadow-sm">
+                        View gallery
+                      </div>
                     </div>
+                  </Link>
+                  <div className="p-6">
+                    <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-600 dark:text-slate-300">
+                      {event.dateText}
+                    </p>
+                    <p className="mt-3 text-lg font-bold text-slate-900 dark:text-white">
+                      {event.title}
+                    </p>
+                    <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                      {formatNumber(event.ticketsSold)} tickets sold
+                    </p>
                   </div>
-                </Link>
-                <div className="p-6">
-                  <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-600 dark:text-slate-300">
-                    {event.dateText}
-                  </p>
-                  <p className="mt-3 text-lg font-bold text-slate-900 dark:text-white">
-                    {event.title}
-                  </p>
-                  <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                    {formatNumber(event.ticketsSold)} tickets sold
-                  </p>
-                </div>
-              </Card>
-            </div>
-          ))}
-        </div>
+                </Card>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-8">
+            <OrganizerLandingEmptyState
+              title="No past events yet"
+              description="This organizer has not published any completed events yet. Past event highlights will show up here after the first experiences wrap up."
+            />
+          </div>
+        )}
       </section>
     </main>
   );

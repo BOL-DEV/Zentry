@@ -1,11 +1,20 @@
 "use client";
 
 import { useParams, usePathname } from "next/navigation";
+import type { OrganizerProfile } from "@/helpers/type";
 import Footer from "@/components/Footer";
 import OrganizerFooterMenu from "@/components/OrganizerFooterMenu";
 import OrganizerHeader from "@/components/OrganizerHeader";
 
-function OrganizerShell({ children }: { children: React.ReactNode }) {
+type Props = {
+  children: React.ReactNode;
+  organizerBranding?: Pick<
+    OrganizerProfile,
+    "name" | "logo" | "tagline" | "description" | "socialLinks"
+  >;
+};
+
+function OrganizerShell({ children, organizerBranding }: Props) {
   const pathname = usePathname();
   const params = useParams<{ organizer?: string }>();
   const organizer = params?.organizer;
@@ -23,11 +32,11 @@ function OrganizerShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen antialiased flex flex-col">
-      <OrganizerHeader />
+      <OrganizerHeader organizerBranding={organizerBranding} />
       <main className="flex-1">{children}</main>
 
       <Footer>
-        <OrganizerFooterMenu />
+        <OrganizerFooterMenu organizerBranding={organizerBranding} />
       </Footer>
     </div>
   );

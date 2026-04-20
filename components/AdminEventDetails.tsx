@@ -162,8 +162,8 @@ function AdminEventDetails({
   backHref = "/events",
   statusLabel = "Upcoming",
   organizer = {
-    name: "Pulse Events",
-    tagline: "Creating Unforgettable Experiences",
+    name: "Organizer",
+    tagline: "Event organizer",
     profileHref: "#",
   },
   organizerSlug = "pulse-events",

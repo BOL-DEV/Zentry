@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef } from "react";
@@ -10,7 +11,15 @@ interface LogoProps {
   logoSrc?: string;
 }
 
-function Logo({ homeLink = "/", name, logoSrc = "ƒs­" }: LogoProps) {
+function isProbablyUrl(value?: string) {
+  return Boolean(value && /^(https?:)?\/\//i.test(value));
+}
+
+function getFallbackMark(name: string) {
+  return name.trim().charAt(0).toUpperCase() || "Z";
+}
+
+function Logo({ homeLink = "/", name, logoSrc }: LogoProps) {
   const router = useRouter();
   const lastTapRef = useRef(0);
 
@@ -40,8 +49,19 @@ function Logo({ homeLink = "/", name, logoSrc = "ƒs­" }: LogoProps) {
       onTouchEnd={handlePointerUp}
       className="flex items-center gap-3 text-lg font-semibold"
     >
-      <span className="grid h-10 w-10 place-items-center rounded-xl bg-purple-600 text-2xl">
-        {logoSrc}
+      <span className="relative grid h-10 w-10 place-items-center overflow-hidden rounded-xl bg-purple-600 text-base text-white">
+        {logoSrc && isProbablyUrl(logoSrc) ? (
+          <Image
+            src={logoSrc}
+            alt={`${name} logo`}
+            fill
+            className="object-cover"
+            sizes="40px"
+            unoptimized
+          />
+        ) : (
+          <span aria-hidden>{logoSrc || getFallbackMark(name)}</span>
+        )}
       </span>
       <span className="text-xl font-bold text-purple-600">{name}</span>
     </Link>

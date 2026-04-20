@@ -100,18 +100,31 @@ function TicketTypeBreakdown(props: Props) {
       });
     },
   });
-  const updateTicketTypeMutation = useMutation({
+  const saveTicketTypeMutation = useMutation({
     mutationFn: () => {
       if (!editingTicketId) {
         throw new Error("Select a ticket type to update.");
       }
 
-      return updateOrganizerDashboardTicketType(eventId, editingTicketId, {
-        name: editForm.name.trim(),
-        description: editForm.description.trim() || undefined,
-        price: Number(editForm.price),
-        isActive: editForm.isActive,
-      });
+      const source = ticketTypesQuery.data?.find((ticket) => ticket._id === editingTicketId);
+      const quantityAvailable = Number(editForm.quantityAvailable);
+
+      return (async () => {
+        await updateOrganizerDashboardTicketType(eventId, editingTicketId, {
+          name: editForm.name.trim(),
+          description: editForm.description.trim() || undefined,
+          price: Number(editForm.price),
+          isActive: editForm.isActive,
+        });
+
+        if (!source || source.quantityAvailable !== quantityAvailable) {
+          await updateOrganizerDashboardTicketTypeQuantity(
+            eventId,
+            editingTicketId,
+            quantityAvailable,
+          );
+        }
+      })();
     },
     onSuccess: () => {
       setFormMessage({
@@ -138,46 +151,6 @@ function TicketTypeBreakdown(props: Props) {
           error instanceof Error
             ? error.message
             : "We couldn't update the ticket type.",
-      });
-    },
-  });
-  const updateQuantityMutation = useMutation({
-    mutationFn: () => {
-      if (!editingTicketId) {
-        throw new Error("Select a ticket type to update.");
-      }
-
-      return updateOrganizerDashboardTicketTypeQuantity(
-        eventId,
-        editingTicketId,
-        Number(editForm.quantityAvailable),
-      );
-    },
-    onSuccess: () => {
-      setFormMessage({
-        type: "success",
-        text: "Ticket quantity updated successfully.",
-      });
-      setEditingTicketId(null);
-      void queryClient.invalidateQueries({
-        queryKey: ["dashboard-event-ticket-types", organizer, eventId],
-      });
-      if (organizer) {
-        void queryClient.invalidateQueries({
-          queryKey: ["organizer-dashboard-event-details", organizer, eventId],
-        });
-        void queryClient.invalidateQueries({
-          queryKey: ["organizer-dashboard", organizer],
-        });
-      }
-    },
-    onError: (error) => {
-      setFormMessage({
-        type: "error",
-        text:
-          error instanceof Error
-            ? error.message
-            : "We couldn't update ticket inventory.",
       });
     },
   });
@@ -278,7 +251,7 @@ function TicketTypeBreakdown(props: Props) {
                   onSubmit={(event) => {
                     event.preventDefault();
                     setFormMessage(null);
-                    updateTicketTypeMutation.mutate();
+                    saveTicketTypeMutation.mutate();
                   }}
                 >
                   <input
@@ -350,26 +323,13 @@ function TicketTypeBreakdown(props: Props) {
                   <div className="md:col-span-2 flex flex-wrap gap-3">
                     <button
                       type="submit"
-                      disabled={updateTicketTypeMutation.isPending || updateQuantityMutation.isPending}
+                      disabled={saveTicketTypeMutation.isPending}
                       className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-purple-700 px-4 text-sm font-semibold text-white transition hover:bg-purple-800 disabled:cursor-not-allowed disabled:opacity-70"
                     >
                       <LuSave className="text-base" />
-                      {updateTicketTypeMutation.isPending
-                        ? "Saving Tier..."
-                        : "Save Tier Details"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFormMessage(null);
-                        updateQuantityMutation.mutate();
-                      }}
-                      disabled={updateTicketTypeMutation.isPending || updateQuantityMutation.isPending}
-                      className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-70 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
-                    >
-                      {updateQuantityMutation.isPending
-                        ? "Updating Inventory..."
-                        : "Update Inventory"}
+                      {saveTicketTypeMutation.isPending
+                        ? "Saving Changes..."
+                        : "Save Changes"}
                     </button>
                     <button
                       type="button"

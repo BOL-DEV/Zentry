@@ -540,6 +540,29 @@ export async function getOrganizerOverview(
   };
 }
 
+export async function getOrganizerBranding(
+  slug: string,
+): Promise<
+  Pick<
+    OrganizerProfile,
+    "slug" | "name" | "logo" | "tagline" | "description" | "socialLinks"
+  >
+> {
+  const organizer = await fetchOrganizer(slug);
+
+  return {
+    slug: organizer.slug,
+    name: organizer.name,
+    logo: organizer.logoUrl,
+    tagline: organizer.heroTitle || organizer.heroSubtitle || organizer.name,
+    description:
+      organizer.heroSubtitle ||
+      organizer.about ||
+      `Explore events and updates from ${organizer.name}.`,
+    socialLinks: {},
+  };
+}
+
 export async function getPublicOrganizers(): Promise<ApiOrganizer[]> {
   const organizers = await fetchPublicOrganizers();
 
