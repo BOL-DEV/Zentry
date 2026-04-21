@@ -554,6 +554,8 @@ function AdminEventDetailsClient({ eventId }: Props) {
                   attendees={attendeesQuery.data?.attendees ?? []}
                   title="Attendees"
                   description="Admin-side attendee visibility for this event, including ticket type and check-in status."
+                  eventId={eventId}
+                  eventTitle={event.title}
                   maxHeightClass="max-h-[32rem]"
                 />
               )}

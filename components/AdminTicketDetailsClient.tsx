@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { LuArrowLeft, LuMail, LuMapPin, LuShieldCheck, LuTicket, LuUser } from "react-icons/lu";
+import { LuArrowLeft, LuDownload, LuMail, LuMapPin, LuShieldCheck, LuTicket, LuUser } from "react-icons/lu";
 
 import Card from "@/components/Card";
 import DashboardHeader from "@/components/DashboardHeader";
@@ -13,6 +13,7 @@ import { clearAdminAuthToken, setAdminAuthUser } from "@/helpers/admin-auth";
 import { useAdminAuthSession } from "@/helpers/admin-auth-client";
 import { isAuthIssue } from "@/helpers/auth-redirect";
 import { getAdminProfile, getAdminTicketDetail } from "@/helpers/organizer-api";
+import { downloadTicketImage } from "@/helpers/ticket-image";
 
 function formatDateTime(value?: string | null) {
   if (!value) return "Unavailable";
@@ -122,7 +123,27 @@ function AdminTicketDetailsClient({ ticketId }: Props) {
               <h1 className="mt-3 text-4xl font-bold tracking-tight text-slate-950 sm:text-5xl dark:text-white">{ticket.ticketCode}</h1>
               <p className="mt-4 text-base leading-7 text-slate-600 dark:text-slate-300">{ticket.buyerName} • {ticket.buyerEmail}</p>
             </div>
-            <StatusPill tone={ticket.status === "checked-in" ? "emerald" : "slate"}>{ticket.status}</StatusPill>
+            <div className="flex flex-wrap items-center gap-3">
+              <StatusPill tone={ticket.status === "checked-in" ? "emerald" : "slate"}>{ticket.status}</StatusPill>
+              <button
+                type="button"
+                onClick={() =>
+                  void downloadTicketImage({
+                    eventId: ticket.eventId,
+                    eventTitle: ticket.event.title,
+                    attendeeName: ticket.buyerName,
+                    attendeeEmail: ticket.buyerEmail,
+                    ticketCode: ticket.ticketCode,
+                    ticketStatus: ticket.status,
+                    orderReference: ticket.orderId,
+                  })
+                }
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100"
+              >
+                Download Ticket Image
+                <LuDownload className="text-base" />
+              </button>
+            </div>
           </div>
         </div>
       </section>

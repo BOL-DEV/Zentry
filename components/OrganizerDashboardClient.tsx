@@ -20,6 +20,7 @@ import WorkspaceTopbar from "@/components/WorkspaceTopbar";
 import { clearAuthToken } from "@/helpers/auth";
 import { isAuthIssue } from "@/helpers/auth-redirect";
 import { useAuthSession } from "@/helpers/auth-client";
+import { formatDateTimeText } from "@/helpers/date";
 import { formatCurrency, formatNumber } from "@/helpers/format";
 import {
   getOrganizerDashboardData,
@@ -306,20 +307,21 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
           </h3>
           <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-slate-600 dark:text-slate-300">
-              Review confirmed sales, total Squad deductions, and the organizer
-              payout amount across your paid orders.
+              Review confirmed sales, immediate payout totals, and each paid order
+              as returned by the settlement summary endpoint.
             </p>
-
             <button
               type="button"
               onClick={() => settlementSyncMutation.mutate()}
               disabled={settlementSyncMutation.isPending}
               className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-70 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
             >
-              <LuRefreshCw className="text-base" />
+              <LuRefreshCw
+                className={`text-base ${settlementSyncMutation.isPending ? "animate-spin" : ""}`}
+              />
               {settlementSyncMutation.isPending
-                ? "Retrying..."
-                : "Retry Payouts"}
+                ? "Syncing Settlements..."
+                : "Sync Settlements"}
             </button>
           </div>
 
@@ -361,13 +363,14 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
 
           {settlementSyncMutation.isSuccess && settlementSyncMutation.data ? (
             <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-100">
-              Refreshed settlement data. Matched{" "}
+              Synced settlement data. Matched{" "}
               {formatNumber(settlementSyncMutation.data.ordersMatched)} eligible
-              orders, attempted{" "}
-              {formatNumber(settlementSyncMutation.data.payoutsAttempted)}{" "}
-              payouts, and completed{" "}
-              {formatNumber(settlementSyncMutation.data.payoutsSucceeded)}{" "}
-              successfully.
+              orders, processed{" "}
+              {formatNumber(settlementSyncMutation.data.ordersProcessed)} orders,
+              attempted{" "}
+              {formatNumber(settlementSyncMutation.data.payoutsAttempted)} payouts,
+              and completed{" "}
+              {formatNumber(settlementSyncMutation.data.payoutsSucceeded)}.
             </div>
           ) : null}
 
@@ -444,46 +447,60 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
                 </div>
 
                 <div className="px-5 py-4">
-                  <div className="space-y-3">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                     {settlementData.recentOrders.length ? (
                       settlementData.recentOrders.map((order) => (
                         <div
                           key={order.id}
-                          className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-slate-900/70"
+                          className="flex min-h-44 flex-col justify-between rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-slate-900/70"
                         >
-                          <div className="flex items-start justify-between gap-4">
-                            <div className="min-w-0">
+                          <div>
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="min-w-0">
+                                <p className="truncate font-semibold text-slate-900 dark:text-white">
+                                  {order.buyerName}
+                                </p>
+                                <p className="mt-1 truncate text-xs text-slate-500 dark:text-slate-400">
+                                  {order.eventTitle || order.paymentReference}
+                                </p>
+                              </div>
+                              <span className="shrink-0 rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-700 dark:bg-purple-500/15 dark:text-purple-300">
+                                {order.settlementStatus}
+                              </span>
+                            </div>
+
+                            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                              Order date:{" "}
+                              {order.paidAt || order.createdAt
+                                ? formatDateTimeText(
+                                    new Date(order.paidAt || order.createdAt || ""),
+                                  )
+                                : "Not provided"}
+                            </p>
+                          </div>
+
+                          <div className="mt-4 space-y-2">
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-slate-600 dark:text-slate-300">
+                                Gross
+                              </span>
                               <p className="font-semibold text-slate-900 dark:text-white">
-                                {order.buyerName}
-                              </p>
-                              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                                {order.eventTitle || order.paymentReference}
+                                {formatCurrency(order.grossAmount)}
                               </p>
                             </div>
-                            <span className="inline-flex rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-700 dark:bg-purple-500/15 dark:text-purple-300">
-                              {order.settlementStatus}
-                            </span>
-                          </div>
-                          <div className="mt-3 flex items-center justify-between text-sm">
-                            <span className="text-slate-600 dark:text-slate-300">
-                              Gross
-                            </span>
-                            <span className="font-semibold text-slate-900 dark:text-white">
-                              {formatCurrency(order.grossAmount)}
-                            </span>
-                          </div>
-                          <div className="mt-2 flex items-center justify-between text-sm">
-                            <span className="text-slate-600 dark:text-slate-300">
-                              Payout
-                            </span>
-                            <span className="font-semibold text-slate-900 dark:text-white">
-                              {formatCurrency(order.organizerPayoutAmount)}
-                            </span>
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-slate-600 dark:text-slate-300">
+                                Payout
+                              </span>
+                              <span className="font-semibold text-slate-900 dark:text-white">
+                                {formatCurrency(order.organizerPayoutAmount)}
+                              </span>
+                            </div>
                           </div>
                         </div>
                       ))
                     ) : (
-                      <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-600 dark:border-white/10 dark:bg-slate-900/40 dark:text-slate-300">
+                      <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-600 dark:border-white/10 dark:bg-slate-900/40 dark:text-slate-300 md:col-span-2 xl:col-span-3">
                         No paid orders available yet.
                       </div>
                     )}

@@ -60,7 +60,7 @@ function OrganizerEditProfileClient({ organizer }: Props) {
 
     async function loadOrganizer() {
       try {
-        const data = await getOrganizerProfileForEdit(organizer);
+        const data = await getOrganizerProfileForEdit();
         if (!active) return;
 
         setForm({
@@ -269,6 +269,7 @@ function OrganizerEditProfileClient({ organizer }: Props) {
                     Fill these to replace payout details. Leave empty if you do not want to update them right now.
                   </p>
                 </div>
+
 
                 <div className="grid gap-6 md:grid-cols-2">
                   {[

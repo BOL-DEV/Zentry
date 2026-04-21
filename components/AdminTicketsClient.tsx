@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { LuArrowUpRight, LuFilterX, LuScanLine, LuSearch, LuShieldCheck, LuTicket } from "react-icons/lu";
+import { LuArrowUpRight, LuDownload, LuFilterX, LuScanLine, LuSearch, LuShieldCheck, LuTicket } from "react-icons/lu";
 
 import Card from "@/components/Card";
 import DashboardHeader from "@/components/DashboardHeader";
@@ -13,6 +13,7 @@ import { clearAdminAuthToken, setAdminAuthUser } from "@/helpers/admin-auth";
 import { useAdminAuthSession } from "@/helpers/admin-auth-client";
 import { isAuthIssue } from "@/helpers/auth-redirect";
 import { getAdminProfile, getAdminTickets, verifyAdminTicket } from "@/helpers/organizer-api";
+import { downloadTicketImage } from "@/helpers/ticket-image";
 
 function formatDateTime(value?: string | null) {
   if (!value) return "Unavailable";
@@ -438,13 +439,33 @@ function AdminTicketsClient() {
                       <LuShieldCheck className="text-base text-purple-600 dark:text-purple-300" />
                       {ticket.event.location || "No location"}
                     </div>
-                    <Link
-                      href={`/dashboard/admin/tickets/${ticket.id}`}
-                      className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100"
-                    >
-                      Open Ticket
-                      <LuArrowUpRight className="text-base" />
-                    </Link>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void downloadTicketImage({
+                            eventId: ticket.eventId,
+                            eventTitle: ticket.event.title,
+                            attendeeName: ticket.buyerName,
+                            attendeeEmail: ticket.buyerEmail,
+                            ticketCode: ticket.ticketCode,
+                            ticketStatus: ticket.status,
+                            orderReference: ticket.orderId,
+                          })
+                        }
+                        className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+                      >
+                        Download Image
+                        <LuDownload className="text-base" />
+                      </button>
+                      <Link
+                        href={`/dashboard/admin/tickets/${ticket.id}`}
+                        className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100"
+                      >
+                        Open Ticket
+                        <LuArrowUpRight className="text-base" />
+                      </Link>
+                    </div>
                   </div>
                 </Card>
               ))

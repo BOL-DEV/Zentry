@@ -509,6 +509,8 @@ function TicketTypeBreakdown(props: Props) {
               attendees={attendeesQuery.data?.attendees ?? []}
               title="Attendees"
               description="Everyone who has purchased a ticket for this event."
+              eventId={eventId}
+              eventTitle={attendeesQuery.data?.event.title}
               maxHeightClass="max-h-[26rem]"
             />
           )}
