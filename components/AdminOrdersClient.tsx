@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
-import { LuArrowUpRight, LuCreditCard, LuFilterX, LuSearch } from "react-icons/lu";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { LuArrowUpRight, LuCreditCard, LuFilterX, LuRefreshCw, LuSearch } from "react-icons/lu";
 
 import Card from "@/components/Card";
 import DashboardHeader from "@/components/DashboardHeader";
@@ -12,8 +12,8 @@ import FullPageLoader from "@/components/FullPageLoader";
 import { clearAdminAuthToken, setAdminAuthUser } from "@/helpers/admin-auth";
 import { useAdminAuthSession } from "@/helpers/admin-auth-client";
 import { isAuthIssue } from "@/helpers/auth-redirect";
-import { formatCurrency } from "@/helpers/format";
-import { getAdminOrders, getAdminProfile } from "@/helpers/organizer-api";
+import { formatCurrency, formatNumber } from "@/helpers/format";
+import { getAdminOrders, getAdminProfile, syncAdminSettlements } from "@/helpers/organizer-api";
 
 function formatDateTime(value?: string | null) {
   if (!value) return "Unavailable";
@@ -59,6 +59,7 @@ function AdminOrdersClient() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { token, user } = useAdminAuthSession();
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(() => Number(searchParams.get("page") || "1") || 1);
   const [search, setSearch] = useState(() => searchParams.get("search") || "");
   const [paymentStatus, setPaymentStatus] = useState(
@@ -149,6 +150,14 @@ function AdminOrdersClient() {
     retry: false,
     placeholderData: (previousData) => previousData,
   });
+  const settlementSyncMutation = useMutation({
+    mutationFn: syncAdminSettlements,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: ["admin-orders"],
+      });
+    },
+  });
 
   useEffect(() => {
     if (!token) {
@@ -226,14 +235,49 @@ function AdminOrdersClient() {
           <h1 className="mt-3 text-4xl font-bold tracking-tight text-slate-950 sm:text-5xl dark:text-white">
             Platform orders and settlement movement.
           </h1>
-          <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600 dark:text-slate-300">
-            Track who bought what, how each order settled, and which organizer or event it belongs to without crowding the dashboard home.
-          </p>
+          <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <p className="max-w-3xl text-base leading-7 text-slate-600 dark:text-slate-300">
+              Track who bought what, how each order settled, and which organizer or event it belongs to without crowding the dashboard home.
+            </p>
+            <button
+              type="button"
+              onClick={() => settlementSyncMutation.mutate()}
+              disabled={settlementSyncMutation.isPending}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100"
+            >
+              <LuRefreshCw
+                className={`text-base ${settlementSyncMutation.isPending ? "animate-spin" : ""}`}
+              />
+              {settlementSyncMutation.isPending
+                ? "Syncing Settlements..."
+                : "Sync Settlements"}
+            </button>
+          </div>
         </div>
       </section>
 
       <section className="bg-white dark:bg-slate-950">
         <div className="mx-auto max-w-7xl px-6 py-10">
+          {settlementSyncMutation.isSuccess && settlementSyncMutation.data ? (
+            <div className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-100">
+              Synced settlements. Matched{" "}
+              {formatNumber(settlementSyncMutation.data.ordersMatched)} eligible
+              orders, processed{" "}
+              {formatNumber(settlementSyncMutation.data.ordersProcessed)}, attempted{" "}
+              {formatNumber(settlementSyncMutation.data.payoutsAttempted)} payouts,
+              and completed{" "}
+              {formatNumber(settlementSyncMutation.data.payoutsSucceeded)}.
+            </div>
+          ) : null}
+
+          {settlementSyncMutation.isError ? (
+            <div className="mb-5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-200">
+              {settlementSyncMutation.error instanceof Error
+                ? settlementSyncMutation.error.message
+                : "We couldn't sync settlements right now."}
+            </div>
+          ) : null}
+
           <Card className="border-slate-200/80 bg-white/90 dark:border-white/10 dark:bg-white/5">
             <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_180px_200px_220px_220px_auto]">
               <label className="relative block">

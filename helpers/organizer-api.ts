@@ -58,6 +58,21 @@ type ApiListEnvelope<T> = {
   };
 };
 
+type ApiSettlementSyncResult = {
+  ordersMatched: number;
+  ordersProcessed: number;
+  payoutsAttempted: number;
+  payoutsSucceeded: number;
+  payoutsFailed: number;
+  skippedNoBankDetails: number;
+  skippedNoPayoutRequired: number;
+  skippedMissingReference: number;
+  errors: Array<{
+    orderId: string;
+    message: string;
+  }>;
+};
+
 type OrganizerWithTickets = {
   organizer: Pick<ApiOrganizer, "_id" | "name" | "slug" | "heroTitle">;
   events: Array<ApiEvent & { ticketTypes: ApiTicketType[] }>;
@@ -763,20 +778,7 @@ export async function getOrganizerDashboardData(
 }
 
 export async function syncOrganizerSettlements() {
-  const response = await apiFetch<{
-    ordersMatched: number;
-    ordersProcessed: number;
-    payoutsAttempted: number;
-    payoutsSucceeded: number;
-    payoutsFailed: number;
-    skippedNoBankDetails: number;
-    skippedNoPayoutRequired: number;
-    skippedMissingReference: number;
-    errors: Array<{
-      orderId: string;
-      message: string;
-    }>;
-  }>(`/organizer/dashboard/sync-settlements`, {
+  const response = await apiFetch<ApiSettlementSyncResult>(`/organizer/dashboard/sync-settlements`, {
     method: "POST",
     auth: true,
   });
@@ -1012,14 +1014,16 @@ export async function updateOrganizerGalleryItem(
   return response.data.galleryItem;
 }
 
-export async function getOrganizerProfileForEdit(
-  slug: string,
-): Promise<{
+export async function getOrganizerProfileForEdit(): Promise<{
   organizer: ApiOrganizer;
 }> {
-  const organizer = await fetchOrganizer(slug);
+  const response = await apiFetch<{
+    organizer: ApiOrganizer;
+  }>(`/organizer/dashboard/profile`, {
+    auth: true,
+  });
 
-  return { organizer };
+  return response.data;
 }
 
 export async function updateOrganizerProfile(
@@ -1522,6 +1526,15 @@ export async function getAdminOrders(input?: {
 
 export async function getAdminOrderDetail(orderId: string) {
   const response = await apiFetch<ApiAdminOrderDetail>(`/admin/orders/${orderId}`, {
+    auth: "admin",
+  });
+
+  return response.data;
+}
+
+export async function syncAdminSettlements() {
+  const response = await apiFetch<ApiSettlementSyncResult>(`/admin/settlements/sync`, {
+    method: "POST",
     auth: "admin",
   });
 

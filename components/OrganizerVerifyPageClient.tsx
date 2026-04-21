@@ -125,6 +125,8 @@ function OrganizerVerifyPageClient({
                   attendees={data.attendees?.attendees ?? []}
                   title="Checked-in Guests"
                   description="People who have already been checked in."
+                  eventId={data.eventDetails.event.id}
+                  eventTitle={data.eventDetails.event.title}
                   statusFilter="checked-in"
                   maxHeightClass="max-h-[24rem]"
                 />

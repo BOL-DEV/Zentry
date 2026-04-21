@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import {
   LuCalendar,
   LuClock3,
@@ -18,12 +18,12 @@ import FullPageLoader from "@/components/FullPageLoader";
 import SectionPagination from "@/components/SectionPagination";
 import TicketTypeBreakdown from "@/components/TicketTypeBreakdown";
 import WorkspaceTopbar from "@/components/WorkspaceTopbar";
+import { formatDateTimeText } from "@/helpers/date";
 import { formatCurrency, formatNumber } from "@/helpers/format";
 import {
   getOrganizerEventDetails,
   getOrganizerEventSettlementSummary,
   getOrganizerScannerSummary,
-  syncOrganizerSettlements,
 } from "@/helpers/organizer-api";
 
 function splitDateAndTime(dateTimeText?: string) {
@@ -84,7 +84,6 @@ function OrganizerDashboardEventDetailsClient({
   organizer: string;
   eventId: string;
 }) {
-  const queryClient = useQueryClient();
   const [settlementPage, setSettlementPage] = useState(1);
   const { data, isLoading, error } = useQuery({
     queryKey: ["organizer-dashboard-event-details", organizer, eventId, settlementPage],
@@ -98,17 +97,6 @@ function OrganizerDashboardEventDetailsClient({
       return { eventDetails, scannerSummary, settlementSummary };
     },
     placeholderData: (previousData) => previousData,
-  });
-  const settlementSyncMutation = useMutation({
-    mutationFn: syncOrganizerSettlements,
-    onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: ["organizer-dashboard-event-details", organizer, eventId],
-      });
-      void queryClient.invalidateQueries({
-        queryKey: ["organizer-dashboard", organizer],
-      });
-    },
   });
 
   if (isLoading) {
@@ -239,19 +227,9 @@ function OrganizerDashboardEventDetailsClient({
                   Settlement Summary
                 </h2>
                 <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                  Follow confirmed sales, total Squad deductions, and organizer payout totals for this event.
+                  Follow confirmed sales, total Squad deductions, and organizer payout totals from the current settlement summary.
                 </p>
               </div>
-
-              <button
-                type="button"
-                onClick={() => settlementSyncMutation.mutate()}
-                disabled={settlementSyncMutation.isPending}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-70 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
-              >
-                <LuRefreshCw className="text-base" />
-                {settlementSyncMutation.isPending ? "Retrying..." : "Retry Squad Payouts"}
-              </button>
             </div>
 
             <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
@@ -287,27 +265,13 @@ function OrganizerDashboardEventDetailsClient({
               />
             </div>
 
-            {settlementSyncMutation.isSuccess && settlementSyncMutation.data ? (
-              <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-100">
-                Settlement refresh complete. Processed {formatNumber(settlementSyncMutation.data.ordersProcessed)} orders, attempted {formatNumber(settlementSyncMutation.data.payoutsAttempted)} payouts, and succeeded on {formatNumber(settlementSyncMutation.data.payoutsSucceeded)}.
-              </div>
-            ) : null}
-
-            {settlementSyncMutation.isError ? (
-              <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-200">
-                {settlementSyncMutation.error instanceof Error
-                  ? settlementSyncMutation.error.message
-                  : "We couldn't sync settlements right now."}
-              </div>
-            ) : null}
-
             <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/5">
               <div className="border-b border-slate-200 px-5 py-4 dark:border-white/10">
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white">
                   Paid Orders for This Event
                 </h3>
                 <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                  Gross amount, organizer payout value, and current backend settlement state for each paid order.
+                  Gross amount, organizer payout value, order date, and current backend settlement state for each paid order.
                 </p>
               </div>
 
@@ -316,6 +280,7 @@ function OrganizerDashboardEventDetailsClient({
                   <thead className="bg-slate-50 text-slate-600 dark:bg-white/10 dark:text-slate-300">
                     <tr>
                       <th className="px-5 py-4 font-semibold">Buyer</th>
+                      <th className="px-5 py-4 font-semibold">Order Date</th>
                       <th className="px-5 py-4 font-semibold">Gross</th>
                       <th className="px-5 py-4 font-semibold">Payout</th>
                       <th className="px-5 py-4 font-semibold">Status</th>
@@ -330,6 +295,13 @@ function OrganizerDashboardEventDetailsClient({
                             <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                               {order.paymentReference}
                             </div>
+                          </td>
+                          <td className="px-5 py-4">
+                            {order.paidAt || order.createdAt
+                              ? formatDateTimeText(
+                                  new Date(order.paidAt || order.createdAt || ""),
+                                )
+                              : "Not provided"}
                           </td>
                           <td className="px-5 py-4">
                             {formatCurrency(order.grossAmount)}
@@ -347,7 +319,7 @@ function OrganizerDashboardEventDetailsClient({
                     ) : (
                       <tr>
                         <td
-                          colSpan={4}
+                          colSpan={5}
                           className="px-5 py-8 text-center text-sm text-slate-600 dark:text-slate-300"
                         >
                           No paid orders available for this event yet.

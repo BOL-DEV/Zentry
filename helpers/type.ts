@@ -574,6 +574,7 @@ export type ApiSettlementOrder = {
   organizerPayoutAmount: number;
   settlementStatus: "pending" | "processing" | "settled" | "failed";
   paidAt?: string;
+  createdAt?: string;
   settlementDate?: string | null;
 };
 

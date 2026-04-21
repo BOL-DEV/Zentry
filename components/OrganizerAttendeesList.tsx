@@ -1,20 +1,25 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { LuSearch } from "react-icons/lu";
+import { LuDownload, LuSearch } from "react-icons/lu";
 import { formatDateText } from "@/helpers/date";
+import { downloadTicketImage } from "@/helpers/ticket-image";
 import type { ApiEventAttendee } from "@/helpers/type";
 
 function OrganizerAttendeesList({
   attendees,
   title,
   description,
+  eventId,
+  eventTitle,
   statusFilter = "all",
   maxHeightClass = "max-h-[28rem]",
 }: {
   attendees: ApiEventAttendee[];
   title?: string;
   description?: string;
+  eventId?: string;
+  eventTitle?: string;
   statusFilter?: "all" | "checked-in" | "valid";
   maxHeightClass?: string;
 }) {
@@ -124,6 +129,7 @@ function OrganizerAttendeesList({
               <th className="px-5 py-4 font-semibold">Ticket Code</th>
               <th className="px-5 py-4 font-semibold">Status</th>
               <th className="px-5 py-4 font-semibold">Purchased</th>
+              <th className="px-5 py-4 font-semibold">Ticket Image</th>
             </tr>
           </thead>
 
@@ -158,12 +164,35 @@ function OrganizerAttendeesList({
                   <td className="px-5 py-4 text-slate-600 dark:text-slate-300">
                     {formatDateText(new Date(attendee.purchasedAt))}
                   </td>
+                  <td className="px-5 py-4">
+                    <button
+                      type="button"
+                      disabled={!eventId}
+                      onClick={() => {
+                        if (!eventId) return;
+
+                        void downloadTicketImage({
+                          eventId,
+                          eventTitle,
+                          ticketType: attendee.ticketType,
+                          attendeeName: attendee.buyerName,
+                          attendeeEmail: attendee.buyerEmail,
+                          ticketCode: attendee.ticketCode,
+                          ticketStatus: attendee.status,
+                        });
+                      }}
+                      className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+                    >
+                      <LuDownload className="text-sm" />
+                      Download
+                    </button>
+                  </td>
                 </tr>
               ))
             ) : (
               <tr>
                 <td
-                  colSpan={6}
+                  colSpan={7}
                   className="px-5 py-8 text-center text-sm text-slate-600 dark:text-slate-300"
                 >
                   No attendees matched your search.
