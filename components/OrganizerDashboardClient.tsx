@@ -164,6 +164,7 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
   const nextEvent = data.nextEvent;
   const squadFeeTotal =
     data.totals.squadGatewayFees + data.totals.squadTransferFees;
+  const totalFeeAmount = data.totals.platformFees + squadFeeTotal;
 
   return (
     <main className="bg-purple-100 dark:bg-slate-950/90">
@@ -307,8 +308,8 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
           </h3>
           <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-slate-600 dark:text-slate-300">
-              Review confirmed sales, immediate payout totals, and each paid order
-              as returned by the settlement summary endpoint.
+              Review confirmed sales, pending vs settled totals, and each paid
+              order as returned by the settlement summary endpoint.
             </p>
             <button
               type="button"
@@ -325,7 +326,7 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
             </button>
           </div>
 
-          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
             <StatCard
               title="Total Sales (Confirmed)"
               value={formatCurrency(data.totals.confirmedSales)}
@@ -339,38 +340,25 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
               icon={<LuArrowUpRight size={20} />}
             />
             <StatCard
-              title="Platform Fees"
-              value={formatCurrency(data.totals.platformFees)}
-              helper="Platform charges across confirmed paid orders"
-              icon={<LuChartColumnIncreasing size={20} />}
-            />
-            <StatCard
-              title="Squad Fees"
-              value={formatCurrency(squadFeeTotal)}
-              helper={`${formatNumber(data.totals.totalEventsWithSales)} events currently contributing sales`}
-              icon={<LuUsers size={20} />}
-            />
-          </div>
-
-          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-1">
-            <StatCard
-              title="Events With Sales"
-              value={formatNumber(data.totals.totalEventsWithSales)}
-              helper="Organizer events currently contributing paid orders"
+              title="Total Fees"
+              value={formatCurrency(totalFeeAmount)}
+              helper="Platform fee plus Squad deductions across organizer history"
               icon={<LuChartColumnIncreasing size={20} />}
             />
           </div>
 
           {settlementSyncMutation.isSuccess && settlementSyncMutation.data ? (
             <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-100">
-              Synced settlement data. Matched{" "}
+              Prepared settlement batches. Matched{" "}
               {formatNumber(settlementSyncMutation.data.ordersMatched)} eligible
               orders, processed{" "}
-              {formatNumber(settlementSyncMutation.data.ordersProcessed)} orders,
-              attempted{" "}
-              {formatNumber(settlementSyncMutation.data.payoutsAttempted)} payouts,
-              and completed{" "}
-              {formatNumber(settlementSyncMutation.data.payoutsSucceeded)}.
+              {formatNumber(settlementSyncMutation.data.ordersProcessed)} orders
+              across{" "}
+              {formatNumber(
+                settlementSyncMutation.data.eventGroupsPrepared ??
+                  settlementSyncMutation.data.payoutsSucceeded,
+              )}{" "}
+              event batches.
             </div>
           ) : null}
 
@@ -390,7 +378,7 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
                     Event Settlement Breakdown
                   </h4>
                   <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                    A per-event view of confirmed sales, Squad fees, and
+                    A per-event view of confirmed sales, combined fees, and
                     organizer payout totals.
                   </p>
                 </div>
@@ -401,7 +389,7 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
                       <tr>
                         <th className="px-5 py-4 font-semibold">Event</th>
                         <th className="px-5 py-4 font-semibold">Confirmed</th>
-                        <th className="px-5 py-4 font-semibold">Squad Fees</th>
+                        <th className="px-5 py-4 font-semibold">Total Fees</th>
                         <th className="px-5 py-4 font-semibold">Payout</th>
                       </tr>
                     </thead>
@@ -422,6 +410,7 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
                           </td>
                           <td className="px-5 py-4">
                             {formatCurrency(
+                              (event.platformFees ?? 0) +
                               (event.squadGatewayFees ?? 0) +
                                 (event.squadTransferFees ?? 0),
                             )}

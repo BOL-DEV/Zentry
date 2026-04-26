@@ -19,6 +19,7 @@ import {
   getAdminEventDetail,
   getAdminEventScannerSummary,
   getAdminEventTicketTypesForEdit,
+  getAdminOrganizerEventSettlementSummary,
   getAdminProfile,
   updateAdminEventTicketType,
   updateAdminEventTicketTypeQuantity,
@@ -103,6 +104,21 @@ function AdminEventDetailsClient({ eventId }: Props) {
     queryKey: ["admin-event-attendees", eventId],
     queryFn: () => getAdminEventAttendees(eventId),
     enabled: Boolean(token) && Boolean(profileQuery.data?.admin),
+    retry: false,
+  });
+  const settlementSummaryQuery = useQuery({
+    queryKey: ["admin-event-settlement-summary", eventId, eventQuery.data?.event.organizer.id],
+    queryFn: () =>
+      getAdminOrganizerEventSettlementSummary(
+        eventQuery.data?.event.organizer.id || "",
+        eventId,
+        1,
+        8,
+      ),
+    enabled:
+      Boolean(token) &&
+      Boolean(profileQuery.data?.admin) &&
+      Boolean(eventQuery.data?.event.organizer.id),
     retry: false,
   });
 
@@ -574,6 +590,50 @@ function AdminEventDetailsClient({ eventId }: Props) {
                 <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-4 dark:border-white/10 dark:bg-white/[0.04]"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Squad Fees</p><p className="mt-2 text-2xl font-bold text-slate-950 dark:text-white">{formatCurrency(squadFeeTotal)}</p></div>
                 <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-4 dark:border-white/10 dark:bg-white/[0.04] sm:col-span-2"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Check-in Rate</p><p className="mt-2 text-2xl font-bold text-slate-950 dark:text-white">{checkInRate}%</p><p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{stats.totalCheckedInTickets} checked in from {stats.totalTicketsSold} sold tickets</p></div>
               </div>
+            </Card>
+
+            <Card className="border-slate-200/80 bg-white/90 dark:border-white/10 dark:bg-white/5">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Settlement Summary</p>
+              {settlementSummaryQuery.isLoading ? (
+                <p className="mt-5 text-sm text-slate-600 dark:text-slate-300">Loading settlement summary...</p>
+              ) : settlementSummaryQuery.error ? (
+                <div className="mt-5 rounded-2xl border border-rose-200 bg-rose-50/90 p-4 text-sm text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300">
+                  {settlementSummaryQuery.error instanceof Error
+                    ? settlementSummaryQuery.error.message
+                    : "We couldn't load event settlement data right now."}
+                </div>
+              ) : settlementSummaryQuery.data ? (
+                <>
+                  <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-4 dark:border-white/10 dark:bg-white/[0.04]"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Confirmed Sales</p><p className="mt-2 text-2xl font-bold text-slate-950 dark:text-white">{formatCurrency(settlementSummaryQuery.data.summary.confirmedSales)}</p></div>
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-4 dark:border-white/10 dark:bg-white/[0.04]"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Organizer Payout</p><p className="mt-2 text-2xl font-bold text-slate-950 dark:text-white">{formatCurrency(settlementSummaryQuery.data.summary.organizerPayoutAmount)}</p></div>
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-4 dark:border-white/10 dark:bg-white/[0.04]"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Pending Settlement</p><p className="mt-2 text-2xl font-bold text-slate-950 dark:text-white">{formatCurrency(settlementSummaryQuery.data.summary.pendingSettlement)}</p></div>
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-4 dark:border-white/10 dark:bg-white/[0.04]"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Settled</p><p className="mt-2 text-2xl font-bold text-slate-950 dark:text-white">{formatCurrency(settlementSummaryQuery.data.summary.settled)}</p></div>
+                  </div>
+
+                  <div className="mt-6 space-y-3">
+                    {settlementSummaryQuery.data.orders.length ? settlementSummaryQuery.data.orders.map((order) => (
+                      <div key={order.id} className="rounded-2xl border border-slate-200 bg-slate-50/90 p-4 dark:border-white/10 dark:bg-white/[0.04]">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <p className="font-semibold text-slate-950 dark:text-white">{order.buyerName}</p>
+                            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{order.paymentReference}</p>
+                            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{formatDateTime(order.paidAt || order.createdAt)}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-semibold text-slate-950 dark:text-white">{formatCurrency(order.organizerPayoutAmount)}</p>
+                            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{order.settlementStatus}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )) : (
+                      <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/90 p-4 text-sm text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300">
+                        No settlement orders available for this event yet.
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : null}
             </Card>
 
             <Card className="border-slate-200/80 bg-white/90 dark:border-white/10 dark:bg-white/5">

@@ -13,7 +13,25 @@ import { clearAdminAuthToken, setAdminAuthUser } from "@/helpers/admin-auth";
 import { useAdminAuthSession } from "@/helpers/admin-auth-client";
 import { isAuthIssue } from "@/helpers/auth-redirect";
 import { formatCurrency, formatNumber } from "@/helpers/format";
-import { getAdminOrders, getAdminProfile, syncAdminSettlements } from "@/helpers/organizer-api";
+import {
+  getAdminDailyPayouts,
+  getAdminEvents,
+  getAdminOrganizers,
+  getAdminOrders,
+  getAdminProfile,
+  syncAdminSettlements,
+  toggleAdminSettlementBatch,
+} from "@/helpers/organizer-api";
+
+function getPreviousDateInput() {
+  const now = new Date();
+  now.setDate(now.getDate() - 1);
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
 
 function formatDateTime(value?: string | null) {
   if (!value) return "Unavailable";
@@ -70,6 +88,10 @@ function AdminOrdersClient() {
   );
   const [eventId, setEventId] = useState(() => searchParams.get("eventId") || "");
   const [organizerId, setOrganizerId] = useState(() => searchParams.get("organizerId") || "");
+  const [eventFilterText, setEventFilterText] = useState("");
+  const [organizerFilterText, setOrganizerFilterText] = useState("");
+  const [payoutDate, setPayoutDate] = useState(() => getPreviousDateInput());
+  const [payoutStatus, setPayoutStatus] = useState<"processing" | "settled" | "all">("processing");
 
   function updateListUrl(nextState: {
     page?: number;
@@ -150,11 +172,66 @@ function AdminOrdersClient() {
     retry: false,
     placeholderData: (previousData) => previousData,
   });
+  const payoutReportQuery = useQuery({
+    queryKey: ["admin-daily-payouts", payoutDate, payoutStatus, organizerId],
+    queryFn: () =>
+      getAdminDailyPayouts({
+        date: payoutDate,
+        status: payoutStatus,
+        organizerId: organizerId.trim() || undefined,
+      }),
+    enabled: Boolean(token) && Boolean(profileQuery.data?.admin),
+    retry: false,
+    placeholderData: (previousData) => previousData,
+  });
+  const organizerOptionsQuery = useQuery({
+    queryKey: ["admin-organizer-filter-options"],
+    queryFn: () =>
+      getAdminOrganizers({
+        page: 1,
+        limit: 100,
+      }),
+    enabled: Boolean(token) && Boolean(profileQuery.data?.admin),
+    retry: false,
+    staleTime: 60_000,
+  });
+  const eventOptionsQuery = useQuery({
+    queryKey: ["admin-event-filter-options", organizerId],
+    queryFn: () =>
+      getAdminEvents({
+        page: 1,
+        limit: 100,
+        organizerId: organizerId.trim() || undefined,
+      }),
+    enabled: Boolean(token) && Boolean(profileQuery.data?.admin),
+    retry: false,
+    staleTime: 60_000,
+  });
   const settlementSyncMutation = useMutation({
     mutationFn: syncAdminSettlements,
     onSuccess: () => {
       void queryClient.invalidateQueries({
         queryKey: ["admin-orders"],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ["admin-daily-payouts"],
+      });
+    },
+  });
+  const toggleBatchMutation = useMutation({
+    mutationFn: ({
+      batchId,
+      settled,
+    }: {
+      batchId: string;
+      settled: boolean;
+    }) => toggleAdminSettlementBatch(batchId, settled),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: ["admin-orders"],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ["admin-daily-payouts"],
       });
     },
   });
@@ -177,6 +254,9 @@ function AdminOrdersClient() {
     clearAdminAuthToken();
     router.replace("/admin/login?next=/dashboard/admin/orders&reason=session-expired");
   }, [profileQuery.error, profileQuery.isFetching, router]);
+
+  const organizerOptions = organizerOptionsQuery.data?.organizers ?? [];
+  const eventOptions = eventOptionsQuery.data?.events ?? [];
 
   if (!token) {
     return (
@@ -220,6 +300,41 @@ function AdminOrdersClient() {
   const orders = ordersQuery.data?.orders ?? [];
   const pagination = ordersQuery.data?.pagination;
 
+  function handleOrganizerFilterInput(nextValue: string) {
+    setOrganizerFilterText(nextValue);
+
+    const normalizedValue = nextValue.trim().toLowerCase();
+    const matchedOrganizer = organizerOptions.find(
+      (organizer) => organizer.name.trim().toLowerCase() === normalizedValue,
+    );
+
+    setPage(1);
+    setEventId("");
+    setEventFilterText("");
+    setOrganizerId(matchedOrganizer?.id ?? "");
+    updateListUrl({
+      organizerId: matchedOrganizer?.id ?? "",
+      eventId: "",
+      page: 1,
+    });
+  }
+
+  function handleEventFilterInput(nextValue: string) {
+    setEventFilterText(nextValue);
+
+    const normalizedValue = nextValue.trim().toLowerCase();
+    const matchedEvent = eventOptions.find(
+      (event) => event.title.trim().toLowerCase() === normalizedValue,
+    );
+
+    setPage(1);
+    setEventId(matchedEvent?.id ?? "");
+    updateListUrl({
+      eventId: matchedEvent?.id ?? "",
+      page: 1,
+    });
+  }
+
   return (
     <main className="min-h-screen bg-purple-100 dark:bg-slate-950/90">
       <DashboardHeader
@@ -260,13 +375,15 @@ function AdminOrdersClient() {
         <div className="mx-auto max-w-7xl px-6 py-10">
           {settlementSyncMutation.isSuccess && settlementSyncMutation.data ? (
             <div className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-100">
-              Synced settlements. Matched{" "}
+              Prepared settlement batches. Matched{" "}
               {formatNumber(settlementSyncMutation.data.ordersMatched)} eligible
               orders, processed{" "}
-              {formatNumber(settlementSyncMutation.data.ordersProcessed)}, attempted{" "}
-              {formatNumber(settlementSyncMutation.data.payoutsAttempted)} payouts,
-              and completed{" "}
-              {formatNumber(settlementSyncMutation.data.payoutsSucceeded)}.
+              {formatNumber(settlementSyncMutation.data.ordersProcessed)} across{" "}
+              {formatNumber(
+                settlementSyncMutation.data.eventGroupsPrepared ??
+                  settlementSyncMutation.data.payoutsSucceeded,
+              )}{" "}
+              event batches.
             </div>
           ) : null}
 
@@ -278,7 +395,233 @@ function AdminOrdersClient() {
             </div>
           ) : null}
 
+          <Card className="mb-8 border-slate-200/80 bg-white/90 dark:border-white/10 dark:bg-white/5">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">
+                  Daily Payout Batches
+                </p>
+                <h2 className="mt-2 text-2xl font-bold text-slate-950 dark:text-white">
+                  Manual payout queue
+                </h2>
+                <p className="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-300">
+                  Review prepared payout batches, confirm transfers as settled,
+                  or reopen a batch back to processing when needed.
+                </p>
+                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                  The report auto-loads when you change the date or batch status.
+                  It opens on the previous day by default so yesterday&apos;s
+                  settlements are ready immediately.
+                </p>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-3">
+                <label className="block">
+                  <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                    Date
+                  </span>
+                  <input
+                    type="date"
+                    value={payoutDate}
+                    onChange={(event) => setPayoutDate(event.target.value)}
+                    className="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition [color-scheme:light] focus:border-purple-600 focus:ring-4 focus:ring-purple-600/15 dark:border-white/10 dark:bg-white/5 dark:text-white dark:[color-scheme:dark]"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                    Batch Status
+                  </span>
+                  <select
+                    value={payoutStatus}
+                    onChange={(event) =>
+                      setPayoutStatus(
+                        event.target.value as "processing" | "settled" | "all",
+                      )
+                    }
+                    className="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition [color-scheme:light] focus:border-purple-600 focus:ring-4 focus:ring-purple-600/15 dark:border-white/10 dark:bg-slate-900 dark:text-white dark:[color-scheme:dark]"
+                  >
+                    <option value="processing">Processing</option>
+                    <option value="settled">Settled</option>
+                    <option value="all">All</option>
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                    Organizer Filter
+                  </span>
+                  <input
+                    list="admin-organizer-options"
+                    value={organizerFilterText}
+                    onChange={(event) => handleOrganizerFilterInput(event.target.value)}
+                    placeholder="Search organizer name"
+                    className="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-purple-600 focus:ring-4 focus:ring-purple-600/15 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                  />
+                </label>
+              </div>
+            </div>
+
+            {payoutReportQuery.isError ? (
+              <div className="mt-5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-200">
+                {payoutReportQuery.error instanceof Error
+                  ? payoutReportQuery.error.message
+                  : "We couldn't load the daily payout report right now."}
+              </div>
+            ) : null}
+
+            {payoutReportQuery.data ? (
+              <>
+                <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-4 dark:border-white/10 dark:bg-white/[0.04]">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Ready To Pay</p>
+                    <p className="mt-2 text-2xl font-bold text-slate-950 dark:text-white">
+                      {formatCurrency(payoutReportQuery.data.summary.totalReadyToPay)}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-4 dark:border-white/10 dark:bg-white/[0.04]">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Processing Batches</p>
+                    <p className="mt-2 text-2xl font-bold text-slate-950 dark:text-white">
+                      {formatNumber(payoutReportQuery.data.summary.totalProcessing)}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-4 dark:border-white/10 dark:bg-white/[0.04]">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Settled Today</p>
+                    <p className="mt-2 text-2xl font-bold text-slate-950 dark:text-white">
+                      {formatCurrency(payoutReportQuery.data.summary.totalSettledToday)}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-4 dark:border-white/10 dark:bg-white/[0.04]">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Total Batches</p>
+                    <p className="mt-2 text-2xl font-bold text-slate-950 dark:text-white">
+                      {formatNumber(payoutReportQuery.data.summary.totalBatches)}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-4 dark:border-white/10 dark:bg-white/[0.04]">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Total Orders</p>
+                    <p className="mt-2 text-2xl font-bold text-slate-950 dark:text-white">
+                      {formatNumber(payoutReportQuery.data.summary.totalOrders)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-6 grid gap-4 xl:grid-cols-2">
+                  {payoutReportQuery.data.batches.length ? (
+                    payoutReportQuery.data.batches.map((batch) => {
+                      const isMutating =
+                        toggleBatchMutation.isPending &&
+                        toggleBatchMutation.variables?.batchId === batch.batchId;
+
+                      return (
+                        <div
+                          key={batch.batchId}
+                          className="rounded-2xl border border-slate-200 bg-slate-50/90 p-5 dark:border-white/10 dark:bg-white/[0.04]"
+                        >
+                          <div className="flex flex-wrap items-start justify-between gap-4">
+                            <div>
+                              <p className="text-lg font-bold text-slate-950 dark:text-white">
+                                {batch.event.title}
+                              </p>
+                              <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                                {batch.organizer.name}
+                                {batch.organizer.slug ? ` | @${batch.organizer.slug}` : ""}
+                              </p>
+                              <p className="mt-2 break-all text-xs text-slate-500 dark:text-slate-400">
+                                {batch.batchId}
+                              </p>
+                            </div>
+                            <StatusPill tone={batch.status === "settled" ? "emerald" : "amber"}>
+                              {batch.status}
+                            </StatusPill>
+                          </div>
+
+                          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                            <div>
+                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Total Payout</p>
+                              <p className="mt-2 text-xl font-bold text-slate-950 dark:text-white">
+                                {formatCurrency(batch.totalPayout)}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Order Count</p>
+                              <p className="mt-2 text-xl font-bold text-slate-950 dark:text-white">
+                                {formatNumber(batch.orderCount)}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="mt-4 space-y-2 text-sm text-slate-600 dark:text-slate-300">
+                            <p>Event date: {formatDateTime(batch.event.date)}</p>
+                            <p>Prepared at: {formatDateTime(batch.preparedAt)}</p>
+                            <p>Settlement date: {formatDateTime(batch.settlementDate)}</p>
+                            <p>
+                              Bank: {batch.bankDetails?.bankName || "No bank name"}{" "}
+                              {batch.bankDetails?.accountNumber
+                                ? `| ${batch.bankDetails.accountNumber}`
+                                : ""}
+                            </p>
+                          </div>
+
+                          <div className="mt-5 flex flex-wrap gap-3">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                toggleBatchMutation.mutate({
+                                  batchId: batch.batchId,
+                                  settled: batch.status !== "settled",
+                                })
+                              }
+                              disabled={isMutating}
+                              className="inline-flex h-11 items-center justify-center rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100"
+                            >
+                              {isMutating
+                                ? "Updating..."
+                                : batch.status === "settled"
+                                  ? "Reopen Batch"
+                                  : "Mark Settled"}
+                            </button>
+                            <Link
+                              href={`/dashboard/admin/events/${batch.event.id}`}
+                              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+                            >
+                              Open Event
+                              <LuArrowUpRight className="text-base" />
+                            </Link>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/90 px-4 py-10 text-center text-sm text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300 xl:col-span-2">
+                      No payout batches found for this date and filter.
+                    </div>
+                  )}
+                </div>
+
+                {toggleBatchMutation.isError ? (
+                  <div className="mt-5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-200">
+                    {toggleBatchMutation.error instanceof Error
+                      ? toggleBatchMutation.error.message
+                      : "We couldn't update that batch right now."}
+                  </div>
+                ) : null}
+              </>
+            ) : (
+              <div className="mt-6 text-sm text-slate-600 dark:text-slate-300">
+                Loading payout report...
+              </div>
+            )}
+          </Card>
+
           <Card className="border-slate-200/80 bg-white/90 dark:border-white/10 dark:bg-white/5">
+            <datalist id="admin-organizer-options">
+              {organizerOptions.map((organizer) => (
+                <option key={organizer.id} value={organizer.name} />
+              ))}
+            </datalist>
+            <datalist id="admin-event-options">
+              {eventOptions.map((event) => (
+                <option key={event.id} value={event.title} />
+              ))}
+            </datalist>
             <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_180px_200px_220px_220px_auto]">
               <label className="relative block">
                 <LuSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -326,25 +669,17 @@ function AdminOrdersClient() {
                 <option value="failed">Failed</option>
               </select>
               <input
-                value={eventId}
-                onChange={(event) => {
-                  const nextValue = event.target.value;
-                  setEventId(nextValue);
-                  setPage(1);
-                  updateListUrl({ eventId: nextValue, page: 1 });
-                }}
-                placeholder="Event ID"
+                list="admin-event-options"
+                value={eventFilterText}
+                onChange={(event) => handleEventFilterInput(event.target.value)}
+                placeholder="Search event name"
                 className="h-12 rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-purple-600 focus:ring-4 focus:ring-purple-600/15 dark:border-white/10 dark:bg-white/5 dark:text-white"
               />
               <input
-                value={organizerId}
-                onChange={(event) => {
-                  const nextValue = event.target.value;
-                  setOrganizerId(nextValue);
-                  setPage(1);
-                  updateListUrl({ organizerId: nextValue, page: 1 });
-                }}
-                placeholder="Organizer ID"
+                list="admin-organizer-options"
+                value={organizerFilterText}
+                onChange={(event) => handleOrganizerFilterInput(event.target.value)}
+                placeholder="Search organizer name"
                 className="h-12 rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-purple-600 focus:ring-4 focus:ring-purple-600/15 dark:border-white/10 dark:bg-white/5 dark:text-white"
               />
               <button
@@ -355,6 +690,8 @@ function AdminOrdersClient() {
                   setSettlementStatus("all");
                   setEventId("");
                   setOrganizerId("");
+                  setEventFilterText("");
+                  setOrganizerFilterText("");
                   setPage(1);
                   updateListUrl({
                     search: "",

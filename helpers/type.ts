@@ -201,6 +201,55 @@ export type ApiAdminOrderDetail = {
   };
 };
 
+export type ApiAdminDailyPayoutSummary = {
+  date: string;
+  status: "processing" | "settled" | "all";
+  totalReadyToPay: number;
+  totalProcessing: number;
+  totalSettledToday: number;
+  totalBatches: number;
+  totalOrders: number;
+};
+
+export type ApiAdminDailyPayoutBatch = {
+  batchId: string;
+  status: "processing" | "settled";
+  orderCount: number;
+  totalPayout: number;
+  event: {
+    id: string;
+    title: string;
+    date?: string;
+  };
+  organizer: {
+    id: string;
+    name: string;
+    slug?: string;
+  };
+  bankDetails?: ApiBankDetails;
+  preparedAt?: string;
+  settlementDate?: string | null;
+};
+
+export type ApiAdminDailyPayoutReport = {
+  summary: ApiAdminDailyPayoutSummary;
+  batches: ApiAdminDailyPayoutBatch[];
+};
+
+export type ApiAdminSettlementBatchToggleResult = {
+  batchId: string;
+  ordersSettled: number;
+  ordersMatched: number;
+  settlementDate?: string | null;
+  batch: ApiAdminDailyPayoutBatch;
+  counts: {
+    processing: number;
+    settled: number;
+    pending: number;
+    failed: number;
+  };
+};
+
 export type ApiAdminEventSummary = {
   id: string;
   title: string;
@@ -727,7 +776,7 @@ export type OrganizerDashboardData = {
     checkInPercentage: number;
     confirmedSales: number;
     pendingSettlement: number;
-    settledRevenue: number;
+    settled: number;
     platformFees: number;
     squadGatewayFees: number;
     squadTransferFees: number;

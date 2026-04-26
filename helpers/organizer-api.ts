@@ -6,6 +6,7 @@ import type {
   ApiAdminAnalytics,
   ApiAdminAuthResponse,
   ApiAdminCreatedUser,
+  ApiAdminDailyPayoutReport,
   ApiDashboardUser,
   ApiOrganizerRequest,
   ApiOrganizerRequestApproval,
@@ -15,6 +16,7 @@ import type {
   ApiAdminOrderDetail,
   ApiAdminOrderSummary,
   ApiAdminOrganizerSummary,
+  ApiAdminSettlementBatchToggleResult,
   ApiAdminTicketDetail,
   ApiAdminTicketSummary,
   ApiAuthResponse, 
@@ -67,8 +69,11 @@ type ApiSettlementSyncResult = {
   skippedNoBankDetails: number;
   skippedNoPayoutRequired: number;
   skippedMissingReference: number;
+  eventGroupsMatched?: number;
+  eventGroupsPrepared?: number;
   errors: Array<{
-    orderId: string;
+    orderId?: string;
+    eventId?: string;
     message: string;
   }>;
 };
@@ -754,9 +759,7 @@ export async function getOrganizerDashboardData(
         settlementData?.summary.confirmedSales ??
         summaryResponse.data.summary.totalRevenue,
       pendingSettlement: settlementData?.summary.pendingSettlement ?? 0,
-      settledRevenue:
-        settlementData?.summary.settled ??
-        summaryResponse.data.summary.totalRevenue,
+      settled: settlementData?.summary.settled ?? 0,
       platformFees: settlementData?.summary.platformFees ?? 0,
       squadGatewayFees:
         settlementData?.summary.squadGatewayFees ?? 0,
@@ -764,7 +767,7 @@ export async function getOrganizerDashboardData(
         settlementData?.summary.squadTransferFees ?? 0,
       organizerPayoutAmount:
         settlementData?.summary.organizerPayoutAmount ??
-        summaryResponse.data.summary.totalRevenue,
+        0,
       totalPaidOrders: settlementData?.summary.totalPaidOrders ?? 0,
       totalEventsWithSales: settlementData?.summary.totalEventsWithSales ?? 0,
     },
@@ -1537,6 +1540,103 @@ export async function syncAdminSettlements() {
     method: "POST",
     auth: "admin",
   });
+
+  return response.data;
+}
+
+export async function getAdminOrganizerOverallSettlementSummary(
+  organizerId: string,
+  page = 1,
+  perPage = 20,
+): Promise<{
+  summary: ApiSettlementSummary;
+  events: ApiSettlementEvent[];
+  pagination: ApiPagination;
+  recentOrders: ApiSettlementOrder[];
+}> {
+  const response = await apiFetch<{
+    summary: ApiSettlementSummary;
+    events: ApiSettlementEvent[];
+    pagination: ApiPagination;
+    recentOrders: ApiSettlementOrder[];
+  }>(
+    `/admin/organizers/${organizerId}/settlements/overall-summary?page=${page}&perPage=${perPage}`,
+    {
+      auth: "admin",
+    },
+  );
+
+  return response.data;
+}
+
+export async function getAdminOrganizerEventSettlementSummary(
+  organizerId: string,
+  eventId: string,
+  page = 1,
+  perPage = 20,
+): Promise<{
+  event: { id: string; title: string; date: string; location: string };
+  summary: ApiSettlementSummary;
+  pagination: ApiPagination;
+  orders: ApiSettlementOrder[];
+}> {
+  const response = await apiFetch<{
+    event: { id: string; title: string; date: string; location: string };
+    summary: ApiSettlementSummary;
+    pagination: ApiPagination;
+    orders: ApiSettlementOrder[];
+  }>(
+    `/admin/organizers/${organizerId}/events/${eventId}/settlement-summary?page=${page}&perPage=${perPage}`,
+    {
+      auth: "admin",
+    },
+  );
+
+  return response.data;
+}
+
+export async function getAdminDailyPayouts(input?: {
+  date?: string;
+  status?: "processing" | "settled" | "all";
+  organizerId?: string;
+}) {
+  const params = new URLSearchParams();
+
+  if (input?.date?.trim()) {
+    params.set("date", input.date.trim());
+  }
+
+  if (input?.status) {
+    params.set("status", input.status);
+  }
+
+  if (input?.organizerId?.trim()) {
+    params.set("organizerId", input.organizerId.trim());
+  }
+
+  const query = params.toString();
+  const response = await apiFetch<ApiAdminDailyPayoutReport>(
+    `/admin/settlements/daily-payouts${query ? `?${query}` : ""}`,
+    {
+      auth: "admin",
+    },
+  );
+
+  return response.data;
+}
+
+export async function toggleAdminSettlementBatch(
+  batchId: string,
+  settled: boolean,
+) {
+  const response = await apiFetch<ApiAdminSettlementBatchToggleResult>(
+    `/admin/settlements/batches/${encodeURIComponent(batchId)}/toggle-settled`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ settled }),
+      auth: "admin",
+    },
+  );
 
   return response.data;
 }
