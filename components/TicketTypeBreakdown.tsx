@@ -158,10 +158,9 @@ function TicketTypeBreakdown(props: Props) {
   const ticketTypeRows = useMemo(() => {
     return ticketTypes.map((t) => {
       const remaining = Math.max(0, t.total - t.sold);
-      const lineRevenue = t.sold * t.price;
       const pct = percent(t.sold, t.total);
 
-      return { ...t, remaining, lineRevenue, pct };
+      return { ...t, remaining, pct };
     });
   }, [ticketTypes]);
 
@@ -212,7 +211,7 @@ function TicketTypeBreakdown(props: Props) {
 
                 <div className="text-right">
                   <div className="text-2xl font-bold tracking-tight text-purple-700 dark:text-purple-400">
-                    {formatCurrency(t.lineRevenue)}
+                    {formatCurrency(t.price)}
                   </div>
                   <div className="text-xs text-slate-500 dark:text-slate-400">
                     {formatNumber(t.sold)} sold

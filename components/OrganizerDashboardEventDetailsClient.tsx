@@ -126,6 +126,9 @@ function OrganizerDashboardEventDetailsClient({
       ? data.settlementSummary.summary.squadGatewayFees +
         data.settlementSummary.summary.squadTransferFees
       : 0;
+  const combinedFeeTotal = data.settlementSummary
+    ? data.settlementSummary.summary.platformFees + squadFeeTotal
+    : 0;
   const { dateText, timeText } = splitDateAndTime(event.dateTimeText);
   const locationText = event.locationText?.trim() || "Location to be announced";
   const heroImageSrc = event.imageUrl?.trim() || buildEventHeroFallback(event.title);
@@ -227,7 +230,8 @@ function OrganizerDashboardEventDetailsClient({
                   Settlement Summary
                 </h2>
                 <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                  Follow confirmed sales, total Squad deductions, and organizer payout totals from the current settlement summary.
+                  Follow confirmed sales, pending vs settled totals, and fee
+                  deductions from the current settlement summary.
                 </p>
               </div>
             </div>
@@ -245,17 +249,24 @@ function OrganizerDashboardEventDetailsClient({
                 )}
                 icon={<LuMapPin className="text-lg" />}
               />
+              <InfoCard
+                label="Pending Settlement"
+                value={formatCurrency(
+                  data.settlementSummary.summary.pendingSettlement,
+                )}
+                icon={<LuRefreshCw className="text-lg" />}
+              />
+              <InfoCard
+                label="Settled"
+                value={formatCurrency(data.settlementSummary.summary.settled)}
+                icon={<LuCalendar className="text-lg" />}
+              />
             </div>
 
             <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
               <InfoCard
-                label="Platform Fees"
-                value={formatCurrency(data.settlementSummary.summary.platformFees)}
-                icon={<LuUsers className="text-lg" />}
-              />
-              <InfoCard
-                label="Squad Fees"
-                value={formatCurrency(squadFeeTotal)}
+                label="Total Fees"
+                value={formatCurrency(combinedFeeTotal)}
                 icon={<LuRefreshCw className="text-lg" />}
               />
               <InfoCard
