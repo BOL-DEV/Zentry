@@ -8,7 +8,7 @@ function Hero() {
     // const {} = props
 
     return (
-      <section className="bg-purple-100 dark:bg-slate-950/90 flex flex-col lg:flex-row lg:gap-15 gap-7 items-center justify-center px-6 py-40">
+      <section className="bg-purple-100 dark:bg-slate-950/90 flex flex-col items-center justify-center gap-7 px-6 pb-20 pt-28 sm:pb-24 sm:pt-32 lg:flex-row lg:gap-15 lg:py-40">
         <div className="flex flex-col gap-8">
           <h1 className="flex w-fit items-center gap-3 rounded-2xl bg-purple-300 px-5 py-1.5 text-md font-semibold text-purple-900 dark:bg-white/10 dark:text-purple-200">
             <span>
