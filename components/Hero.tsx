@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import Image from 'next/image'
 import { IoArrowForward } from "react-icons/io5";
 import { LuSparkles } from "react-icons/lu";
@@ -27,15 +28,15 @@ function Hero() {
           </p>
 
           <div className="flex flex-col lg:flex-row gap-4  items-center">
-            <button className="flex items-center gap-2 rounded-lg bg-purple-600 px-6 py-3 text-white font-semibold transition hover:bg-purple-700 lg:w-fit w-full justify-center">
+            <Link href="/events" className="flex items-center gap-2 rounded-lg bg-purple-600 px-6 py-3 text-white font-semibold transition hover:bg-purple-700 lg:w-fit w-full justify-center">
               Browse Events
               <span>
                 <IoArrowForward />
               </span>
-            </button>
-            <button className="flex items-center justify-center gap-2 rounded-lg border-2 border-purple-600 px-6 py-3 font-semibold text-purple-600 transition hover:bg-purple-700 hover:text-white dark:border-purple-400 dark:text-purple-300 dark:hover:bg-purple-500/15 dark:hover:text-white lg:w-fit w-full">
+            </Link>
+            <Link href="/organizer-request" className="flex items-center justify-center gap-2 rounded-lg border-2 border-purple-600 px-6 py-3 font-semibold text-purple-600 transition hover:bg-purple-700 hover:text-white dark:border-purple-400 dark:text-purple-300 dark:hover:bg-purple-500/15 dark:hover:text-white lg:w-fit w-full">
               Organize an Event
-            </button>
+            </Link>
           </div>
         </div>
         <Image
