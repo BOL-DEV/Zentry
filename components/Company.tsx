@@ -9,7 +9,7 @@ function Company() {
         </p>
         <Link
           href="/admin/login"
-          className="text-[11px] font-medium uppercase tracking-[0.28em] text-slate-400 transition hover:text-slate-600 dark:text-slate-600 dark:hover:text-slate-400"
+          className="text-[11px] font-small uppercase tracking-[0.28em] text-slate-400 transition hover:text-slate-600 dark:text-slate-600 dark:hover:text-slate-400"
           aria-label="Admin login"
         >
           Admin
