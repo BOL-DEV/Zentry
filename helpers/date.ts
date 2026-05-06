@@ -80,3 +80,17 @@ export function demoDateTimeText(
 ): string {
   return formatDateTimeText(demoDate(parts), options);
 }
+
+export function isUpcomingDate(
+  value: Date | string | number,
+  referenceDate = new Date(),
+): boolean {
+  const date = value instanceof Date ? value : new Date(value);
+  const timestamp = date.getTime();
+
+  if (Number.isNaN(timestamp)) {
+    return false;
+  }
+
+  return timestamp >= referenceDate.getTime();
+}

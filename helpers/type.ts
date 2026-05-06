@@ -810,6 +810,7 @@ export type AdminEventListItem = {
   title: string;
   imageUrl: string;
   dateTimeText: string;
+  isUpcoming: boolean;
   locationText: string;
   organizerId: string;
   organizerName: string;
