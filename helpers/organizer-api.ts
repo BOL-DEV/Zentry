@@ -1,4 +1,8 @@
-import { formatDateText, formatDateTimeText } from "@/helpers/date";
+import {
+  formatDateText,
+  formatDateTimeText,
+  isUpcomingDate,
+} from "@/helpers/date";
 import { apiFetch, resolveUrl } from "@/helpers/api";
 import type { OrderAccessContext } from "@/helpers/order-access";
 import type {
@@ -264,6 +268,14 @@ function mapEventCard(
   };
 }
 
+function sortEventsByDateAscending(left: Pick<ApiEvent, "date">, right: Pick<ApiEvent, "date">) {
+  return new Date(left.date).getTime() - new Date(right.date).getTime();
+}
+
+function sortEventsByDateDescending(left: Pick<ApiEvent, "date">, right: Pick<ApiEvent, "date">) {
+  return new Date(right.date).getTime() - new Date(left.date).getTime();
+}
+
 function mapPastEvent(
   event: ApiEvent,
   ticketTypes: ApiTicketType[],
@@ -499,33 +511,33 @@ export async function getOrganizerOverview(
     organizerEventsWithTickets.events.map((event) => [event._id, event]),
   );
 
-  const featuredEvent = landing.featuredEvent
+  const normalizedEvents = organizerEventsWithTickets.events.slice();
+  const upcomingEventRecords = normalizedEvents
+    .filter((event) => isUpcomingDate(event.date))
+    .sort(sortEventsByDateAscending);
+  const pastEventRecords = normalizedEvents
+    .filter((event) => !isUpcomingDate(event.date))
+    .sort(sortEventsByDateDescending);
+
+  const featuredEventCandidate = landing.featuredEvent
     ? eventsById.get(landing.featuredEvent._id) ?? {
         ...landing.featuredEvent,
         ticketTypes: [],
       }
     : null;
+  const featuredEvent =
+    featuredEventCandidate && isUpcomingDate(featuredEventCandidate.date)
+      ? featuredEventCandidate
+      : upcomingEventRecords[0] ?? null;
 
   const upcomingEvents = [
     ...(featuredEvent ? [featuredEvent] : []),
-    ...landing.upcomingEvents
-      .map((event) =>
-        eventsById.get(event._id) ?? {
-          ...event,
-          ticketTypes: [],
-        },
-      )
-      .filter((event) => event._id !== featuredEvent?._id),
+    ...upcomingEventRecords.filter((event) => event._id !== featuredEvent?._id),
   ].map((event) => mapEventCard(event, event.ticketTypes, slug));
 
-  const pastEvents = landing.pastEvents.map((event) => {
-    const eventWithTickets = eventsById.get(event._id) ?? {
-      ...event,
-      ticketTypes: [],
-    };
-
-    return mapPastEvent(eventWithTickets, eventWithTickets.ticketTypes);
-  });
+  const pastEvents = pastEventRecords.map((event) =>
+    mapPastEvent(event, event.ticketTypes),
+  );
 
   const ticketsSold = organizerEventsWithTickets.events.reduce((sum, event) => {
     return (
@@ -602,9 +614,10 @@ export async function getPublicLandingPastEvents(
 export async function getOrganizerEventsPageData(slug: string) {
   const organizerEventsWithTickets = await fetchOrganizerEventsWithTickets(slug);
 
-  return organizerEventsWithTickets.events.map((event) =>
-    mapEventCard(event, event.ticketTypes, slug),
-  );
+  return organizerEventsWithTickets.events
+    .filter((event) => isUpcomingDate(event.date))
+    .sort(sortEventsByDateAscending)
+    .map((event) => mapEventCard(event, event.ticketTypes, slug));
 }
 
 export async function getAllPublicEventsData(): Promise<AdminEventListItem[]> {
@@ -612,6 +625,7 @@ export async function getAllPublicEventsData(): Promise<AdminEventListItem[]> {
 
   return events
     .slice()
+    .filter((event) => isUpcomingDate(event.date))
     .sort(
       (left, right) =>
         new Date(left.date).getTime() - new Date(right.date).getTime(),
@@ -621,6 +635,7 @@ export async function getAllPublicEventsData(): Promise<AdminEventListItem[]> {
       title: event.title,
       imageUrl: getEventImageUrl(event),
       dateTimeText: formatDateTimeText(new Date(event.date)),
+      isUpcoming: isUpcomingDate(event.date),
       locationText: event.location,
       organizerId:
         typeof event.organizerId === "string"
@@ -1673,7 +1688,10 @@ export async function getAdminEvents(input?: {
   }>;
 
   return {
-    events: response.data.events,
+    events: response.data.events.map((event) => ({
+      ...event,
+      isUpcoming: isUpcomingDate(event.date, new Date()) || false,
+    })),
     pagination: response.pagination,
     results: response.results,
   };
@@ -1684,7 +1702,13 @@ export async function getAdminEventDetail(eventId: string) {
     auth: "admin",
   });
 
-  return response.data;
+  return {
+    ...response.data,
+    event: {
+      ...response.data.event,
+      isUpcoming: isUpcomingDate(response.data.event.date, new Date()) || false,
+    },
+  };
 }
 
 export async function getAdminTickets(input?: {

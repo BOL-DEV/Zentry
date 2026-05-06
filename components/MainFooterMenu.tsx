@@ -1,4 +1,5 @@
 import Link from "next/link";
+import PlatformBrand from "./PlatformBrand";
 
 const groups = [
   {
@@ -25,44 +26,44 @@ const groups = [
 ];
 
 function MainFooterMenu() {
-
-    return (
-      <div className="grid gap-10 lg:grid-cols-12 text-left">
-        <div className="lg:col-span-5">
-          <Link href="/" className="inline-flex items-center gap-3">
-            <span className="grid h-10 w-10 place-items-center rounded-xl bg-purple-600 text-2xl text-white">
-              ⚡
-            </span>
-            <span className="text-xl font-bold text-purple-600">Zentry</span>
-          </Link>
-          <p className="mt-4 max-w-md text-sm text-slate-600 dark:text-slate-300">
-            Professional event management for everyone.
-          </p>
-        </div>
-
-        <div className="grid gap-10 sm:grid-cols-3 lg:col-span-7">
-          {groups.map((group) => (
-            <div key={group.title}>
-              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-700 dark:text-slate-300">
-                {group.title}
-              </p>
-              <ul className="mt-4 space-y-3">
-                {group.links.map((link) => (
-                  <li key={link.label}>
-                    <Link
-                      href={link.href}
-                      className="text-sm text-slate-600 transition hover:text-purple-700 dark:text-slate-300 dark:hover:text-white"
-                    >
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
+  return (
+    <div className="grid gap-10 text-left lg:grid-cols-12">
+      <div className="lg:col-span-5">
+        <Link href="/" className="inline-flex">
+          <PlatformBrand
+            logoClassName="h-11 w-11 sm:h-12 sm:w-12"
+            textClassName="text-2xl font-bold text-purple-600 dark:text-purple-400"
+            priority
+          />
+        </Link>
+        <p className="mt-4 max-w-md text-sm text-slate-600 dark:text-slate-300">
+          Professional event management for everyone.
+        </p>
       </div>
-    );
+
+      <div className="grid gap-10 sm:grid-cols-3 lg:col-span-7">
+        {groups.map((group) => (
+          <div key={group.title}>
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-700 dark:text-slate-300">
+              {group.title}
+            </p>
+            <ul className="mt-4 space-y-3">
+              {group.links.map((link) => (
+                <li key={link.label}>
+                  <Link
+                    href={link.href}
+                    className="text-sm text-slate-600 transition hover:text-purple-700 dark:text-slate-300 dark:hover:text-white"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
-export default MainFooterMenu
+export default MainFooterMenu;

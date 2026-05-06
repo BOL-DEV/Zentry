@@ -16,7 +16,6 @@ function AdminEventCard(props: Props) {
     ? `/${event.organizerSlug}/events/${event.id}`
     : undefined;
 
-
   return (
     <article
       key={`${event.title}-${event.dateTimeText}`}
@@ -38,8 +37,14 @@ function AdminEventCard(props: Props) {
           />
         )}
 
-        <span className="absolute right-4 top-4 inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
-          Upcoming
+        <span
+          className={`absolute right-4 top-4 inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+            event.isUpcoming
+              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300"
+              : "bg-slate-200 text-slate-700 dark:bg-white/10 dark:text-slate-300"
+          }`}
+        >
+          {event.isUpcoming ? "Upcoming" : "Completed"}
         </span>
       </div>
 

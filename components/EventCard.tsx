@@ -104,6 +104,11 @@ function EventCard(events: EventCardProps) {
                   ticket.remaining,
                   ticket.total,
                 );
+                const isSoldOut = ticket.remaining <= 0;
+                const canBuy = Boolean(ticket.buyHref) && !isSoldOut;
+                const buttonLabel = isSoldOut
+                  ? "Sold Out"
+                  : ticket.buttonLabel ?? "Buy Ticket";
 
                 return (
                   <div
@@ -144,20 +149,20 @@ function EventCard(events: EventCardProps) {
                     </p>
 
                     <div className="mt-4">
-                      {ticket.buyHref ? (
+                      {canBuy ? (
                         <Link
-                          href={ticket.buyHref}
+                          href={ticket.buyHref!}
                           className="flex w-full items-center justify-center rounded-lg bg-purple-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-purple-700"
                         >
-                          {ticket.buttonLabel ?? "Buy Ticket"}
+                          {buttonLabel}
                         </Link>
                       ) : (
                         <button
                           type="button"
                           disabled
-                          className="w-full cursor-not-allowed rounded-lg bg-purple-600/60 px-4 py-2.5 text-sm font-semibold text-white"
+                          className="w-full cursor-not-allowed rounded-lg bg-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-600 dark:bg-white/10 dark:text-slate-400"
                         >
-                          {ticket.buttonLabel ?? "Buy Ticket"}
+                          {buttonLabel}
                         </button>
                       )}
                     </div>
