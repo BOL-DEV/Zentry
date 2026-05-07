@@ -163,6 +163,8 @@ function OrganizerCreateEventClient({ organizer }: { organizer: string }) {
           description="Set up your event details and first ticket types together so you can publish once and move on."
           backHref={`/${organizer}/dashboard`}
           backLabel="Back to Dashboard"
+          showLogoutButton={false}
+          showActions={false}
         />
 
         <Card className="mt-8">

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
@@ -7,7 +8,6 @@ import { useRouter } from "next/navigation";
 import Card from "@/components/Card";
 import WorkspaceTopbar from "@/components/WorkspaceTopbar";
 import {
-  changeDashboardPassword,
   getOrganizerProfileForEdit,
   updateOrganizerProfile,
 } from "@/helpers/organizer-api";
@@ -30,11 +30,6 @@ function OrganizerEditProfileClient({ organizer }: Props) {
     | { type: "error"; text: string }
     | null
   >(null);
-  const [passwordMessage, setPasswordMessage] = useState<
-    | { type: "success"; text: string }
-    | { type: "error"; text: string }
-    | null
-  >(null);
   const [form, setForm] = useState({
     logoUrl: "",
     bannerUrl: "",
@@ -48,11 +43,6 @@ function OrganizerEditProfileClient({ organizer }: Props) {
     bankCode: "",
     accountNumber: "",
     accountName: "",
-  });
-  const [passwordForm, setPasswordForm] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: "",
   });
 
   useEffect(() => {
@@ -143,43 +133,17 @@ function OrganizerEditProfileClient({ organizer }: Props) {
     },
   });
 
-  const passwordMutation = useMutation({
-    mutationFn: () =>
-      changeDashboardPassword({
-        currentPassword: passwordForm.currentPassword,
-        newPassword: passwordForm.newPassword,
-      }),
-    onSuccess: () => {
-      setPasswordMessage({
-        type: "success",
-        text: "Password updated successfully.",
-      });
-      setPasswordForm({
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: "",
-      });
-    },
-    onError: (error) => {
-      setPasswordMessage({
-        type: "error",
-        text:
-          error instanceof Error
-            ? error.message
-            : "We couldn't update your password right now.",
-      });
-    },
-  });
-
   return (
-    <main className="min-h-screen bg-purple-100 dark:bg-slate-950/90">
-      <div className="mx-auto max-w-5xl px-6 pt-28 pb-16">
+    <main className="min-h-screen bg-transparent">
+      <div className="mx-auto max-w-5xl px-6 py-8">
         <WorkspaceTopbar
           eyebrow="Organizer Workspace"
           title="Edit Profile"
           description="Update the public organizer profile and payout account details from one place."
           backHref={`/${organizer}/dashboard`}
           backLabel="Back to Dashboard"
+          showLogoutButton={false}
+          showActions={false}
         />
 
         <Card className="mt-8">
@@ -321,114 +285,30 @@ function OrganizerEditProfileClient({ organizer }: Props) {
         </Card>
 
         <Card className="mt-8">
-          <form
-            className="space-y-6"
-            onSubmit={(event) => {
-              event.preventDefault();
-              setPasswordMessage(null);
-
-              if (passwordForm.newPassword.length < 8) {
-                setPasswordMessage({
-                  type: "error",
-                  text: "New password must be at least 8 characters long.",
-                });
-                return;
-              }
-
-              if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-                setPasswordMessage({
-                  type: "error",
-                  text: "New password and confirmation must match.",
-                });
-                return;
-              }
-
-              passwordMutation.mutate();
-            }}
-          >
+          <div className="space-y-6">
             <div>
               <h2 className="text-lg font-bold text-slate-900 dark:text-white">
                 Change Password
               </h2>
               <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                Update the organizer dashboard password from the new auth endpoint without leaving your profile workspace.
+                Password changes now live on a separate security page beneath the sidebar so profile edits stay focused here.
               </p>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-2">
-              <div className="space-y-2 md:col-span-2">
-                <label className="block text-sm font-semibold text-slate-900 dark:text-white">
-                  Current Password
-                </label>
-                <input
-                  type="password"
-                  className={inputStyles}
-                  value={passwordForm.currentPassword}
-                  onChange={(event) =>
-                    setPasswordForm((current) => ({
-                      ...current,
-                      currentPassword: event.target.value,
-                    }))
-                  }
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-slate-900 dark:text-white">
-                  New Password
-                </label>
-                <input
-                  type="password"
-                  className={inputStyles}
-                  value={passwordForm.newPassword}
-                  onChange={(event) =>
-                    setPasswordForm((current) => ({
-                      ...current,
-                      newPassword: event.target.value,
-                    }))
-                  }
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-slate-900 dark:text-white">
-                  Confirm New Password
-                </label>
-                <input
-                  type="password"
-                  className={inputStyles}
-                  value={passwordForm.confirmPassword}
-                  onChange={(event) =>
-                    setPasswordForm((current) => ({
-                      ...current,
-                      confirmPassword: event.target.value,
-                    }))
-                  }
-                  required
-                />
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 dark:border-white/10 dark:bg-white/[0.04]">
+              <p className="text-sm text-slate-600 dark:text-slate-300">
+                Open the dedicated password page when you want to update organizer login credentials.
+              </p>
+              <div className="mt-4">
+                <Link
+                  href={`/${organizer}/dashboard/password`}
+                  className="inline-flex h-11 items-center justify-center rounded-xl bg-slate-900 px-5 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100"
+                >
+                  Open Password Settings
+                </Link>
               </div>
             </div>
-
-            {passwordMessage ? (
-              <div
-                className={`rounded-xl border px-4 py-3 text-sm ${
-                  passwordMessage.type === "success"
-                    ? "border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-200"
-                    : "border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-200"
-                }`}
-              >
-                {passwordMessage.text}
-              </div>
-            ) : null}
-
-            <button
-              type="submit"
-              disabled={passwordMutation.isPending}
-              className="inline-flex h-12 items-center justify-center rounded-xl bg-slate-900 px-5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100"
-            >
-              {passwordMutation.isPending ? "Updating Password..." : "Update Password"}
-            </button>
-          </form>
+          </div>
         </Card>
       </div>
     </main>

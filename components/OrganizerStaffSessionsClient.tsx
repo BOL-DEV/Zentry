@@ -232,6 +232,8 @@ function OrganizerStaffSessionsClient({ organizer }: { organizer: string }) {
           description="Pick a staff account, reset that password, and review active devices from one security screen."
           backHref={`/${organizer}/dashboard/staff`}
           backLabel="Back to Staff Management"
+          showLogoutButton={false}
+          showActions={false}
         />
 
         <section className="mt-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-white/5">

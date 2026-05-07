@@ -24,6 +24,8 @@ function OrganizerManageGalleryClient({ organizer }: { organizer: string }) {
           description="Update your organizer gallery."
           backHref={`/${organizer}/dashboard`}
           backLabel="Back to Dashboard"
+          showLogoutButton={false}
+          showActions={false}
         />
 
         <div className="mt-6 flex justify-end">

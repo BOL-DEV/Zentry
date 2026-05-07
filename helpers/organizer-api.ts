@@ -354,7 +354,10 @@ function mapOrganizerEvent(event: ApiEvent, ticketTypes: ApiTicketType[]): Organ
   return {
     id: event._id,
     title: event.title,
+    date: event.date,
     dateTimeText: formatDateTimeText(new Date(event.date)),
+    imageUrl: getEventImageUrl(event),
+    isUpcoming: isUpcomingDate(event.date),
     capacitySold,
     capacityTotal,
     revenue,
