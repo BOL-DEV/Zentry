@@ -107,6 +107,8 @@ function OrganizerEditGalleryClient({ organizer, galleryItemId }: Props) {
           description="Update gallery copy, artwork, and display order without recreating the item."
           backHref={`/${organizer}/dashboard/gallery`}
           backLabel="Back to Gallery Manager"
+          showLogoutButton={false}
+          showActions={false}
         />
 
         <Card className="mt-8">

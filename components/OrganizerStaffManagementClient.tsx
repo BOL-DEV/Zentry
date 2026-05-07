@@ -155,6 +155,8 @@ function OrganizerStaffManagementClient({ organizer }: { organizer: string }) {
           description="Open each staff member's security view from here."
           backHref={`/${organizer}/dashboard`}
           backLabel="Back to Dashboard"
+          showLogoutButton={false}
+          showActions={false}
         />
 
         <section className="mt-8 grid gap-5 md:grid-cols-3">

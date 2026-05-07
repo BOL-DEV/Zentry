@@ -146,6 +146,8 @@ function OrganizerDashboardEventDetailsClient({
           description="See ticket performance, attendee progress, and quick event actions in one place."
           backHref={`/${organizer}/dashboard`}
           backLabel="Back to Dashboard"
+          showLogoutButton={false}
+          showActions={false}
         />
 
         <div className="mt-4 flex justify-end">

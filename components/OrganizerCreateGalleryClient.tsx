@@ -61,6 +61,8 @@ function OrganizerCreateGalleryClient({ organizer }: { organizer: string }) {
           description="Publish a new gallery image for this organizer."
           backHref={`/${organizer}/dashboard`}
           backLabel="Back to Dashboard"
+          showLogoutButton={false}
+          showActions={false}
         />
 
         <Card className="mt-8">

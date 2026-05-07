@@ -89,6 +89,8 @@ function OrganizerDashboardEventsClient({ organizer }: { organizer: string }) {
           description="Open any event, check ticket performance, and jump straight into check-in tools."
           backHref={`/${organizer}/dashboard`}
           backLabel="Back to Dashboard"
+          showLogoutButton={false}
+          showActions={false}
         />
       </div>
 

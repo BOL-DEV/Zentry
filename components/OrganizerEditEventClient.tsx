@@ -128,6 +128,8 @@ function OrganizerEditEventClient({ organizer, eventId }: Props) {
           description="Update the core event details without leaving the organizer workspace."
           backHref={`/${organizer}/dashboard/${eventId}`}
           backLabel="Back to Event"
+          showLogoutButton={false}
+          showActions={false}
         />
 
         <Card className="mt-8">

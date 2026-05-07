@@ -1,12 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   LuArrowUpRight,
   LuChartColumnIncreasing,
+  LuImagePlus,
+  LuMedal,
   LuRefreshCw,
   LuTrendingUp,
   LuUsers,
@@ -20,7 +23,6 @@ import WorkspaceTopbar from "@/components/WorkspaceTopbar";
 import { clearAuthToken } from "@/helpers/auth";
 import { isAuthIssue } from "@/helpers/auth-redirect";
 import { useAuthSession } from "@/helpers/auth-client";
-import { formatDateTimeText } from "@/helpers/date";
 import { formatCurrency, formatNumber } from "@/helpers/format";
 import {
   getOrganizerDashboardData,
@@ -57,6 +59,96 @@ function StatCard({
         </div>
 
         <div className="text-purple-700 dark:text-purple-400">{icon}</div>
+      </div>
+    </div>
+  );
+}
+
+function EventListCard({
+  title,
+  events,
+  organizer,
+  ranked = false,
+}: {
+  title: string;
+  events: Array<{
+    id: string;
+    title: string;
+    dateTimeText: string;
+    imageUrl: string;
+    capacitySold: number;
+    capacityTotal: number;
+    isUpcoming: boolean;
+  }>;
+  organizer: string;
+  ranked?: boolean;
+}) {
+  return (
+    <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/5">
+      <div className="flex items-center justify-between gap-4 border-b border-slate-200 px-5 py-4 dark:border-white/10">
+        <h3 className="text-lg font-bold text-slate-900 dark:text-white">{title}</h3>
+        <Link
+          href={`/${organizer}/dashboard/events`}
+          className="text-sm font-semibold text-purple-700 transition hover:text-purple-800 dark:text-purple-300 dark:hover:text-purple-200"
+        >
+          View all
+        </Link>
+      </div>
+
+      <div className="divide-y divide-slate-200 dark:divide-white/10">
+        {events.length ? (
+          events.map((event, index) => (
+            <Link
+              key={event.id}
+              href={`/${organizer}/dashboard/${event.id}`}
+              className="flex items-center gap-4 px-5 py-4 transition hover:bg-purple-50 dark:hover:bg-white/5"
+            >
+              {ranked ? (
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-purple-100 text-sm font-semibold text-purple-700 dark:bg-purple-500/15 dark:text-purple-200">
+                  {index + 1}
+                </div>
+              ) : null}
+
+              <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-slate-200 dark:border-white/10">
+                <Image
+                  src={event.imageUrl}
+                  alt={event.title}
+                  fill
+                  className="object-cover"
+                  sizes="56px"
+                  unoptimized={event.imageUrl.startsWith("data:")}
+                />
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-semibold text-slate-900 dark:text-white">{event.title}</p>
+                <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{event.dateTimeText}</p>
+              </div>
+
+              <div className="text-right">
+                <p className="text-lg font-bold text-slate-900 dark:text-white">
+                  {formatNumber(event.capacitySold)}
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  / {formatNumber(event.capacityTotal)} sold
+                </p>
+                <span
+                  className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                    event.isUpcoming
+                      ? "bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-200"
+                      : "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200"
+                  }`}
+                >
+                  {event.isUpcoming ? "Upcoming" : "Completed"}
+                </span>
+              </div>
+            </Link>
+          ))
+        ) : (
+          <div className="px-5 py-10 text-center text-sm text-slate-600 dark:text-slate-300">
+            No events available yet.
+          </div>
+        )}
       </div>
     </div>
   );
@@ -165,16 +257,35 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
   const squadFeeTotal =
     data.totals.squadGatewayFees + data.totals.squadTransferFees;
   const totalFeeAmount = data.totals.platformFees + squadFeeTotal;
+  const recentEvents = data.events
+    .slice()
+    .sort(
+      (left, right) =>
+        new Date(right.date).getTime() - new Date(left.date).getTime(),
+    )
+    .slice(0, 5);
+  const topEvents = data.events
+    .slice()
+    .sort((left, right) => {
+      if (right.capacitySold !== left.capacitySold) {
+        return right.capacitySold - left.capacitySold;
+      }
+
+      return right.revenue - left.revenue;
+    })
+    .slice(0, 5);
 
   return (
     <main className="bg-purple-100 dark:bg-slate-950/90">
-      <div className="mx-auto lg:max-w-7xl px-6 pt-28 pb-10">
+      <div className="mx-auto lg:max-w-7xl px-6 py-8">
         <div className="grid gap-10 lg:grid-cols-12 lg:items-center">
           <div className="lg:col-span-7">
             <WorkspaceTopbar
               eyebrow="Event Dashboard"
               title="Run bold events."
               description="Everything you need to manage events, understand sales, and keep attendees moving fast."
+              showLogoutButton={false}
+              showActions={false}
             />
 
             <h2 className="mt-6 text-5xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-6xl">
@@ -196,6 +307,7 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
                 href={`/${organizer}/dashboard/gallery/create`}
                 className="inline-flex min-h-11 items-center justify-center rounded-xl bg-amber-500 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-amber-400"
               >
+                <LuImagePlus className="mr-2 text-base" />
                 Add Gallery Image
               </Link>
 
@@ -234,7 +346,7 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
           </div>
 
           <div className="lg:col-span-5">
-            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/5">
+            <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/5">
               <div className="p-6">
                 <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-600 dark:text-slate-300">
                   Next Up
@@ -247,7 +359,7 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
                 </p>
 
                 <div className="mt-6 grid grid-cols-2 gap-4">
-                  <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
                     <p className="text-xs font-medium text-slate-600 dark:text-slate-300">
                       Tickets Sold
                     </p>
@@ -255,7 +367,7 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
                       {formatNumber(nextEvent?.capacitySold ?? 0)}
                     </p>
                   </div>
-                  <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
                     <p className="text-xs font-medium text-slate-600 dark:text-slate-300">
                       Revenue
                     </p>
@@ -264,9 +376,30 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
                     </p>
                   </div>
                 </div>
+
+                <div className="mt-6 flex items-center gap-3 rounded-2xl border border-purple-200 bg-purple-50 px-4 py-3 text-sm text-purple-800 dark:border-purple-500/20 dark:bg-purple-500/10 dark:text-purple-100">
+                  <LuMedal className="text-base" />
+                  {topEvents[0]
+                    ? `${topEvents[0].title} is your best-selling event right now.`
+                    : "Your best-performing events will show up here as sales come in."}
+                </div>
               </div>
             </div>
           </div>
+        </div>
+
+        <div className="mt-10 grid gap-6 xl:grid-cols-2">
+          <EventListCard
+            title="Recent Events"
+            events={recentEvents}
+            organizer={organizer}
+          />
+          <EventListCard
+            title="Top Events"
+            events={topEvents}
+            organizer={organizer}
+            ranked
+          />
         </div>
       </div>
 
@@ -423,79 +556,6 @@ function OrganizerDashboardClient({ organizer }: { organizer: string }) {
                     </tbody>
                   </table>
                 </div>
-              </div>
-
-              <div className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/5">
-                <div className="border-b border-slate-200 px-5 py-4 dark:border-white/10">
-                  <h4 className="text-lg font-bold text-slate-900 dark:text-white">
-                    Recent Paid Orders
-                  </h4>
-                  <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                    Latest confirmed orders included in your settlement view.
-                  </p>
-                </div>
-
-                <div className="px-5 py-4">
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                    {settlementData.recentOrders.length ? (
-                      settlementData.recentOrders.map((order) => (
-                        <div
-                          key={order.id}
-                          className="flex min-h-44 flex-col justify-between rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-slate-900/70"
-                        >
-                          <div>
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="min-w-0">
-                                <p className="truncate font-semibold text-slate-900 dark:text-white">
-                                  {order.buyerName}
-                                </p>
-                                <p className="mt-1 truncate text-xs text-slate-500 dark:text-slate-400">
-                                  {order.eventTitle || order.paymentReference}
-                                </p>
-                              </div>
-                              <span className="shrink-0 rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-700 dark:bg-purple-500/15 dark:text-purple-300">
-                                {order.settlementStatus}
-                              </span>
-                            </div>
-
-                            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                              Order date:{" "}
-                              {order.paidAt || order.createdAt
-                                ? formatDateTimeText(
-                                    new Date(order.paidAt || order.createdAt || ""),
-                                  )
-                                : "Not provided"}
-                            </p>
-                          </div>
-
-                          <div className="mt-4 space-y-2">
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-slate-600 dark:text-slate-300">
-                                Gross
-                              </span>
-                              <p className="font-semibold text-slate-900 dark:text-white">
-                                {formatCurrency(order.grossAmount)}
-                              </p>
-                            </div>
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-slate-600 dark:text-slate-300">
-                                Payout
-                              </span>
-                              <span className="font-semibold text-slate-900 dark:text-white">
-                                {formatCurrency(order.organizerPayoutAmount)}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-600 dark:border-white/10 dark:bg-slate-900/40 dark:text-slate-300 md:col-span-2 xl:col-span-3">
-                        No paid orders available yet.
-                      </div>
-                    )}
-                  </div>
-                </div>
-
                 <SectionPagination
                   page={settlementData.pagination.page}
                   totalPages={settlementData.pagination.totalPages}

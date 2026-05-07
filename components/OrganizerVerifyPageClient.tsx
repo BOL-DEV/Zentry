@@ -102,6 +102,7 @@ function OrganizerVerifyPageClient({
               description="Check guests in and keep an eye on entry updates in real time."
               backHref={backHref}
               backLabel="Back"
+              showLogoutButton={authUser?.role === "staff"}
             />
 
             {isFetching ? (

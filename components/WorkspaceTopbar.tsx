@@ -10,12 +10,16 @@ function WorkspaceTopbar({
   description,
   backHref,
   backLabel = "Back",
+  showLogoutButton = true,
+  showActions = true,
 }: {
   eyebrow: string;
   title: string;
   description: string;
   backHref?: string;
   backLabel?: string;
+  showLogoutButton?: boolean;
+  showActions?: boolean;
 }) {
   return (
     <div className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/80">
@@ -32,22 +36,24 @@ function WorkspaceTopbar({
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          {backHref ? (
-            <Link
-              href={backHref}
-              className="inline-flex h-11 items-center justify-center rounded-lg border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
-            >
-              {backLabel}
-            </Link>
-          ) : null}
+        {showActions ? (
+          <div className="flex flex-wrap items-center gap-3">
+            {backHref ? (
+              <Link
+                href={backHref}
+                className="inline-flex h-11 items-center justify-center rounded-lg border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+              >
+                {backLabel}
+              </Link>
+            ) : null}
 
-          <div className="inline-flex h-11 items-center justify-center rounded-lg border border-slate-200 bg-white px-1 shadow-sm dark:border-white/10 dark:bg-white/5">
-            <ThemeToggle />
+            <div className="inline-flex h-11 items-center justify-center rounded-lg border border-slate-200 bg-white px-1 shadow-sm dark:border-white/10 dark:bg-white/5">
+              <ThemeToggle />
+            </div>
+
+            {showLogoutButton ? <DashboardLogoutButton /> : null}
           </div>
-
-          <DashboardLogoutButton />
-        </div>
+        ) : null}
       </div>
     </div>
   );

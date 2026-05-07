@@ -755,7 +755,10 @@ export type TicketTypeBreak = {
 export type OrganizerEvent = {
   id: string;
   title: string;
+  date: string;
   dateTimeText: string;
+  imageUrl: string;
+  isUpcoming: boolean;
   capacitySold: number;
   capacityTotal: number;
   revenue: number;
