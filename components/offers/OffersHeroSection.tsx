@@ -12,7 +12,7 @@ function OffersHeroSection() {
       <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.32em] text-violet-600 dark:text-violet-300">
-            Zentry Platform
+            Zentra Platform
           </p>
           <h1 className="mt-4 max-w-4xl text-4xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-5xl lg:text-6xl">
             White-label ticketing and verification for organizers who need real operational control.

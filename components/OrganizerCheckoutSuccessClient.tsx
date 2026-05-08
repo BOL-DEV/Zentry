@@ -278,7 +278,7 @@ function OrganizerCheckoutSuccessClient({ organizer }: { organizer: string }) {
     if (!qrCodeSrc || !data) return;
 
     const eventTitle = escapeSvgText(
-      eventDetails?.event.title ?? "Zentry Ticket",
+      eventDetails?.event.title ?? "Zentra Ticket",
     );
     const ticketType = escapeSvgText(
       ticketTypeById.get(ticket.ticketTypeId) ?? "Ticket",
@@ -301,7 +301,7 @@ function OrganizerCheckoutSuccessClient({ organizer }: { organizer: string }) {
   </defs>
   <rect width="1080" height="1350" fill="url(#bg)" />
   <rect x="90" y="90" width="900" height="1170" rx="34" fill="#232638" stroke="#3c415d" stroke-width="2" />
-  <text x="140" y="170" fill="#93a0bb" font-size="28" font-family="Arial, sans-serif">ZENTRY TICKET</text>
+  <text x="140" y="170" fill="#93a0bb" font-size="28" font-family="Arial, sans-serif">ZENTRA TICKET</text>
   <circle cx="858" cy="156" r="10" fill="#14d991" />
   <rect x="810" y="126" width="120" height="56" rx="28" fill="#123e38" />
   <text x="870" y="162" text-anchor="middle" fill="#14d991" font-size="30" font-weight="700" font-family="Arial, sans-serif">${ticketStatus}</text>
@@ -474,7 +474,7 @@ function OrganizerCheckoutSuccessClient({ organizer }: { organizer: string }) {
                       </p>
                       {hasReturnedFromCheckout ? (
                         <p className="mt-2 text-slate-600 dark:text-slate-300">
-                          Squad has already returned you to Zentry. Ticket creation will continue automatically as soon as the payment confirmation lands.
+                          Squad has already returned you to Zentra. Ticket creation will continue automatically as soon as the payment confirmation lands.
                         </p>
                       ) : null}
                     </div>
@@ -578,7 +578,7 @@ function OrganizerCheckoutSuccessClient({ organizer }: { organizer: string }) {
                               TICKET {index + 1} OF {data.tickets.length}
                             </p>
                             <p className="mt-2 text-lg font-semibold leading-tight text-slate-900 sm:text-xl dark:text-white">
-                              {eventDetails?.event.title ?? "Zentry Ticket"}
+                              {eventDetails?.event.title ?? "Zentra Ticket"}
                             </p>
                             <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
                               Present this ticket at entry for a quick check-in.

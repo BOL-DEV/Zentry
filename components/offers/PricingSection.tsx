@@ -14,7 +14,7 @@ function PricingSection() {
             Flexible onboarding now, deeper packaging as the platform grows.
           </h2>
           <p className="mt-4 text-base leading-7 text-slate-600 dark:text-slate-300">
-            Zentry already supports approval-based organizer onboarding, branded organizer
+            Zentra already supports approval-based organizer onboarding, branded organizer
             experiences, and operational dashboards. The commercial model can stay flexible while
             the platform scales.
           </p>

@@ -48,7 +48,7 @@ export async function POST(request: Request) {
 
   const name = body.name?.trim() || "";
   const email = body.email?.trim() || "";
-  const subject = body.subject?.trim() || "Zentry Contact";
+  const subject = body.subject?.trim() || "Zentra Contact";
   const message = body.message?.trim() || "";
 
   if (!name || !email || !message) {
@@ -75,13 +75,13 @@ export async function POST(request: Request) {
   const port = Number(process.env.EMAIL_PORT || 587);
   const user = process.env.EMAIL_USER?.trim();
   const pass = process.env.EMAIL_PASS?.trim();
-  const from = process.env.EMAIL_FROM?.trim() || user || "support@zentry.com";
+  const from = process.env.EMAIL_FROM?.trim() || user || "support@zentra.com";
   const to =
     process.env.CONTACT_EMAIL_TO?.trim() ||
     user ||
     resolveRecipient(process.env.EMAIL_FROM) ||
-    "support@zentry.com";
-  const appName = process.env.APP_NAME?.trim() || "Zentry";
+    "support@zentra.com";
+  const appName = process.env.APP_NAME?.trim() || "Zentra";
 
   if (!host || !user || !pass) {
     return NextResponse.json(

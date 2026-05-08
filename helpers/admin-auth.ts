@@ -1,8 +1,8 @@
 import type { ApiAdminAuthResponse } from "@/helpers/type";
 
-const ADMIN_TOKEN_KEY = "zentry:admin-auth-token";
-const ADMIN_USER_KEY = "zentry:admin-auth-user";
-const ADMIN_AUTH_CHANGE_EVENT = "zentry-admin-auth-change";
+const ADMIN_TOKEN_KEY = "zentra:admin-auth-token";
+const ADMIN_USER_KEY = "zentra:admin-auth-user";
+const ADMIN_AUTH_CHANGE_EVENT = "zentra-admin-auth-change";
 
 export type AdminAuthUser = ApiAdminAuthResponse["data"]["admin"];
 export type AdminAuthSession = {

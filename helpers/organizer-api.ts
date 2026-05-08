@@ -3,7 +3,7 @@ import {
   formatDateTimeText,
   isUpcomingDate,
 } from "@/helpers/date";
-import { apiFetch, resolveUrl } from "@/helpers/api";
+import { apiFetch, getApiErrorMessage, parseJsonResponse, resolveUrl } from "@/helpers/api";
 import type { OrderAccessContext } from "@/helpers/order-access";
 import type {
   AdminEventListItem, 
@@ -1094,20 +1094,30 @@ export async function loginDashboardUser(input: {
   password: string;
   deviceName?: string;
 }) {
-  const response = await fetch(resolveUrl(`/auth/login`), {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(input),
-  });
+  let response: Response;
 
-  const payload = (await response.json()) as ApiAuthResponse | { message?: string };
-
-  if (!response.ok || !("token" in payload)) {
+  try {
+    response = await fetch(resolveUrl(`/auth/login`), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(input),
+    });
+  } catch {
     throw new Error(
-      ("message" in payload && payload.message) || "Unable to sign in.",
+      "We could not reach the server. Please confirm the API URL and that the backend is online.",
     );
+  }
+
+  const payload = await parseJsonResponse<ApiAuthResponse & {
+    message?: string;
+    data?: { message?: string };
+    errors?: Array<{ message?: string }>;
+  }>(response);
+
+  if (!response.ok || !payload || !("token" in payload)) {
+    throw new Error(getApiErrorMessage(payload, "Unable to sign in."));
   }
 
   return payload;
@@ -1118,22 +1128,30 @@ export async function loginAdminUser(input: {
   password: string;
   deviceName?: string;
 }) {
-  const response = await fetch(resolveUrl(`/admin/auth/login`), {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(input),
-  });
+  let response: Response;
 
-  const payload = (await response.json()) as
-    | ApiAdminAuthResponse
-    | { message?: string };
-
-  if (!response.ok || !("token" in payload)) {
+  try {
+    response = await fetch(resolveUrl(`/admin/auth/login`), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(input),
+    });
+  } catch {
     throw new Error(
-      ("message" in payload && payload.message) || "Unable to sign in.",
+      "We could not reach the server. Please confirm the API URL and that the backend is online.",
     );
+  }
+
+  const payload = await parseJsonResponse<ApiAdminAuthResponse & {
+    message?: string;
+    data?: { message?: string };
+    errors?: Array<{ message?: string }>;
+  }>(response);
+
+  if (!response.ok || !payload || !("token" in payload)) {
+    throw new Error(getApiErrorMessage(payload, "Unable to sign in."));
   }
 
   return payload;

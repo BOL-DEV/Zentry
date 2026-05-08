@@ -24,13 +24,13 @@ type StoredOrderSnapshot = {
 };
 
 const STORAGE_KEYS = {
-  orderId: "zentry:lastOrderId",
-  organizerSlug: "zentry:lastOrganizerSlug",
-  eventId: "zentry:lastEventId",
-  paymentReference: "zentry:lastPaymentReference",
-  orderAccessToken: "zentry:lastOrderAccessToken",
-  buyerEmail: "zentry:lastBuyerEmail",
-  orderSnapshot: "zentry:lastOrderSnapshot",
+  orderId: "zentra:lastOrderId",
+  organizerSlug: "zentra:lastOrganizerSlug",
+  eventId: "zentra:lastEventId",
+  paymentReference: "zentra:lastPaymentReference",
+  orderAccessToken: "zentra:lastOrderAccessToken",
+  buyerEmail: "zentra:lastBuyerEmail",
+  orderSnapshot: "zentra:lastOrderSnapshot",
 } as const;
 
 function canUseSessionStorage() {

@@ -21,7 +21,7 @@ function ReliabilitySection() {
             Built for event-day pressure, not only pre-event setup.
           </h2>
           <p className="mt-6 text-lg leading-8 text-slate-600 dark:text-slate-300">
-            Zentry is designed around the moments that usually break weak systems: entry rush,
+            Zentra is designed around the moments that usually break weak systems: entry rush,
             staff access, platform oversight, and post-event reconciliation. The goal is simple:
             fewer manual workarounds and more operational confidence.
           </p>

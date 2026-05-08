@@ -20,6 +20,49 @@ export function resolveUrl(path: string) {
   return `${API_BASE_URL}${normalizedPath}`;
 }
 
+type ApiErrorLike = {
+  message?: string;
+  data?: unknown;
+  errors?: Array<{
+    message?: string;
+  }>;
+};
+
+export function getApiErrorMessage(
+  payload: ApiErrorLike | null,
+  fallbackMessage: string,
+) {
+  const firstValidationMessage = payload?.errors?.find((item) => item.message)?.message;
+  const nestedMessage =
+    payload?.data &&
+    typeof payload.data === "object" &&
+    "message" in payload.data &&
+    typeof payload.data.message === "string"
+      ? payload.data.message
+      : undefined;
+
+  return (
+    payload?.message ||
+    nestedMessage ||
+    firstValidationMessage ||
+    fallbackMessage
+  );
+}
+
+export async function parseJsonResponse<T>(response: Response): Promise<T | null> {
+  const responseText = await response.text();
+
+  if (!responseText) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(responseText) as T;
+  } catch {
+    return null;
+  }
+}
+
 export async function apiFetch<T>(
   path: string,
   init?: RequestInit & { auth?: boolean | "admin" },
@@ -54,9 +97,10 @@ export async function apiFetch<T>(
   if (!response.ok) {
     const fallbackMessage = responseText.trim();
     throw new Error(
-      payload?.message ||
-        fallbackMessage ||
-        `Request failed with status ${response.status}`,
+      getApiErrorMessage(
+        payload,
+        fallbackMessage || `Request failed with status ${response.status}`,
+      ),
     );
   }
 

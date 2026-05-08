@@ -11,7 +11,7 @@ type PlatformBrandProps = {
 function PlatformBrand({
   className = "flex items-center gap-0.5",
   logoClassName,
-  text = "Zentry",
+  text = "Zentra",
   textClassName = "text-2xl font-bold text-purple-600 dark:text-purple-400",
   priority = false,
 }: PlatformBrandProps) {

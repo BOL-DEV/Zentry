@@ -22,7 +22,7 @@ function Hero() {
             <span className="text-purple-600">Confidence</span>
           </h1>
           <p className="text-lg text-slate-500 dark:text-slate-300 lg:w-xl">
-            Zentry is your complete event management platform. From ticketing to
+            Zentra is your complete event management platform. From ticketing to
             attendee verification, we handle it all so you can focus on creating
             memorable experiences.
           </p>
