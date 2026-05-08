@@ -1,8 +1,8 @@
 import type { ApiAuthResponse } from "@/helpers/type";
 
-const TOKEN_KEY = "zentry:auth-token";
-const USER_KEY = "zentry:auth-user";
-const AUTH_CHANGE_EVENT = "zentry-auth-change";
+const TOKEN_KEY = "zentra:auth-token";
+const USER_KEY = "zentra:auth-user";
+const AUTH_CHANGE_EVENT = "zentra-auth-change";
 
 export type AuthUser = ApiAuthResponse["data"]["user"];
 export type AuthSession = {

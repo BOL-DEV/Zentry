@@ -81,7 +81,7 @@ export async function downloadTicketImage(input: TicketImageInput) {
     createTicketPayload(input.eventId, input.ticketCode),
     { margin: 1, scale: 7 },
   );
-  const eventTitle = escapeSvgText(input.eventTitle || "Zentry Ticket");
+  const eventTitle = escapeSvgText(input.eventTitle || "Zentra Ticket");
   const ticketType = escapeSvgText(input.ticketType || "Ticket");
   const attendeeName = escapeSvgText(input.attendeeName || "Guest");
   const attendeeEmail = escapeSvgText(input.attendeeEmail || "No email provided");
@@ -99,7 +99,7 @@ export async function downloadTicketImage(input: TicketImageInput) {
   </defs>
   <rect width="1080" height="1350" fill="url(#bg)" />
   <rect x="90" y="90" width="900" height="1170" rx="34" fill="#232638" stroke="#3c415d" stroke-width="2" />
-  <text x="140" y="170" fill="#93a0bb" font-size="28" font-family="Arial, sans-serif">ZENTRY TICKET</text>
+  <text x="140" y="170" fill="#93a0bb" font-size="28" font-family="Arial, sans-serif">ZENTRA TICKET</text>
   <circle cx="858" cy="156" r="10" fill="#14d991" />
   <rect x="810" y="126" width="120" height="56" rx="28" fill="#123e38" />
   <text x="870" y="162" text-anchor="middle" fill="#14d991" font-size="30" font-weight="700" font-family="Arial, sans-serif">${ticketStatus}</text>

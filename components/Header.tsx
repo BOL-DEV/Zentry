@@ -30,7 +30,7 @@ const menuData = [
 ];
 
 const logoData = {
-  name: "Zentry",
+  name: "Zentra",
 };
 
 function Header() {

@@ -123,7 +123,7 @@ function OrganizerDashboardLayout({ children }: Props) {
         <div className="flex items-center justify-between gap-3 rounded-3xl border border-slate-200 bg-white px-4 py-4 shadow-sm dark:border-white/10 dark:bg-white/5">
           <Link href={dashboardRoot} className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.34em] text-purple-700 dark:text-purple-300">
-              Zentry
+              Zentra
             </p>
             <p className="mt-2 truncate text-lg font-semibold text-slate-900 dark:text-white">
               {organizer || "Organizer"}

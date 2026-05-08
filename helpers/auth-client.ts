@@ -4,7 +4,7 @@ import { useSyncExternalStore } from "react";
 import { getAuthToken, getAuthUser } from "@/helpers/auth";
 import type { AuthSession } from "@/helpers/auth";
 
-const AUTH_CHANGE_EVENT = "zentry-auth-change";
+const AUTH_CHANGE_EVENT = "zentra-auth-change";
 const EMPTY_AUTH_SESSION: AuthSession = { token: "", user: null };
 let cachedSession: AuthSession = { token: "", user: null };
 let cachedUserKey = "null";

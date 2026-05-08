@@ -52,7 +52,7 @@ function DashboardHeader({ role, email }: Props) {
             <span className="grid h-10 w-10 place-items-center rounded-xl bg-purple-600 text-2xl">
               ƒs­
             </span>
-            <span className="text-xl font-bold text-purple-600">Zentry</span>
+            <span className="text-xl font-bold text-purple-600">Zentra</span>
           </Link>
         ) : null}
 

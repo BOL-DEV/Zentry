@@ -26,7 +26,7 @@ const textareaStyles =
 const contactDetails: ContactDetail[] = [
   {
     title: "Email",
-    body: "support@zentry.com",
+    body: "support@zentra.com",
     note: "Best for product questions and account help.",
     icon: <IoMailOutline size={20} />,
   },
@@ -134,7 +134,7 @@ function ContactUsClient() {
             Contact Us
           </h1>
           <p className="mt-4 text-lg text-slate-600 dark:text-slate-300">
-            Questions about Zentry, pricing, or onboarding? Send us a message and
+            Questions about Zentra, pricing, or onboarding? Send us a message and
             we&apos;ll get back to you.
           </p>
         </div>
@@ -247,7 +247,7 @@ function ContactUsClient() {
                   </p>
                 ) : (
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Your message will be sent directly to the Zentry support inbox.
+                    Your message will be sent directly to the Zentra support inbox.
                   </p>
                 )}
               </form>

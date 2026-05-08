@@ -144,7 +144,7 @@ function PlatformOrganizersDirectory({
             Organizer Directory
           </p>
           <h1 className="mt-6 text-4xl font-bold tracking-tight text-slate-950 sm:text-5xl dark:text-white">
-            Explore the teams behind the experiences on Zentry.
+            Explore the teams behind the experiences on Zentra.
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-7 text-slate-600 dark:text-slate-300">
             Browse organizer profiles, discover who is hosting next, and jump

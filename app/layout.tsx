@@ -15,8 +15,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Zentry",
+  title: "Zentra",
   description: "A minimal workspace to sketch ideas fast.",
+  icons: {
+    icon: "/fav-logo-black.svg",
+    shortcut: "/fav-logo-black.svg",
+    apple: "/fav-logo-black.svg",
+  },
 };
 
 export default function RootLayout({

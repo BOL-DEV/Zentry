@@ -54,7 +54,7 @@ function HowItWorksSection() {
             Workflow
           </p>
           <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-4xl">
-            How Zentry moves from onboarding to event-day control.
+            How Zentra moves from onboarding to event-day control.
           </h2>
         </div>
 

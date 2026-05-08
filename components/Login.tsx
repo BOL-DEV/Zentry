@@ -143,7 +143,7 @@ function Login(props: Props) {
             <div className="pt-2">
               <div className="my-4 h-px w-full bg-purple-200/70 dark:bg-white/10" />
               <p className="text-center text-xs text-slate-600 dark:text-slate-300">
-                Use your Zentry account details
+                Use your Zentra account details
               </p>
               <div className="mt-4 rounded-lg border border-purple-200/70 bg-purple-50 p-4 text-xs text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
                 <ul className="list-disc space-y-1 pl-4">
