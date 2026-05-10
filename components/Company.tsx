@@ -7,13 +7,6 @@ function Company() {
         <p className="text-sm text-slate-700 dark:text-slate-300">
           &copy; {new Date().getFullYear()} Zentra. All rights reserved.
         </p>
-        <Link
-          href="/admin/login"
-          className="text-[11px] font-small uppercase tracking-[0.28em] text-slate-400 transition hover:text-slate-600 dark:text-slate-600 dark:hover:text-slate-400"
-          aria-label="Admin login"
-        >
-          Admin
-        </Link>
       </div>
     </div>
   );
