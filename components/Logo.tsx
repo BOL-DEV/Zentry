@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import PlatformBrand from "./PlatformBrand";
 
 interface LogoProps {
@@ -23,7 +23,13 @@ function getFallbackMark(name: string) {
 function Logo({ homeLink = "/", name, logoSrc }: LogoProps) {
   const router = useRouter();
   const lastTapRef = useRef(0);
+  const [imageFailed, setImageFailed] = useState(false);
   const showsPlatformBrand = !logoSrc;
+  const shouldShowImage = isProbablyUrl(logoSrc) && !imageFailed;
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [logoSrc]);
 
   function openAdminLogin() {
     router.push("/admin/login");
@@ -62,18 +68,19 @@ function Logo({ homeLink = "/", name, logoSrc }: LogoProps) {
       ) : (
         <span className="flex items-center gap-2">
           <span className="relative block h-11 w-11 overflow-hidden rounded-2xl border border-purple-200/70 bg-white shadow-sm dark:border-white/10 dark:bg-white/5 sm:h-12 sm:w-12">
-            {isProbablyUrl(logoSrc) ? (
+            {shouldShowImage ? (
               <Image
-                src={logoSrc}
+                src={logoSrc!}
                 alt={`${name} logo`}
                 fill
                 className="object-cover"
                 sizes="48px"
                 unoptimized
+                onError={() => setImageFailed(true)}
               />
             ) : (
-              <span className="flex h-full w-full items-center justify-center text-lg font-bold text-purple-600 dark:text-purple-400">
-                {getFallbackMark(logoSrc)}
+              <span className="flex h-full w-full items-center justify-center rounded-2xl bg-purple-100 text-lg font-bold text-purple-700 dark:bg-white/10 dark:text-purple-300">
+                {getFallbackMark(name)}
               </span>
             )}
           </span>

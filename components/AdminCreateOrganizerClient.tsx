@@ -7,7 +7,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { LuArrowLeft, LuArrowUpRight, LuBuilding2 } from "react-icons/lu";
 
 import Card from "@/components/Card";
-import DashboardHeader from "@/components/DashboardHeader";
 import FullPageLoader from "@/components/FullPageLoader";
 import { clearAdminAuthToken, setAdminAuthUser } from "@/helpers/admin-auth";
 import { useAdminAuthSession } from "@/helpers/admin-auth-client";
@@ -23,7 +22,9 @@ const textAreaStyles =
 function AdminCreateOrganizerClient() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { token, user } = useAdminAuthSession();
+  const { token } = useAdminAuthSession();
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [form, setForm] = useState({
     name: "",
     logoUrl: "",
@@ -75,16 +76,26 @@ function AdminCreateOrganizerClient() {
     setIsSubmitting(true);
 
     try {
+      if (!logoFile && !form.logoUrl.trim()) {
+        throw new Error("Add a logo by upload or logo URL before creating the organizer.");
+      }
+
+      if (!bannerFile && !form.bannerUrl.trim()) {
+        throw new Error("Add a banner by upload or banner URL before creating the organizer.");
+      }
+
       const organizer = await createAdminOrganizer({
         name: form.name,
-        logoUrl: form.logoUrl,
-        bannerUrl: form.bannerUrl,
+        logoUrl: form.logoUrl || undefined,
+        bannerUrl: form.bannerUrl || undefined,
         heroTitle: form.heroTitle,
         heroSubtitle: form.heroSubtitle,
         about: form.about,
         contactEmail: form.contactEmail,
         contactPhone: form.contactPhone,
         location: form.location,
+        logoFile,
+        bannerFile,
         bankDetails:
           form.bankName.trim() ||
           form.bankCode.trim() ||
@@ -117,6 +128,8 @@ function AdminCreateOrganizerClient() {
         accountNumber: "",
         accountName: "",
       });
+      setLogoFile(null);
+      setBannerFile(null);
     } catch (submitError) {
       setError(
         submitError instanceof Error ? submitError.message : "Unable to create organizer right now.",
@@ -142,8 +155,7 @@ function AdminCreateOrganizerClient() {
 
     return (
       <main className="min-h-screen bg-purple-100 dark:bg-slate-950/90">
-        <DashboardHeader role="admin" email={user?.email || "Platform workspace"} />
-        <div className="mx-auto max-w-5xl px-6 pt-28 pb-16">
+        <div className="mx-auto max-w-5xl px-6 pt-10 pb-16">
           <Card className="text-sm text-rose-700 dark:text-rose-300">{message}</Card>
         </div>
       </main>
@@ -152,14 +164,7 @@ function AdminCreateOrganizerClient() {
 
   return (
     <main className="min-h-screen bg-purple-100 dark:bg-slate-950/90">
-      <DashboardHeader
-        role="admin"
-        email={
-          profileQuery.data.admin.email || user?.email || "Platform workspace"
-        }
-      />
-
-      <section className="border-b border-purple-200/70 bg-white/80 pt-28 pb-12 dark:border-white/10 dark:bg-slate-950/90">
+      <section className="border-b border-purple-200/70 bg-white/80 pt-10 pb-12 dark:border-white/10 dark:bg-slate-950/90">
         <div className="mx-auto max-w-7xl px-6">
           <Link
             href="/dashboard/admin/organizers"
@@ -271,7 +276,29 @@ function AdminCreateOrganizerClient() {
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-800 dark:text-slate-200">
-                    Logo URL
+                    Logo Upload
+                  </label>
+                  <input
+                    type="file"
+                    className={inputStyles}
+                    accept="image/*"
+                    onChange={(event) => setLogoFile(event.target.files?.[0] ?? null)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-800 dark:text-slate-200">
+                    Banner Upload
+                  </label>
+                  <input
+                    type="file"
+                    className={inputStyles}
+                    accept="image/*"
+                    onChange={(event) => setBannerFile(event.target.files?.[0] ?? null)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-800 dark:text-slate-200">
+                    Logo URL Fallback
                   </label>
                   <input
                     className={inputStyles}
@@ -282,12 +309,11 @@ function AdminCreateOrganizerClient() {
                         logoUrl: event.target.value,
                       }))
                     }
-                    required
                   />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-800 dark:text-slate-200">
-                    Banner URL
+                    Banner URL Fallback
                   </label>
                   <input
                     className={inputStyles}
@@ -298,7 +324,6 @@ function AdminCreateOrganizerClient() {
                         bannerUrl: event.target.value,
                       }))
                     }
-                    required
                   />
                 </div>
                 <div className="space-y-2 md:col-span-2">

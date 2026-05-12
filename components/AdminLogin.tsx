@@ -52,7 +52,7 @@ function AdminLogin({ redirectTo, notice }: Props) {
       setError(
         submitError instanceof Error
           ? submitError.message
-          : "Unable to sign in.",
+          : "We couldn't sign you in. Please try again.",
       );
     } finally {
       setIsSubmitting(false);

@@ -1,5 +1,8 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useState } from "react";
 import { LuCalendar, LuMapPin } from "react-icons/lu";
 import { formatCurrency } from "@/helpers/format";
 import { EventCardProps } from "@/helpers/type";
@@ -15,6 +18,7 @@ function getSoldPercent(remaining: number, total: number) {
 }
 
 function EventCard(events: EventCardProps) {
+  const [showAllTickets, setShowAllTickets] = useState(false);
   const {
     imageUrl,
     title,
@@ -25,6 +29,8 @@ function EventCard(events: EventCardProps) {
     policies = [],
     ticketTypes,
   } = events;
+  const hasExtraTickets = ticketTypes.length > 4;
+  const visibleTickets = showAllTickets ? ticketTypes : ticketTypes.slice(0, 4);
 
   return (
     <section className="w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-md dark:border-white/10 dark:bg-white/5">
@@ -99,7 +105,7 @@ function EventCard(events: EventCardProps) {
             </h2>
 
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-              {ticketTypes.map((ticket) => {
+              {visibleTickets.map((ticket) => {
                 const soldPercent = getSoldPercent(
                   ticket.remaining,
                   ticket.total,
@@ -170,6 +176,18 @@ function EventCard(events: EventCardProps) {
                 );
               })}
             </div>
+
+            {hasExtraTickets ? (
+              <div className="flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => setShowAllTickets((current) => !current)}
+                  className="inline-flex h-11 items-center justify-center rounded-xl border border-purple-200 bg-white px-5 text-sm font-semibold text-purple-700 transition hover:bg-purple-50 dark:border-white/10 dark:bg-white/5 dark:text-purple-300 dark:hover:bg-white/10"
+                >
+                  {showAllTickets ? "View less" : `View more (${ticketTypes.length - 4})`}
+                </button>
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

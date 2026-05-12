@@ -38,6 +38,8 @@ const defaultForm = {
 
 function OrganizerRequestFormClient() {
   const [form, setForm] = useState(defaultForm);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
 
   const requestMutation = useMutation({
     mutationFn: () =>
@@ -52,6 +54,8 @@ function OrganizerRequestFormClient() {
         bannerUrl: form.bannerUrl.trim() || undefined,
         heroTitle: form.heroTitle.trim() || undefined,
         heroSubtitle: form.heroSubtitle.trim() || undefined,
+        logoFile,
+        bannerFile,
         bankDetails:
           form.bankName.trim() ||
           form.bankCode.trim() ||
@@ -67,6 +71,8 @@ function OrganizerRequestFormClient() {
       }),
     onSuccess: () => {
       setForm(defaultForm);
+      setLogoFile(null);
+      setBannerFile(null);
     },
   });
 
@@ -235,7 +241,35 @@ function OrganizerRequestFormClient() {
                 <div className="grid gap-5 md:grid-cols-2">
                   <label className="space-y-2">
                     <span className="text-sm font-medium text-slate-800 dark:text-white">
-                      Logo URL
+                      Logo Upload
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className={inputStyles}
+                      onChange={(event) =>
+                        setLogoFile(event.target.files?.[0] ?? null)
+                      }
+                    />
+                  </label>
+
+                  <label className="space-y-2">
+                    <span className="text-sm font-medium text-slate-800 dark:text-white">
+                      Banner Upload
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className={inputStyles}
+                      onChange={(event) =>
+                        setBannerFile(event.target.files?.[0] ?? null)
+                      }
+                    />
+                  </label>
+
+                  <label className="space-y-2">
+                    <span className="text-sm font-medium text-slate-800 dark:text-white">
+                      Logo URL Fallback
                     </span>
                     <input
                       className={inputStyles}
@@ -249,7 +283,7 @@ function OrganizerRequestFormClient() {
 
                   <label className="space-y-2">
                     <span className="text-sm font-medium text-slate-800 dark:text-white">
-                      Banner URL
+                      Banner URL Fallback
                     </span>
                     <input
                       className={inputStyles}

@@ -10,11 +10,11 @@ import WorkspaceTopbar from "@/components/WorkspaceTopbar";
 
 function OrganizerCreateGalleryClient({ organizer }: { organizer: string }) {
   const router = useRouter();
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [form, setForm] = useState({
     imageUrl: "",
     caption: "",
-    altText: "",
-    displayOrder: "",
+    displayOrder: "0",
   });
   const [message, setMessage] = useState<
     | { type: "success"; text: string }
@@ -26,13 +26,18 @@ function OrganizerCreateGalleryClient({ organizer }: { organizer: string }) {
     "h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-purple-600 focus:ring-4 focus:ring-purple-600/15 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:border-purple-400 dark:focus:ring-purple-400/20";
 
   const createMutation = useMutation({
-    mutationFn: () =>
-      createOrganizerGalleryItem({
-        imageUrl: form.imageUrl.trim(),
+    mutationFn: () => {
+      if (!imageFile && !form.imageUrl.trim()) {
+        throw new Error("Add a gallery image by upload or image URL before publishing it.");
+      }
+
+      return createOrganizerGalleryItem({
+        imageUrl: form.imageUrl.trim() || undefined,
         caption: form.caption.trim() || undefined,
-        altText: form.altText.trim() || undefined,
         displayOrder: form.displayOrder ? Number(form.displayOrder) : 0,
-      }),
+        imageFile,
+      });
+    },
     onSuccess: () => {
       setMessage({
         type: "success",
@@ -76,10 +81,23 @@ function OrganizerCreateGalleryClient({ organizer }: { organizer: string }) {
           >
             <div className="space-y-2">
               <label className="block text-sm font-semibold text-slate-900 dark:text-white">
-                Image URL
+                Image Upload
               </label>
               <input
-                required
+                type="file"
+                accept="image/*"
+                onChange={(event) =>
+                  setImageFile(event.target.files?.[0] ?? null)
+                }
+                className={inputStyles}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-slate-900 dark:text-white">
+                Image URL Fallback
+              </label>
+              <input
                 type="url"
                 value={form.imageUrl}
                 onChange={(event) =>
@@ -93,40 +111,21 @@ function OrganizerCreateGalleryClient({ organizer }: { organizer: string }) {
               />
             </div>
 
-            <div className="grid gap-5 md:grid-cols-2">
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-slate-900 dark:text-white">
-                  Caption
-                </label>
-                <input
-                  value={form.caption}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      caption: event.target.value,
-                    }))
-                  }
-                  className={inputStyles}
-                  placeholder="Opening moments from the event"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-slate-900 dark:text-white">
-                  Alt Text
-                </label>
-                <input
-                  value={form.altText}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      altText: event.target.value,
-                    }))
-                  }
-                  className={inputStyles}
-                  placeholder="Guests arriving at the venue"
-                />
-              </div>
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-slate-900 dark:text-white">
+                Caption
+              </label>
+              <input
+                value={form.caption}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    caption: event.target.value,
+                  }))
+                }
+                className={inputStyles}
+                placeholder="Opening moments from the event"
+              />
             </div>
 
             <div className="space-y-2">
@@ -165,7 +164,7 @@ function OrganizerCreateGalleryClient({ organizer }: { organizer: string }) {
               disabled={createMutation.isPending}
               className="inline-flex h-12 items-center justify-center rounded-xl bg-purple-700 px-5 text-sm font-semibold text-white transition hover:bg-purple-800 disabled:cursor-not-allowed disabled:opacity-70"
             >
-              {createMutation.isPending ? "Adding Image..." : "Add Gallery Image"}
+              {createMutation.isPending ? "Uploading Image..." : "Upload Image"}
             </button>
           </form>
         </Card>

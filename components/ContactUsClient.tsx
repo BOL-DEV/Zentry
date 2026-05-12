@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { IoCallOutline, IoMailOutline, IoTimeOutline } from "react-icons/io5";
 
 import Card from "@/components/Card";
+import { NETWORK_ERROR_MESSAGE } from "@/helpers/api";
 
 type ContactFeedback = {
   type: "success" | "error";
@@ -114,12 +115,19 @@ function ContactUsClient() {
           payload?.data?.message || "Your message has been sent successfully.",
       });
     } catch (error) {
+      const fallbackMessage =
+        error instanceof Error &&
+        /failed to fetch|networkerror|load failed/i.test(error.message)
+          ? NETWORK_ERROR_MESSAGE
+          : undefined;
+
       setFeedback({
         type: "error",
         message:
-          error instanceof Error
+          fallbackMessage ||
+          (error instanceof Error && error.message
             ? error.message
-            : "We could not send your message right now.",
+            : NETWORK_ERROR_MESSAGE),
       });
     } finally {
       setIsSubmitting(false);

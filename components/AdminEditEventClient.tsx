@@ -7,7 +7,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { LuArrowLeft, LuCalendarDays } from "react-icons/lu";
 
 import Card from "@/components/Card";
-import DashboardHeader from "@/components/DashboardHeader";
 import FullPageLoader from "@/components/FullPageLoader";
 import { clearAdminAuthToken, setAdminAuthUser } from "@/helpers/admin-auth";
 import { useAdminAuthSession } from "@/helpers/admin-auth-client";
@@ -37,6 +36,7 @@ function AdminEditEventClient({ eventId }: Props) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { token, user } = useAdminAuthSession();
+  const [posterFile, setPosterFile] = useState<File | null>(null);
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -113,6 +113,7 @@ function AdminEditEventClient({ eventId }: Props) {
         date: form.date ? new Date(form.date).toISOString() : undefined,
         location: form.location,
         posterUrl: form.posterUrl,
+        posterFile,
         dressCode: form.dressCode,
         policies: form.policies,
       });
@@ -147,8 +148,7 @@ function AdminEditEventClient({ eventId }: Props) {
 
     return (
       <main className="min-h-screen bg-purple-100 dark:bg-slate-950/90">
-        <DashboardHeader role="admin" email={user?.email || "Platform workspace"} />
-        <div className="mx-auto max-w-5xl px-6 pt-28 pb-16">
+        <div className="mx-auto max-w-5xl px-6 pt-10 pb-16">
           <Card className="text-sm text-rose-700 dark:text-rose-300">{message}</Card>
         </div>
       </main>
@@ -157,9 +157,7 @@ function AdminEditEventClient({ eventId }: Props) {
 
   return (
     <main className="min-h-screen bg-purple-100 dark:bg-slate-950/90">
-      <DashboardHeader role="admin" email={profileQuery.data.admin.email || user?.email || "Platform workspace"} />
-
-      <section className="border-b border-purple-200/70 bg-white/80 pt-28 pb-12 dark:border-white/10 dark:bg-slate-950/90">
+      <section className="border-b border-purple-200/70 bg-white/80 pt-10 pb-12 dark:border-white/10 dark:bg-slate-950/90">
         <div className="mx-auto max-w-7xl px-6">
           <Link
             href={`/dashboard/admin/events/${eventId}`}
@@ -211,7 +209,11 @@ function AdminEditEventClient({ eventId }: Props) {
                   <input className={inputStyles} value={form.location} onChange={(event) => setForm((current) => ({ ...current, location: event.target.value }))} required />
                 </div>
                 <div className="space-y-2 md:col-span-2">
-                  <label className="text-sm font-medium text-slate-800 dark:text-slate-200">Poster URL</label>
+                  <label className="text-sm font-medium text-slate-800 dark:text-slate-200">Poster Upload</label>
+                  <input type="file" accept="image/*" className={inputStyles} onChange={(event) => setPosterFile(event.target.files?.[0] ?? null)} />
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <label className="text-sm font-medium text-slate-800 dark:text-slate-200">Poster URL Fallback</label>
                   <input className={inputStyles} value={form.posterUrl} onChange={(event) => setForm((current) => ({ ...current, posterUrl: event.target.value }))} />
                 </div>
                 <div className="space-y-2 md:col-span-2">

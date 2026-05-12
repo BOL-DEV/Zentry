@@ -1,4 +1,3 @@
-import Header from "@/components/Header";
 import AdminLogin from "@/components/AdminLogin";
 
 type Props = {
@@ -16,7 +15,6 @@ async function AdminLoginPage({ searchParams }: Props) {
 
   return (
     <div className="min-h-screen bg-purple-100 dark:bg-slate-950/90 flex items-center justify-center">
-      <Header />
       <AdminLogin redirectTo={params.next} notice={notice} />
     </div>
   );

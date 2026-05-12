@@ -25,6 +25,8 @@ type Props = {
 function OrganizerEditProfileClient({ organizer }: Props) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [message, setMessage] = useState<
     | { type: "success"; text: string }
     | { type: "error"; text: string }
@@ -101,6 +103,8 @@ function OrganizerEditProfileClient({ organizer }: Props) {
         contactEmail: form.contactEmail.trim(),
         contactPhone: form.contactPhone.trim(),
         location: form.location.trim(),
+        logoFile,
+        bannerFile,
         bankDetails:
           form.bankName.trim() ||
           form.bankCode.trim() ||
@@ -171,9 +175,37 @@ function OrganizerEditProfileClient({ organizer }: Props) {
                 </div>
 
                 <div className="grid gap-6 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-slate-900 dark:text-white">
+                      Logo Upload
+                    </label>
+                    <input
+                      className={inputStyles}
+                      type="file"
+                      accept="image/*"
+                      onChange={(event) =>
+                        setLogoFile(event.target.files?.[0] ?? null)
+                      }
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-slate-900 dark:text-white">
+                      Banner Upload
+                    </label>
+                    <input
+                      className={inputStyles}
+                      type="file"
+                      accept="image/*"
+                      onChange={(event) =>
+                        setBannerFile(event.target.files?.[0] ?? null)
+                      }
+                    />
+                  </div>
+
                   {[
-                    ["Logo URL", "logoUrl"],
-                    ["Banner URL", "bannerUrl"],
+                    ["Logo URL Fallback", "logoUrl"],
+                    ["Banner URL Fallback", "bannerUrl"],
                     ["Hero Title", "heroTitle"],
                     ["Hero Subtitle", "heroSubtitle"],
                     ["Contact Email", "contactEmail"],

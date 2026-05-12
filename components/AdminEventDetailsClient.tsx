@@ -7,7 +7,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LuArrowLeft, LuCalendarDays, LuMail, LuMapPin, LuPhone, LuReceiptText, LuSave, LuTag } from "react-icons/lu";
 
 import Card from "@/components/Card";
-import DashboardHeader from "@/components/DashboardHeader";
 import FullPageLoader from "@/components/FullPageLoader";
 import OrganizerAttendeesList from "@/components/OrganizerAttendeesList";
 import { clearAdminAuthToken, setAdminAuthUser } from "@/helpers/admin-auth";
@@ -217,8 +216,7 @@ function AdminEventDetailsClient({ eventId }: Props) {
 
     return (
       <main className="min-h-screen bg-purple-100 dark:bg-slate-950/90">
-        <DashboardHeader role="admin" email={profileQuery.data?.admin.email || user?.email || "Platform workspace"} />
-        <div className="mx-auto max-w-5xl px-6 pt-28 pb-16">
+        <div className="mx-auto max-w-5xl px-6 pt-10 pb-16">
           <Card className="text-sm text-rose-700 dark:text-rose-300">{message}</Card>
         </div>
       </main>
@@ -261,9 +259,7 @@ function AdminEventDetailsClient({ eventId }: Props) {
 
   return (
     <main className="min-h-screen bg-purple-100 dark:bg-slate-950/90">
-      <DashboardHeader role="admin" email={profileQuery.data.admin.email || user?.email || "Platform workspace"} />
-
-      <section className="border-b border-purple-200/70 bg-white/80 pt-28 pb-12 dark:border-white/10 dark:bg-slate-950/90">
+      <section className="border-b border-purple-200/70 bg-white/80 pt-10 pb-12 dark:border-white/10 dark:bg-slate-950/90">
         <div className="mx-auto max-w-7xl px-6">
           <Link href="/dashboard/admin/events" className="inline-flex items-center gap-2 text-sm font-semibold text-purple-700 transition hover:text-purple-800 dark:text-purple-300 dark:hover:text-purple-200">
             <LuArrowLeft className="text-base" />

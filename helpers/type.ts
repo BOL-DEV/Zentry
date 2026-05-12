@@ -76,6 +76,39 @@ export type ApiAdminAnalytics = {
   };
 };
 
+export type ApiPlatformFeeSettings = {
+  flatFeeBelowThreshold: number;
+  thresholdAmount: number;
+  percentAboveThreshold: number;
+  defaults: {
+    flatFeeBelowThreshold: number;
+    thresholdAmount: number;
+    percentAboveThreshold: number;
+  };
+  isUsingDefault?: boolean;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+};
+
+export type ApiOrganizerPlatformFee = {
+  override: {
+    flatFeeBelowThreshold: number;
+    thresholdAmount: number;
+    percentAboveThreshold: number;
+  } | null;
+  effective: {
+    flatFeeBelowThreshold: number;
+    thresholdAmount: number;
+    percentAboveThreshold: number;
+  };
+  defaults: {
+    flatFeeBelowThreshold: number;
+    thresholdAmount: number;
+    percentAboveThreshold: number;
+  };
+  isUsingDefault: boolean;
+};
+
 export type ApiAdminOrganizerSummary = {
   id: string;
   name: string;
@@ -109,6 +142,7 @@ export type ApiAdminOrganizerDetail = {
     bankDetails?: ApiBankDetails;
     staffSessionLimit?: number;
     organizerSessionLimit?: number;
+    platformFee: ApiOrganizerPlatformFee;
     isActive: boolean;
     createdAt: string;
     updatedAt: string;
