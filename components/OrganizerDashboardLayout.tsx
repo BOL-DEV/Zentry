@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useParams, usePathname, useSearchParams } from "next/navigation";
+import { useParams, usePathname } from "next/navigation";
 import {
   LuCalendarDays,
   LuChevronDown,
@@ -62,7 +62,6 @@ const DESKTOP_SIDEBAR_STORAGE_KEY = "organizer-dashboard-sidebar-collapsed";
 function OrganizerDashboardLayout({ children }: Props) {
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const params = useParams<{ organizer?: string }>();
   const { token, user } = useAuthSession();
   const organizer = params?.organizer ?? "";
@@ -70,8 +69,10 @@ function OrganizerDashboardLayout({ children }: Props) {
   const publicRoot = `/${organizer}`;
 
   useEffect(() => {
-    const query = searchParams?.toString();
-    const next = query ? `${pathname}?${query}` : pathname;
+    const next =
+      typeof window === "undefined"
+        ? pathname
+        : `${window.location.pathname}${window.location.search}`;
 
     if (!token) {
       router.replace(
@@ -86,7 +87,7 @@ function OrganizerDashboardLayout({ children }: Props) {
         `/login?next=${encodeURIComponent(next)}&reason=session-expired`,
       );
     }
-  }, [pathname, router, searchParams, token]);
+  }, [pathname, router, token]);
 
   const primaryItems: SidebarItem[] = [
     {

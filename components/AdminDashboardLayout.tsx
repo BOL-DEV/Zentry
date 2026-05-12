@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { LuMenu, LuX } from "react-icons/lu";
 
@@ -29,7 +29,6 @@ function isActivePath(pathname: string, href: string, exact = false) {
 
 function AdminDashboardLayout({ children }: Props) {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -68,8 +67,10 @@ function AdminDashboardLayout({ children }: Props) {
   }, [pathname]);
 
   useEffect(() => {
-    const query = searchParams?.toString();
-    const next = query ? `${pathname}?${query}` : pathname;
+    const next =
+      typeof window === "undefined"
+        ? pathname
+        : `${window.location.pathname}${window.location.search}`;
 
     if (!token) {
       router.replace(
@@ -84,7 +85,7 @@ function AdminDashboardLayout({ children }: Props) {
         `/admin/login?next=${encodeURIComponent(next)}&reason=session-expired`,
       );
     }
-  }, [pathname, router, searchParams, token]);
+  }, [pathname, router, token]);
 
   useEffect(() => {
     if (typeof document === "undefined") return;
