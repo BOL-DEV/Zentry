@@ -1189,6 +1189,7 @@ export async function loginDashboardUser(input: {
   email: string;
   password: string;
   deviceName?: string;
+  rememberMe?: boolean;
 }) {
   let response: Response;
 
@@ -1223,6 +1224,7 @@ export async function loginAdminUser(input: {
   email: string;
   password: string;
   deviceName?: string;
+  rememberMe?: boolean;
 }) {
   let response: Response;
 

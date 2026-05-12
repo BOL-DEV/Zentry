@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useParams, usePathname } from "next/navigation";
+import { useParams, usePathname, useSearchParams } from "next/navigation";
 import {
   LuCalendarDays,
   LuChevronDown,
@@ -25,6 +25,7 @@ import {
 import ThemeToggle from "@/components/ThemeToggle";
 import { clearAuthToken } from "@/helpers/auth";
 import { useAuthSession } from "@/helpers/auth-client";
+import { isJwtExpired } from "@/helpers/jwt";
 import { logoutDashboardUser } from "@/helpers/organizer-api";
 
 type Props = {
@@ -61,11 +62,31 @@ const DESKTOP_SIDEBAR_STORAGE_KEY = "organizer-dashboard-sidebar-collapsed";
 function OrganizerDashboardLayout({ children }: Props) {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const params = useParams<{ organizer?: string }>();
-  const { user } = useAuthSession();
+  const { token, user } = useAuthSession();
   const organizer = params?.organizer ?? "";
   const dashboardRoot = `/${organizer}/dashboard`;
   const publicRoot = `/${organizer}`;
+
+  useEffect(() => {
+    const query = searchParams?.toString();
+    const next = query ? `${pathname}?${query}` : pathname;
+
+    if (!token) {
+      router.replace(
+        `/login?next=${encodeURIComponent(next)}&reason=auth-required`,
+      );
+      return;
+    }
+
+    if (isJwtExpired(token)) {
+      clearAuthToken();
+      router.replace(
+        `/login?next=${encodeURIComponent(next)}&reason=session-expired`,
+      );
+    }
+  }, [pathname, router, searchParams, token]);
 
   const primaryItems: SidebarItem[] = [
     {

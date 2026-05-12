@@ -5,8 +5,14 @@ import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 
-import { setAdminAuthToken, setAdminAuthUser } from "@/helpers/admin-auth";
+import {
+  clearAdminAuthToken,
+  setAdminAuthToken,
+  setAdminAuthUser,
+} from "@/helpers/admin-auth";
 import { useAdminAuthSession } from "@/helpers/admin-auth-client";
+import { resolveUrl } from "@/helpers/api";
+import { isJwtExpired } from "@/helpers/jwt";
 import { loginAdminUser } from "@/helpers/organizer-api";
 
 interface Props {
@@ -21,13 +27,49 @@ function AdminLogin({ redirectTo, notice }: Props) {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(true);
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (!token) return;
-    router.replace(redirectTo || "/dashboard/admin");
+
+    if (isJwtExpired(token)) {
+      clearAdminAuthToken();
+      return;
+    }
+
+    let cancelled = false;
+
+    async function validateThenRedirect() {
+      try {
+        const response = await fetch(resolveUrl("/admin/auth/me"), {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          cache: "no-store",
+        });
+
+        if (cancelled) return;
+
+        if (response.status === 401) {
+          clearAdminAuthToken();
+          return;
+        }
+
+        router.replace(redirectTo || "/dashboard/admin");
+      } catch {
+        if (cancelled) return;
+        router.replace(redirectTo || "/dashboard/admin");
+      }
+    }
+
+    void validateThenRedirect();
+
+    return () => {
+      cancelled = true;
+    };
   }, [redirectTo, router, token]);
 
   const inputStyles =
@@ -47,6 +89,7 @@ function AdminLogin({ redirectTo, notice }: Props) {
         email,
         password,
         deviceName: resolvedDeviceName,
+        rememberMe,
       });
 
       queryClient.removeQueries({ queryKey: ["admin-profile"] });

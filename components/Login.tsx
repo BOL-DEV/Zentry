@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FiEye, FiEyeOff } from "react-icons/fi";
-import { setAuthToken, setAuthUser } from "@/helpers/auth";
+import { clearAuthToken, setAuthToken, setAuthUser } from "@/helpers/auth";
 import { useAuthSession } from "@/helpers/auth-client";
+import { resolveUrl } from "@/helpers/api";
+import { isJwtExpired } from "@/helpers/jwt";
 import { loginDashboardUser } from "@/helpers/organizer-api";
 
 interface Props {
@@ -19,19 +21,54 @@ function Login(props: Props) {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(true);
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (!token || !user) return;
 
+    if (isJwtExpired(token)) {
+      clearAuthToken();
+      return;
+    }
+
     const fallbackRoute =
       user.role === "staff"
         ? `/${user.organizerSlug}/staff`
         : `/${user.organizerSlug}/dashboard`;
 
-    router.replace(redirectTo || fallbackRoute);
+    let cancelled = false;
+
+    async function maybeValidateThenRedirect() {
+      try {
+        const response = await fetch(resolveUrl("/organizer/dashboard/profile"), {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          cache: "no-store",
+        });
+
+        if (cancelled) return;
+
+        if (response.status === 401) {
+          clearAuthToken();
+          return;
+        }
+
+        router.replace(redirectTo || fallbackRoute);
+      } catch {
+        if (cancelled) return;
+        router.replace(redirectTo || fallbackRoute);
+      }
+    }
+
+    void maybeValidateThenRedirect();
+
+    return () => {
+      cancelled = true;
+    };
   }, [redirectTo, router, token, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -48,6 +85,7 @@ function Login(props: Props) {
         email,
         password,
         deviceName: resolvedDeviceName,
+        rememberMe,
       });
       setAuthToken(response.token, { persist: rememberMe });
       setAuthUser(response.data.user, { persist: rememberMe });

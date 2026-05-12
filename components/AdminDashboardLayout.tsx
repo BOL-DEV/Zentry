@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { LuMenu, LuX } from "react-icons/lu";
 
 import PlatformBrand from "@/components/PlatformBrand";
 import ThemeToggle from "@/components/ThemeToggle";
 import { clearAdminAuthToken } from "@/helpers/admin-auth";
+import { useAdminAuthSession } from "@/helpers/admin-auth-client";
+import { isJwtExpired } from "@/helpers/jwt";
 import { logoutAdminUser } from "@/helpers/organizer-api";
 
 type Props = {
@@ -27,9 +29,11 @@ function isActivePath(pathname: string, href: string, exact = false) {
 
 function AdminDashboardLayout({ children }: Props) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const { token } = useAdminAuthSession();
 
   const navItems: NavItem[] = useMemo(
     () => [
@@ -62,6 +66,25 @@ function AdminDashboardLayout({ children }: Props) {
   useEffect(() => {
     setIsMobileSidebarOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    const query = searchParams?.toString();
+    const next = query ? `${pathname}?${query}` : pathname;
+
+    if (!token) {
+      router.replace(
+        `/admin/login?next=${encodeURIComponent(next)}&reason=auth-required`,
+      );
+      return;
+    }
+
+    if (isJwtExpired(token)) {
+      clearAdminAuthToken();
+      router.replace(
+        `/admin/login?next=${encodeURIComponent(next)}&reason=session-expired`,
+      );
+    }
+  }, [pathname, router, searchParams, token]);
 
   useEffect(() => {
     if (typeof document === "undefined") return;
