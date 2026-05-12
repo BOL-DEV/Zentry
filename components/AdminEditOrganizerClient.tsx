@@ -7,7 +7,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { LuArrowLeft, LuBuilding2 } from "react-icons/lu";
 
 import Card from "@/components/Card";
-import DashboardHeader from "@/components/DashboardHeader";
 import FullPageLoader from "@/components/FullPageLoader";
 import { clearAdminAuthToken, setAdminAuthUser } from "@/helpers/admin-auth";
 import { useAdminAuthSession } from "@/helpers/admin-auth-client";
@@ -32,6 +31,8 @@ function AdminEditOrganizerClient({ organizerId }: Props) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { token, user } = useAdminAuthSession();
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [form, setForm] = useState({
     name: "",
     logoUrl: "",
@@ -125,6 +126,8 @@ function AdminEditOrganizerClient({ organizerId }: Props) {
         contactEmail: form.contactEmail,
         contactPhone: form.contactPhone,
         location: form.location,
+        logoFile,
+        bannerFile,
         bankDetails:
           form.bankName.trim() ||
           form.bankCode.trim() ||
@@ -169,8 +172,7 @@ function AdminEditOrganizerClient({ organizerId }: Props) {
 
     return (
       <main className="min-h-screen bg-purple-100 dark:bg-slate-950/90">
-        <DashboardHeader role="admin" email={user?.email || "Platform workspace"} />
-        <div className="mx-auto max-w-5xl px-6 pt-28 pb-16">
+        <div className="mx-auto max-w-5xl px-6 pt-10 pb-16">
           <Card className="text-sm text-rose-700 dark:text-rose-300">{message}</Card>
         </div>
       </main>
@@ -179,9 +181,7 @@ function AdminEditOrganizerClient({ organizerId }: Props) {
 
   return (
     <main className="min-h-screen bg-purple-100 dark:bg-slate-950/90">
-      <DashboardHeader role="admin" email={profileQuery.data.admin.email || user?.email || "Platform workspace"} />
-
-      <section className="border-b border-purple-200/70 bg-white/80 pt-28 pb-12 dark:border-white/10 dark:bg-slate-950/90">
+      <section className="border-b border-purple-200/70 bg-white/80 pt-10 pb-12 dark:border-white/10 dark:bg-slate-950/90">
         <div className="mx-auto max-w-7xl px-6">
           <Link
             href={`/dashboard/admin/organizers/${organizerId}`}
@@ -220,13 +220,35 @@ function AdminEditOrganizerClient({ organizerId }: Props) {
 
             <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
               <div className="grid gap-5 md:grid-cols-2">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-800 dark:text-slate-200">
+                    Logo Upload
+                  </label>
+                  <input
+                    className={inputStyles}
+                    type="file"
+                    accept="image/*"
+                    onChange={(event) => setLogoFile(event.target.files?.[0] ?? null)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-800 dark:text-slate-200">
+                    Banner Upload
+                  </label>
+                  <input
+                    className={inputStyles}
+                    type="file"
+                    accept="image/*"
+                    onChange={(event) => setBannerFile(event.target.files?.[0] ?? null)}
+                  />
+                </div>
                 {[
                   ["Organizer Name", "name"],
                   ["Location", "location"],
                   ["Contact Email", "contactEmail"],
                   ["Contact Phone", "contactPhone"],
-                  ["Logo URL", "logoUrl"],
-                  ["Banner URL", "bannerUrl"],
+                  ["Logo URL Fallback", "logoUrl"],
+                  ["Banner URL Fallback", "bannerUrl"],
                   ["Hero Title", "heroTitle"],
                   ["Hero Subtitle", "heroSubtitle"],
                   ["Bank Name", "bankName"],

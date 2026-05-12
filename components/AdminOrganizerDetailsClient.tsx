@@ -8,6 +8,7 @@ import {
   LuArrowLeft,
   LuArrowUpRight,
   LuCalendarDays,
+  LuCircleOff,
   LuKeyRound,
   LuMail,
   LuMapPin,
@@ -19,7 +20,6 @@ import {
 } from "react-icons/lu";
 
 import Card from "@/components/Card";
-import DashboardHeader from "@/components/DashboardHeader";
 import FullPageLoader from "@/components/FullPageLoader";
 import { clearAdminAuthToken, setAdminAuthUser } from "@/helpers/admin-auth";
 import { useAdminAuthSession } from "@/helpers/admin-auth-client";
@@ -36,6 +36,7 @@ import {
   updateAdminOrganizerSessionLimit,
   updateAdminOrganizerStaffSessionLimit,
   updateAdminOrganizerGalleryItem,
+  updateAdminOrganizer,
 } from "@/helpers/organizer-api";
 
 function formatDateTime(value?: string | null) {
@@ -52,6 +53,10 @@ function formatDateTime(value?: string | null) {
     minute: "2-digit",
     hour12: true,
   }).format(date);
+}
+
+function decimalRateToPercentInput(value: number) {
+  return (value * 100).toString();
 }
 
 function StatusPill({ active }: { active: boolean }) {
@@ -77,6 +82,7 @@ function AdminOrganizerDetailsClient({ organizerId }: Props) {
   const queryClient = useQueryClient();
   const { token, user } = useAdminAuthSession();
   const [editingGalleryId, setEditingGalleryId] = useState<string | null>(null);
+  const [galleryImageFile, setGalleryImageFile] = useState<File | null>(null);
   const [galleryForm, setGalleryForm] = useState({
     imageUrl: "",
     caption: "",
@@ -93,6 +99,17 @@ function AdminOrganizerDetailsClient({ organizerId }: Props) {
     staffSessionLimit: "",
   });
   const [sessionLimitMessage, setSessionLimitMessage] = useState<
+    | { type: "success"; text: string }
+    | { type: "error"; text: string }
+    | null
+  >(null);
+  const [platformFeeForm, setPlatformFeeForm] = useState({
+    flatFeeBelowThreshold: "",
+    thresholdAmount: "",
+    percentAboveThreshold: "",
+  });
+  const [isPlatformFeeDirty, setIsPlatformFeeDirty] = useState(false);
+  const [platformFeeMessage, setPlatformFeeMessage] = useState<
     | { type: "success"; text: string }
     | { type: "error"; text: string }
     | null
@@ -201,10 +218,11 @@ function AdminOrganizerDetailsClient({ organizerId }: Props) {
       }
 
       return updateAdminOrganizerGalleryItem(organizerId, editingGalleryId, {
-        imageUrl: galleryForm.imageUrl.trim(),
+        imageUrl: galleryForm.imageUrl.trim() || undefined,
         caption: galleryForm.caption.trim(),
         altText: galleryForm.altText.trim(),
         displayOrder: Number(galleryForm.displayOrder || 0),
+        imageFile: galleryImageFile,
       });
     },
     onSuccess: async () => {
@@ -213,6 +231,7 @@ function AdminOrganizerDetailsClient({ organizerId }: Props) {
         text: "Gallery item updated successfully.",
       });
       setEditingGalleryId(null);
+      setGalleryImageFile(null);
       await queryClient.invalidateQueries({
         queryKey: ["admin-organizer-gallery", organizerId],
       });
@@ -347,6 +366,87 @@ function AdminOrganizerDetailsClient({ organizerId }: Props) {
       });
     },
   });
+  const updatePlatformFeeMutation = useMutation({
+    mutationFn: async () => {
+      const flatFeeBelowThreshold = Number(resolvedPlatformFeeForm.flatFeeBelowThreshold);
+      const thresholdAmount = Number(resolvedPlatformFeeForm.thresholdAmount);
+      const percentRateInput = Number(resolvedPlatformFeeForm.percentAboveThreshold);
+
+      if (
+        !Number.isFinite(flatFeeBelowThreshold) ||
+        !Number.isFinite(thresholdAmount) ||
+        !Number.isFinite(percentRateInput)
+      ) {
+        throw new Error("Enter valid numbers for all platform fee fields.");
+      }
+
+      if (flatFeeBelowThreshold < 0 || thresholdAmount < 0) {
+        throw new Error("Flat fee and threshold must be zero or greater.");
+      }
+
+      if (percentRateInput < 0 || percentRateInput > 100) {
+        throw new Error("Rate must be between 0 and 100 percent.");
+      }
+
+      return updateAdminOrganizer(organizerId, {
+        platformFeeOverride: {
+          flatFeeBelowThreshold,
+          thresholdAmount,
+          percentAboveThreshold: percentRateInput / 100,
+        },
+      });
+    },
+    onSuccess: async () => {
+      setPlatformFeeMessage({
+        type: "success",
+        text: "Organizer platform fee updated successfully.",
+      });
+      setIsPlatformFeeDirty(false);
+      await queryClient.invalidateQueries({
+        queryKey: ["admin-organizer", organizerId],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["admin-analytics"],
+      });
+    },
+    onError: (error) => {
+      setPlatformFeeMessage({
+        type: "error",
+        text:
+          error instanceof Error
+            ? error.message
+            : "We couldn't update this organizer platform fee.",
+      });
+    },
+  });
+  const resetPlatformFeeMutation = useMutation({
+    mutationFn: () =>
+      updateAdminOrganizer(organizerId, {
+        platformFeeOverride: null,
+      }),
+    onSuccess: async () => {
+      setPlatformFeeMessage({
+        type: "success",
+        text: "Organizer platform fee reset to the default fallback.",
+      });
+      setIsPlatformFeeDirty(false);
+      await queryClient.invalidateQueries({
+        queryKey: ["admin-organizer", organizerId],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["admin-analytics"],
+      });
+    },
+    onError: (error) => {
+      setPlatformFeeMessage({
+        type: "error",
+        text:
+          error instanceof Error
+            ? error.message
+            : "We couldn't reset this organizer platform fee.",
+      });
+    },
+  });
 
   useEffect(() => {
     if (!token) {
@@ -408,15 +508,7 @@ function AdminOrganizerDetailsClient({ organizerId }: Props) {
 
     return (
       <main className="min-h-screen bg-purple-100 dark:bg-slate-950/90">
-        <DashboardHeader
-          role="admin"
-          email={
-            profileQuery.data?.admin.email ||
-            user?.email ||
-            "Platform workspace"
-          }
-        />
-        <div className="mx-auto max-w-5xl px-6 pt-28 pb-16">
+        <div className="mx-auto max-w-5xl px-6 pt-10 pb-16">
           <Card className="text-sm text-rose-700 dark:text-rose-300">
             {message}
           </Card>
@@ -435,6 +527,21 @@ function AdminOrganizerDetailsClient({ organizerId }: Props) {
     stats.totalTicketsSold > 0
       ? Math.round((stats.totalCheckedInTickets / stats.totalTicketsSold) * 100)
       : 0;
+  const platformFee = organizer.platformFee;
+  const defaultPlatformFeeForm = {
+    flatFeeBelowThreshold: String(
+      (platformFee.override ?? platformFee.effective).flatFeeBelowThreshold,
+    ),
+    thresholdAmount: String(
+      (platformFee.override ?? platformFee.effective).thresholdAmount,
+    ),
+    percentAboveThreshold: decimalRateToPercentInput(
+      (platformFee.override ?? platformFee.effective).percentAboveThreshold,
+    ),
+  };
+  const resolvedPlatformFeeForm = isPlatformFeeDirty
+    ? platformFeeForm
+    : defaultPlatformFeeForm;
 
   function startEditingGalleryItem(galleryItemId: string) {
     const item = galleryQuery.data?.find((entry) => entry._id === galleryItemId);
@@ -448,6 +555,7 @@ function AdminOrganizerDetailsClient({ organizerId }: Props) {
     }
 
     setEditingGalleryId(galleryItemId);
+    setGalleryImageFile(null);
     setGalleryForm({
       imageUrl: item.imageUrl || "",
       caption: item.caption || "",
@@ -459,14 +567,7 @@ function AdminOrganizerDetailsClient({ organizerId }: Props) {
 
   return (
     <main className="min-h-screen bg-purple-100 dark:bg-slate-950/90">
-      <DashboardHeader
-        role="admin"
-        email={
-          profileQuery.data.admin.email || user?.email || "Platform workspace"
-        }
-      />
-
-      <section className="border-b border-purple-200/70 bg-white/80 pt-28 pb-12 dark:border-white/10 dark:bg-slate-950/90">
+      <section className="border-b border-purple-200/70 bg-white/80 pt-10 pb-12 dark:border-white/10 dark:bg-slate-950/90">
         <div className="mx-auto max-w-7xl px-6">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
@@ -678,6 +779,171 @@ function AdminOrganizerDetailsClient({ organizerId }: Props) {
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">
+                    Platform Fee
+                  </p>
+                  <h2 className="mt-2 text-2xl font-bold text-slate-950 dark:text-white">
+                    Organizer-specific rate
+                  </h2>
+                </div>
+                <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
+                  <LuSave className="text-xl" />
+                </div>
+              </div>
+
+              <p className="mt-4 text-sm text-slate-600 dark:text-slate-300">
+                This organizer can use a custom platform fee or fall back to the global default when no override is set.
+              </p>
+
+              <div className="mt-6 grid gap-4 sm:grid-cols-3">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-4 dark:border-white/10 dark:bg-white/[0.04]">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                    Effective flat fee
+                  </p>
+                  <p className="mt-2 text-lg font-bold text-slate-950 dark:text-white">
+                    {formatCurrency(platformFee.effective.flatFeeBelowThreshold)}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-4 dark:border-white/10 dark:bg-white/[0.04]">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                    Effective threshold
+                  </p>
+                  <p className="mt-2 text-lg font-bold text-slate-950 dark:text-white">
+                    {formatCurrency(platformFee.effective.thresholdAmount)}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-4 dark:border-white/10 dark:bg-white/[0.04]">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                    Effective rate
+                  </p>
+                  <p className="mt-2 text-lg font-bold text-slate-950 dark:text-white">
+                    {(platformFee.effective.percentAboveThreshold * 100).toFixed(2)}%
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 grid gap-4 md:grid-cols-3">
+                <label className="block">
+                  <span className="text-sm font-semibold text-slate-900 dark:text-white">
+                    Flat fee
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={resolvedPlatformFeeForm.flatFeeBelowThreshold}
+                    onChange={(event) => {
+                      setPlatformFeeMessage(null);
+                      setIsPlatformFeeDirty(true);
+                      setPlatformFeeForm((current) => ({
+                        ...current,
+                        flatFeeBelowThreshold: event.target.value,
+                      }));
+                    }}
+                    className="mt-2 h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-purple-500 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="text-sm font-semibold text-slate-900 dark:text-white">
+                    Threshold
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={resolvedPlatformFeeForm.thresholdAmount}
+                    onChange={(event) => {
+                      setPlatformFeeMessage(null);
+                      setIsPlatformFeeDirty(true);
+                      setPlatformFeeForm((current) => ({
+                        ...current,
+                        thresholdAmount: event.target.value,
+                      }));
+                    }}
+                    className="mt-2 h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-purple-500 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="text-sm font-semibold text-slate-900 dark:text-white">
+                    Rate (%)
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    value={resolvedPlatformFeeForm.percentAboveThreshold}
+                    onChange={(event) => {
+                      setPlatformFeeMessage(null);
+                      setIsPlatformFeeDirty(true);
+                      setPlatformFeeForm((current) => ({
+                        ...current,
+                        percentAboveThreshold: event.target.value,
+                      }));
+                    }}
+                    className="mt-2 h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-purple-500 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                  />
+                </label>
+              </div>
+
+              <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/90 px-4 py-3 text-xs text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300">
+                <p>Override active: {platformFee.isUsingDefault ? "No" : "Yes"}</p>
+                <p>Default fallback flat fee: {formatCurrency(platformFee.defaults.flatFeeBelowThreshold)}</p>
+                <p>Default fallback threshold: {formatCurrency(platformFee.defaults.thresholdAmount)}</p>
+                <p>Default fallback rate: {(platformFee.defaults.percentAboveThreshold * 100).toFixed(2)}%</p>
+              </div>
+
+              {platformFeeMessage ? (
+                <div
+                  className={`mt-5 rounded-2xl border px-4 py-3 text-sm ${
+                    platformFeeMessage.type === "success"
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300"
+                      : "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300"
+                  }`}
+                >
+                  {platformFeeMessage.text}
+                </div>
+              ) : null}
+
+              <div className="mt-5 flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={() => updatePlatformFeeMutation.mutate()}
+                  disabled={
+                    updatePlatformFeeMutation.isPending ||
+                    resetPlatformFeeMutation.isPending
+                  }
+                  className="inline-flex items-center gap-2 rounded-xl bg-purple-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  <LuSave className="text-base" />
+                  {updatePlatformFeeMutation.isPending
+                    ? "Saving..."
+                    : "Save Organizer Rate"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => resetPlatformFeeMutation.mutate()}
+                  disabled={
+                    platformFee.isUsingDefault ||
+                    updatePlatformFeeMutation.isPending ||
+                    resetPlatformFeeMutation.isPending
+                  }
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-70 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+                >
+                  <LuCircleOff className="text-base" />
+                  {resetPlatformFeeMutation.isPending
+                    ? "Resetting..."
+                    : "Use Default Rate"}
+                </button>
+              </div>
+            </Card>
+
+            <Card className="border-slate-200/80 bg-white/90 dark:border-white/10 dark:bg-white/5">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">
                     Gallery
                   </p>
                   <h2 className="mt-2 text-2xl font-bold text-slate-950 dark:text-white">
@@ -748,7 +1014,20 @@ function AdminOrganizerDetailsClient({ organizerId }: Props) {
                           <div className="grid gap-4 md:grid-cols-2">
                             <label className="block md:col-span-2">
                               <span className="text-sm font-semibold text-slate-900 dark:text-white">
-                                Image URL
+                                Image Upload
+                              </span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(event) =>
+                                  setGalleryImageFile(event.target.files?.[0] ?? null)
+                                }
+                                className="mt-2 h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-purple-500 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                              />
+                            </label>
+                            <label className="block md:col-span-2">
+                              <span className="text-sm font-semibold text-slate-900 dark:text-white">
+                                Image URL Fallback
                               </span>
                               <input
                                 type="url"
@@ -823,7 +1102,10 @@ function AdminOrganizerDetailsClient({ organizerId }: Props) {
                             </button>
                             <button
                               type="button"
-                              onClick={() => setEditingGalleryId(null)}
+                              onClick={() => {
+                                setEditingGalleryId(null);
+                                setGalleryImageFile(null);
+                              }}
                               className="inline-flex items-center rounded-xl border border-transparent px-3 py-2 text-sm font-semibold text-slate-500 transition hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
                             >
                               Cancel

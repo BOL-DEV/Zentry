@@ -34,6 +34,7 @@ type Props = {
 function OrganizerEditEventClient({ organizer, eventId }: Props) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
+  const [posterFile, setPosterFile] = useState<File | null>(null);
   const [message, setMessage] = useState<
     | { type: "success"; text: string }
     | { type: "error"; text: string }
@@ -96,7 +97,8 @@ function OrganizerEditEventClient({ organizer, eventId }: Props) {
         description: form.description.trim(),
         date: new Date(form.date).toISOString(),
         location: form.location.trim(),
-        posterUrl: form.posterUrl.trim(),
+        posterUrl: form.posterUrl.trim() || undefined,
+        posterFile,
         dressCode: form.dressCode.trim() || undefined,
         policies: form.policies.trim() || undefined,
       }),
@@ -228,7 +230,21 @@ function OrganizerEditEventClient({ organizer, eventId }: Props) {
 
                   <div className="space-y-2 md:col-span-2">
                     <label className="block text-sm font-semibold text-slate-900 dark:text-white">
-                      Poster URL
+                      Poster Upload
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(event) =>
+                        setPosterFile(event.target.files?.[0] ?? null)
+                      }
+                      className={inputStyles}
+                    />
+                  </div>
+
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="block text-sm font-semibold text-slate-900 dark:text-white">
+                      Poster URL Fallback
                     </label>
                     <input
                       type="url"

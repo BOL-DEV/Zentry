@@ -22,6 +22,7 @@ type Props = {
 function OrganizerEditGalleryClient({ organizer, galleryItemId }: Props) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [message, setMessage] = useState<
     | { type: "success"; text: string }
     | { type: "error"; text: string }
@@ -74,10 +75,11 @@ function OrganizerEditGalleryClient({ organizer, galleryItemId }: Props) {
   const updateMutation = useMutation({
     mutationFn: () =>
       updateOrganizerGalleryItem(galleryItemId, {
-        imageUrl: form.imageUrl.trim(),
+        imageUrl: form.imageUrl.trim() || undefined,
         caption: form.caption.trim(),
         altText: form.altText.trim(),
         displayOrder: Number(form.displayOrder || 0),
+        imageFile,
       }),
     onSuccess: () => {
       setMessage({
@@ -127,10 +129,23 @@ function OrganizerEditGalleryClient({ organizer, galleryItemId }: Props) {
             >
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-slate-900 dark:text-white">
-                  Image URL
+                  Image Upload
                 </label>
                 <input
-                  required
+                  type="file"
+                  accept="image/*"
+                  onChange={(event) =>
+                    setImageFile(event.target.files?.[0] ?? null)
+                  }
+                  className={inputStyles}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-slate-900 dark:text-white">
+                  Image URL Fallback
+                </label>
+                <input
                   type="url"
                   value={form.imageUrl}
                   onChange={(event) =>

@@ -3,7 +3,13 @@ import {
   formatDateTimeText,
   isUpcomingDate,
 } from "@/helpers/date";
-import { apiFetch, getApiErrorMessage, parseJsonResponse, resolveUrl } from "@/helpers/api";
+import {
+  apiFetch,
+  getApiErrorMessage,
+  NETWORK_ERROR_MESSAGE,
+  parseJsonResponse,
+  resolveUrl,
+} from "@/helpers/api";
 import type { OrderAccessContext } from "@/helpers/order-access";
 import type {
   AdminEventListItem, 
@@ -12,11 +18,13 @@ import type {
   ApiAdminCreatedUser,
   ApiAdminDailyPayoutReport,
   ApiDashboardUser,
+  ApiPlatformFeeSettings,
   ApiOrganizerRequest,
   ApiOrganizerRequestApproval,
   ApiAdminEventDetail,
   ApiAdminEventSummary,
   ApiAdminOrganizerDetail,
+  ApiOrganizerPlatformFee,
   ApiAdminOrderDetail,
   ApiAdminOrderSummary,
   ApiAdminOrganizerSummary,
@@ -148,6 +156,22 @@ type ApiOrganizerRequestRecord = {
   createdAt: string;
   updatedAt: string;
 };
+
+function appendDefinedFormValue(
+  formData: FormData,
+  key: string,
+  value: string | number | undefined,
+) {
+  if (value === undefined) return;
+  const normalizedValue =
+    typeof value === "number" ? String(value) : value.trim();
+  if (!normalizedValue) return;
+  formData.append(key, normalizedValue);
+}
+
+function hasFile(value?: File | null): value is File {
+  return typeof File !== "undefined" && value instanceof File;
+}
 
 function titleCase(value: string) {
   return value
@@ -998,17 +1022,35 @@ export async function getOrganizerGalleryItem(
 
 export async function createOrganizerGalleryItem(
   input: {
-    imageUrl: string;
+    imageUrl?: string;
     caption?: string;
     altText?: string;
     displayOrder?: number;
+    imageFile?: File | null;
   },
 ) {
+  const body = hasFile(input.imageFile)
+    ? (() => {
+        const formData = new FormData();
+        appendDefinedFormValue(formData, "imageUrl", input.imageUrl);
+        appendDefinedFormValue(formData, "caption", input.caption);
+        appendDefinedFormValue(formData, "altText", input.altText);
+        appendDefinedFormValue(formData, "displayOrder", input.displayOrder);
+        formData.append("image", input.imageFile);
+        return formData;
+      })()
+    : JSON.stringify({
+        imageUrl: input.imageUrl,
+        caption: input.caption,
+        altText: input.altText,
+        displayOrder: input.displayOrder,
+      });
+
   const response = await apiFetch<{
     galleryItem: ApiGalleryItem;
   }>(`/organizer/dashboard/gallery`, {
     method: "POST",
-    body: JSON.stringify(input),
+    body,
     auth: true,
   });
 
@@ -1022,13 +1064,31 @@ export async function updateOrganizerGalleryItem(
     caption: string;
     altText: string;
     displayOrder: number;
+    imageFile: File | null;
   }>,
 ) {
+  const body = hasFile(input.imageFile)
+    ? (() => {
+        const formData = new FormData();
+        appendDefinedFormValue(formData, "imageUrl", input.imageUrl);
+        appendDefinedFormValue(formData, "caption", input.caption);
+        appendDefinedFormValue(formData, "altText", input.altText);
+        appendDefinedFormValue(formData, "displayOrder", input.displayOrder);
+        formData.append("image", input.imageFile);
+        return formData;
+      })()
+    : JSON.stringify({
+        imageUrl: input.imageUrl,
+        caption: input.caption,
+        altText: input.altText,
+        displayOrder: input.displayOrder,
+      });
+
   const response = await apiFetch<{
     galleryItem: ApiGalleryItem;
   }>(`/organizer/dashboard/gallery/${galleryItemId}`, {
     method: "PATCH",
-    body: JSON.stringify(input),
+    body,
     auth: true,
   });
 
@@ -1063,13 +1123,49 @@ export async function updateOrganizerProfile(
       accountNumber?: string;
       accountName?: string;
     };
+    logoFile: File | null;
+    bannerFile: File | null;
   }>,
 ) {
+  const body = hasFile(input.logoFile) || hasFile(input.bannerFile)
+    ? (() => {
+        const formData = new FormData();
+        appendDefinedFormValue(formData, "logoUrl", input.logoUrl);
+        appendDefinedFormValue(formData, "bannerUrl", input.bannerUrl);
+        appendDefinedFormValue(formData, "heroTitle", input.heroTitle);
+        appendDefinedFormValue(formData, "heroSubtitle", input.heroSubtitle);
+        appendDefinedFormValue(formData, "about", input.about);
+        appendDefinedFormValue(formData, "contactEmail", input.contactEmail);
+        appendDefinedFormValue(formData, "contactPhone", input.contactPhone);
+        appendDefinedFormValue(formData, "location", input.location);
+        if (input.bankDetails) {
+          formData.append("bankDetails", JSON.stringify(input.bankDetails));
+        }
+        if (hasFile(input.logoFile)) {
+          formData.append("logo", input.logoFile);
+        }
+        if (hasFile(input.bannerFile)) {
+          formData.append("banner", input.bannerFile);
+        }
+        return formData;
+      })()
+    : JSON.stringify({
+        logoUrl: input.logoUrl,
+        bannerUrl: input.bannerUrl,
+        heroTitle: input.heroTitle,
+        heroSubtitle: input.heroSubtitle,
+        about: input.about,
+        contactEmail: input.contactEmail,
+        contactPhone: input.contactPhone,
+        location: input.location,
+        bankDetails: input.bankDetails,
+      });
+
   const response = await apiFetch<{
     organizer: ApiOrganizer;
   }>(`/organizer/dashboard/profile`, {
     method: "PATCH",
-    body: JSON.stringify(input),
+    body,
     auth: true,
   });
 
@@ -1093,6 +1189,7 @@ export async function loginDashboardUser(input: {
   email: string;
   password: string;
   deviceName?: string;
+  rememberMe?: boolean;
 }) {
   let response: Response;
 
@@ -1105,9 +1202,7 @@ export async function loginDashboardUser(input: {
       body: JSON.stringify(input),
     });
   } catch {
-    throw new Error(
-      "We could not reach the server. Please confirm the API URL and that the backend is online.",
-    );
+    throw new Error(NETWORK_ERROR_MESSAGE);
   }
 
   const payload = await parseJsonResponse<ApiAuthResponse & {
@@ -1117,7 +1212,9 @@ export async function loginDashboardUser(input: {
   }>(response);
 
   if (!response.ok || !payload || !("token" in payload)) {
-    throw new Error(getApiErrorMessage(payload, "Unable to sign in."));
+    throw new Error(
+      getApiErrorMessage(payload, "We couldn't sign you in. Check your details and try again."),
+    );
   }
 
   return payload;
@@ -1127,6 +1224,7 @@ export async function loginAdminUser(input: {
   email: string;
   password: string;
   deviceName?: string;
+  rememberMe?: boolean;
 }) {
   let response: Response;
 
@@ -1139,9 +1237,7 @@ export async function loginAdminUser(input: {
       body: JSON.stringify(input),
     });
   } catch {
-    throw new Error(
-      "We could not reach the server. Please confirm the API URL and that the backend is online.",
-    );
+    throw new Error(NETWORK_ERROR_MESSAGE);
   }
 
   const payload = await parseJsonResponse<ApiAdminAuthResponse & {
@@ -1151,7 +1247,9 @@ export async function loginAdminUser(input: {
   }>(response);
 
   if (!response.ok || !payload || !("token" in payload)) {
-    throw new Error(getApiErrorMessage(payload, "Unable to sign in."));
+    throw new Error(
+      getApiErrorMessage(payload, "We couldn't sign you in. Check your details and try again."),
+    );
   }
 
   return payload;
@@ -1216,12 +1314,53 @@ export async function submitOrganizerRequest(input: {
     accountNumber?: string;
     accountName?: string;
   };
+  logoFile?: File | null;
+  bannerFile?: File | null;
 }) {
+  const hasMultipartFiles = hasFile(input.logoFile) || hasFile(input.bannerFile);
+  const body = hasMultipartFiles
+    ? (() => {
+        const formData = new FormData();
+        appendDefinedFormValue(formData, "name", input.name);
+        appendDefinedFormValue(formData, "email", input.email);
+        appendDefinedFormValue(formData, "phone", input.phone);
+        appendDefinedFormValue(formData, "about", input.about);
+        appendDefinedFormValue(formData, "location", input.location);
+        appendDefinedFormValue(formData, "preferredSlug", input.preferredSlug);
+        appendDefinedFormValue(formData, "logoUrl", input.logoUrl);
+        appendDefinedFormValue(formData, "bannerUrl", input.bannerUrl);
+        appendDefinedFormValue(formData, "heroTitle", input.heroTitle);
+        appendDefinedFormValue(formData, "heroSubtitle", input.heroSubtitle);
+        if (input.bankDetails) {
+          formData.append("bankDetails", JSON.stringify(input.bankDetails));
+        }
+        if (hasFile(input.logoFile)) {
+          formData.append("logo", input.logoFile);
+        }
+        if (hasFile(input.bannerFile)) {
+          formData.append("banner", input.bannerFile);
+        }
+        return formData;
+      })()
+    : JSON.stringify({
+        name: input.name,
+        email: input.email,
+        phone: input.phone,
+        about: input.about,
+        location: input.location,
+        preferredSlug: input.preferredSlug,
+        logoUrl: input.logoUrl,
+        bannerUrl: input.bannerUrl,
+        heroTitle: input.heroTitle,
+        heroSubtitle: input.heroSubtitle,
+        bankDetails: input.bankDetails,
+      });
+
   const response = await apiFetch<{
     request: ApiOrganizerRequestRecord;
   }>(`/organizer-requests`, {
     method: "POST",
-    body: JSON.stringify(input),
+    body,
   });
 
   return mapOrganizerRequest(response.data.request);
@@ -1580,6 +1719,34 @@ export async function syncAdminSettlements() {
   return response.data;
 }
 
+export async function getAdminPlatformFeeSettings() {
+  const response = await apiFetch<{
+    settings: ApiPlatformFeeSettings;
+  }>(`/admin/settings/platform-fee`, {
+    auth: "admin",
+  });
+
+  return response.data.settings;
+}
+
+export async function updateAdminPlatformFeeSettings(
+  input: Partial<{
+    flatFeeBelowThreshold: number;
+    thresholdAmount: number;
+    percentAboveThreshold: number;
+  }>,
+) {
+  const response = await apiFetch<{
+    settings: ApiPlatformFeeSettings;
+  }>(`/admin/settings/platform-fee`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+    auth: "admin",
+  });
+
+  return response.data.settings;
+}
+
 export async function getAdminOrganizerOverallSettlementSummary(
   organizerId: string,
   page = 1,
@@ -1803,8 +1970,8 @@ export async function createAdminDashboardUser(input: {
 
 export async function createAdminOrganizer(input: {
   name: string;
-  logoUrl: string;
-  bannerUrl: string;
+  logoUrl?: string;
+  bannerUrl?: string;
   heroTitle: string;
   heroSubtitle: string;
   about: string;
@@ -1817,12 +1984,58 @@ export async function createAdminOrganizer(input: {
     accountNumber?: string;
     accountName?: string;
   };
+  platformFeeOverride?: Partial<ApiOrganizerPlatformFee["effective"]> | null;
+  logoFile?: File | null;
+  bannerFile?: File | null;
 }) {
+  const body = hasFile(input.logoFile) || hasFile(input.bannerFile)
+    ? (() => {
+        const formData = new FormData();
+        appendDefinedFormValue(formData, "name", input.name);
+        appendDefinedFormValue(formData, "logoUrl", input.logoUrl);
+        appendDefinedFormValue(formData, "bannerUrl", input.bannerUrl);
+        appendDefinedFormValue(formData, "heroTitle", input.heroTitle);
+        appendDefinedFormValue(formData, "heroSubtitle", input.heroSubtitle);
+        appendDefinedFormValue(formData, "about", input.about);
+        appendDefinedFormValue(formData, "contactEmail", input.contactEmail);
+        appendDefinedFormValue(formData, "contactPhone", input.contactPhone);
+        appendDefinedFormValue(formData, "location", input.location);
+        if (input.bankDetails) {
+          formData.append("bankDetails", JSON.stringify(input.bankDetails));
+        }
+        if ("platformFeeOverride" in input) {
+          formData.append(
+            "platformFeeOverride",
+            JSON.stringify(input.platformFeeOverride),
+          );
+        }
+        if (hasFile(input.logoFile)) {
+          formData.append("logo", input.logoFile);
+        }
+        if (hasFile(input.bannerFile)) {
+          formData.append("banner", input.bannerFile);
+        }
+        return formData;
+      })()
+    : JSON.stringify({
+        name: input.name,
+        logoUrl: input.logoUrl,
+        bannerUrl: input.bannerUrl,
+        heroTitle: input.heroTitle,
+        heroSubtitle: input.heroSubtitle,
+        about: input.about,
+        contactEmail: input.contactEmail,
+        contactPhone: input.contactPhone,
+        location: input.location,
+        bankDetails: input.bankDetails,
+        platformFeeOverride: input.platformFeeOverride,
+      });
+
   const response = await apiFetch<{
     organizer: ApiOrganizer;
   }>(`/admin/organizers`, {
     method: "POST",
-    body: JSON.stringify(input),
+    body,
     auth: "admin",
   });
 
@@ -1847,13 +2060,59 @@ export async function updateAdminOrganizer(
       accountNumber?: string;
       accountName?: string;
     };
+    platformFeeOverride: Partial<ApiOrganizerPlatformFee["effective"]> | null;
+    logoFile: File | null;
+    bannerFile: File | null;
   }>,
 ) {
+  const body = hasFile(input.logoFile) || hasFile(input.bannerFile)
+    ? (() => {
+        const formData = new FormData();
+        appendDefinedFormValue(formData, "name", input.name);
+        appendDefinedFormValue(formData, "logoUrl", input.logoUrl);
+        appendDefinedFormValue(formData, "bannerUrl", input.bannerUrl);
+        appendDefinedFormValue(formData, "heroTitle", input.heroTitle);
+        appendDefinedFormValue(formData, "heroSubtitle", input.heroSubtitle);
+        appendDefinedFormValue(formData, "about", input.about);
+        appendDefinedFormValue(formData, "contactEmail", input.contactEmail);
+        appendDefinedFormValue(formData, "contactPhone", input.contactPhone);
+        appendDefinedFormValue(formData, "location", input.location);
+        if (input.bankDetails) {
+          formData.append("bankDetails", JSON.stringify(input.bankDetails));
+        }
+        if ("platformFeeOverride" in input) {
+          formData.append(
+            "platformFeeOverride",
+            JSON.stringify(input.platformFeeOverride),
+          );
+        }
+        if (hasFile(input.logoFile)) {
+          formData.append("logo", input.logoFile);
+        }
+        if (hasFile(input.bannerFile)) {
+          formData.append("banner", input.bannerFile);
+        }
+        return formData;
+      })()
+    : JSON.stringify({
+        name: input.name,
+        logoUrl: input.logoUrl,
+        bannerUrl: input.bannerUrl,
+        heroTitle: input.heroTitle,
+        heroSubtitle: input.heroSubtitle,
+        about: input.about,
+        contactEmail: input.contactEmail,
+        contactPhone: input.contactPhone,
+        location: input.location,
+        bankDetails: input.bankDetails,
+        platformFeeOverride: input.platformFeeOverride,
+      });
+
   const response = await apiFetch<{
     organizer: ApiOrganizer;
   }>(`/admin/organizers/${organizerId}`, {
     method: "PATCH",
-    body: JSON.stringify(input),
+    body,
     auth: "admin",
   });
 
@@ -1872,13 +2131,31 @@ export async function updateAdminOrganizerGalleryItem(
     caption: string;
     altText: string;
     displayOrder: number;
+    imageFile: File | null;
   }>,
 ) {
+  const body = hasFile(input.imageFile)
+    ? (() => {
+        const formData = new FormData();
+        appendDefinedFormValue(formData, "imageUrl", input.imageUrl);
+        appendDefinedFormValue(formData, "caption", input.caption);
+        appendDefinedFormValue(formData, "altText", input.altText);
+        appendDefinedFormValue(formData, "displayOrder", input.displayOrder);
+        formData.append("image", input.imageFile);
+        return formData;
+      })()
+    : JSON.stringify({
+        imageUrl: input.imageUrl,
+        caption: input.caption,
+        altText: input.altText,
+        displayOrder: input.displayOrder,
+      });
+
   const response = await apiFetch<{
     galleryItem: ApiGalleryItem;
   }>(`/admin/organizers/${organizerId}/gallery/${galleryItemId}`, {
     method: "PATCH",
-    body: JSON.stringify(input),
+    body,
     auth: "admin",
   });
 
@@ -1895,13 +2172,37 @@ export async function updateAdminEvent(
     posterUrl: string;
     dressCode: string;
     policies: string;
+    posterFile: File | null;
   }>,
 ) {
+  const body = hasFile(input.posterFile)
+    ? (() => {
+        const formData = new FormData();
+        appendDefinedFormValue(formData, "title", input.title);
+        appendDefinedFormValue(formData, "description", input.description);
+        appendDefinedFormValue(formData, "date", input.date);
+        appendDefinedFormValue(formData, "location", input.location);
+        appendDefinedFormValue(formData, "posterUrl", input.posterUrl);
+        appendDefinedFormValue(formData, "dressCode", input.dressCode);
+        appendDefinedFormValue(formData, "policies", input.policies);
+        formData.append("poster", input.posterFile);
+        return formData;
+      })()
+    : JSON.stringify({
+        title: input.title,
+        description: input.description,
+        date: input.date,
+        location: input.location,
+        posterUrl: input.posterUrl,
+        dressCode: input.dressCode,
+        policies: input.policies,
+      });
+
   const response = await apiFetch<{
     event: ApiEvent;
   }>(`/admin/events/${eventId}`, {
     method: "PATCH",
-    body: JSON.stringify(input),
+    body,
     auth: "admin",
   });
 
@@ -2013,15 +2314,39 @@ export async function createOrganizerDashboardEvent(input: {
   description: string;
   date: string;
   location: string;
-  posterUrl: string;
+  posterUrl?: string;
   dressCode?: string;
   policies?: string;
+  posterFile?: File | null;
 }) {
+  const body = hasFile(input.posterFile)
+    ? (() => {
+        const formData = new FormData();
+        appendDefinedFormValue(formData, "title", input.title);
+        appendDefinedFormValue(formData, "description", input.description);
+        appendDefinedFormValue(formData, "date", input.date);
+        appendDefinedFormValue(formData, "location", input.location);
+        appendDefinedFormValue(formData, "posterUrl", input.posterUrl);
+        appendDefinedFormValue(formData, "dressCode", input.dressCode);
+        appendDefinedFormValue(formData, "policies", input.policies);
+        formData.append("poster", input.posterFile);
+        return formData;
+      })()
+    : JSON.stringify({
+        title: input.title,
+        description: input.description,
+        date: input.date,
+        location: input.location,
+        posterUrl: input.posterUrl,
+        dressCode: input.dressCode,
+        policies: input.policies,
+      });
+
   const response = await apiFetch<{
     event: ApiEvent;
   }>(`/organizer/dashboard/events`, {
     method: "POST",
-    body: JSON.stringify(input),
+    body,
     auth: true,
   });
 
@@ -2038,13 +2363,37 @@ export async function updateOrganizerDashboardEvent(
     posterUrl: string;
     dressCode: string;
     policies: string;
+    posterFile: File | null;
   }>,
 ) {
+  const body = hasFile(input.posterFile)
+    ? (() => {
+        const formData = new FormData();
+        appendDefinedFormValue(formData, "title", input.title);
+        appendDefinedFormValue(formData, "description", input.description);
+        appendDefinedFormValue(formData, "date", input.date);
+        appendDefinedFormValue(formData, "location", input.location);
+        appendDefinedFormValue(formData, "posterUrl", input.posterUrl);
+        appendDefinedFormValue(formData, "dressCode", input.dressCode);
+        appendDefinedFormValue(formData, "policies", input.policies);
+        formData.append("poster", input.posterFile);
+        return formData;
+      })()
+    : JSON.stringify({
+        title: input.title,
+        description: input.description,
+        date: input.date,
+        location: input.location,
+        posterUrl: input.posterUrl,
+        dressCode: input.dressCode,
+        policies: input.policies,
+      });
+
   const response = await apiFetch<{
     event: ApiEvent;
   }>(`/organizer/dashboard/events/${eventId}`, {
     method: "PATCH",
-    body: JSON.stringify(input),
+    body,
     auth: true,
   });
 

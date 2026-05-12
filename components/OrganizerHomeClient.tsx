@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   LuArrowUpRight,
@@ -50,10 +51,15 @@ function OrganizerLandingEmptyState({
 }
 
 function OrganizerHomeClient({ organizer }: { organizer: string }) {
+  const [logoImageFailed, setLogoImageFailed] = useState(false);
   const { data, isLoading, error } = useQuery({
     queryKey: ["organizer-overview", organizer],
     queryFn: () => getOrganizerOverview(organizer),
   });
+
+  useEffect(() => {
+    setLogoImageFailed(false);
+  }, [data?.logo]);
 
   if (isLoading) {
     return (
@@ -97,7 +103,7 @@ function OrganizerHomeClient({ organizer }: { organizer: string }) {
           <div className="lg:col-span-7">
             <div className="flex items-center gap-4">
               <div className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border border-purple-200/70 bg-white text-2xl font-bold text-slate-900 shadow-sm dark:border-white/10 dark:bg-white/5 dark:text-white">
-                {isProbablyUrl(data.logo) ? (
+                {isProbablyUrl(data.logo) && !logoImageFailed ? (
                   <Image
                     src={data.logo}
                     alt={`${data.name} logo`}
@@ -105,9 +111,16 @@ function OrganizerHomeClient({ organizer }: { organizer: string }) {
                     className="object-cover"
                     sizes="64px"
                     priority
+                    unoptimized
+                    onError={() => setLogoImageFailed(true)}
                   />
                 ) : (
-                  <span aria-hidden>{data.logo}</span>
+                  <span
+                    aria-hidden
+                    className="flex h-full w-full items-center justify-center rounded-2xl bg-purple-100 text-purple-700 dark:bg-white/10 dark:text-purple-300"
+                  >
+                    {data.name.trim().charAt(0).toUpperCase() || "O"}
+                  </span>
                 )}
               </div>
 

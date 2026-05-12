@@ -15,21 +15,55 @@ function emitAuthChange() {
   window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
 }
 
-export function getAuthToken() {
+function readStorageValue(key: string) {
   if (typeof window === "undefined") return "";
-  return localStorage.getItem(TOKEN_KEY) || "";
+  try {
+    return sessionStorage.getItem(key) || localStorage.getItem(key) || "";
+  } catch {
+    return localStorage.getItem(key) || "";
+  }
 }
 
-export function setAuthToken(token: string) {
+function writeStorageValue(key: string, value: string, persist: boolean) {
   if (typeof window === "undefined") return;
-  localStorage.setItem(TOKEN_KEY, token);
+  try {
+    if (persist) {
+      localStorage.setItem(key, value);
+      sessionStorage.removeItem(key);
+    } else {
+      sessionStorage.setItem(key, value);
+      localStorage.removeItem(key);
+    }
+  } catch {
+    localStorage.setItem(key, value);
+  }
+}
+
+function removeStorageValue(key: string) {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.removeItem(key);
+  } catch {
+    // ignore
+  }
+  localStorage.removeItem(key);
+}
+
+export function getAuthToken() {
+  if (typeof window === "undefined") return "";
+  return readStorageValue(TOKEN_KEY);
+}
+
+export function setAuthToken(token: string, options?: { persist?: boolean }) {
+  if (typeof window === "undefined") return;
+  writeStorageValue(TOKEN_KEY, token, options?.persist ?? true);
   emitAuthChange();
 }
 
 export function getAuthUser(): AuthUser | null {
   if (typeof window === "undefined") return null;
 
-  const raw = localStorage.getItem(USER_KEY);
+  const raw = readStorageValue(USER_KEY);
   if (!raw) return null;
 
   try {
@@ -40,15 +74,17 @@ export function getAuthUser(): AuthUser | null {
   }
 }
 
-export function setAuthUser(user: AuthUser) {
+export function setAuthUser(user: AuthUser, options?: { persist?: boolean }) {
   if (typeof window === "undefined") return;
-  localStorage.setItem(USER_KEY, JSON.stringify(user));
+  const payload = JSON.stringify(user);
+  const persist = options?.persist ?? true;
+  writeStorageValue(USER_KEY, payload, persist);
   emitAuthChange();
 }
 
 export function clearAuthToken() {
   if (typeof window === "undefined") return;
-  localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem(USER_KEY);
+  removeStorageValue(TOKEN_KEY);
+  removeStorageValue(USER_KEY);
   emitAuthChange();
 }

@@ -1,5 +1,8 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useState } from "react";
 import { LuArrowLeft, LuCalendar, LuClock, LuMapPin, LuUser } from "react-icons/lu";
 import { formatCurrency } from "@/helpers/format";
 import type { EventCardProps, TicketType } from "@/helpers/type";
@@ -81,6 +84,11 @@ function TicketCard({
         <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
           {ticket.name}
         </h3>
+        {ticket.description ? (
+          <p className="text-sm text-slate-600 dark:text-slate-300">
+            {ticket.description}
+          </p>
+        ) : null}
       </div>
 
       <p className="mt-2 text-4xl font-bold tracking-tight text-purple-600 dark:text-purple-400">
@@ -168,9 +176,14 @@ function AdminEventDetails({
   },
   organizerSlug = "pulse-events",
 }: Props) {
+  const [showAllTickets, setShowAllTickets] = useState(false);
   const { dateText, timeText } = splitDateAndTime(event.dateTimeText);
   const organizerCheckoutHref = `/${organizerSlug}/events/${event.id}/checkout`;
   const locationText = event.locationText?.trim() || "Location to be announced";
+  const hasExtraTickets = event.ticketTypes.length > 3;
+  const visibleTickets = showAllTickets
+    ? event.ticketTypes
+    : event.ticketTypes.slice(0, 3);
 
   return (
     <main className="bg-purple-100 dark:bg-slate-950/90">
@@ -282,7 +295,7 @@ function AdminEventDetails({
           </h2>
 
           <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-3">
-            {event.ticketTypes.slice(0, 3).map((ticket) => (
+            {visibleTickets.map((ticket) => (
               <TicketCard
                 key={ticket.name}
                 ticket={ticket}
@@ -290,6 +303,18 @@ function AdminEventDetails({
               />
             ))}
           </div>
+
+          {hasExtraTickets ? (
+            <div className="mt-6 flex justify-center">
+              <button
+                type="button"
+                onClick={() => setShowAllTickets((current) => !current)}
+                className="inline-flex h-11 items-center justify-center rounded-xl border border-purple-200 bg-white px-5 text-sm font-semibold text-purple-700 transition hover:bg-purple-50 dark:border-white/10 dark:bg-white/5 dark:text-purple-300 dark:hover:bg-white/10"
+              >
+                {showAllTickets ? "View less" : `View more (${event.ticketTypes.length - 3})`}
+              </button>
+            </div>
+          ) : null}
 
           <div className="mt-10">
             <OrganizerCard organizer={organizer} />

@@ -34,6 +34,7 @@ function createEmptyTicketDraft(index: number): TicketDraft {
 
 function OrganizerCreateEventClient({ organizer }: { organizer: string }) {
   const router = useRouter();
+  const [posterFile, setPosterFile] = useState<File | null>(null);
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -72,6 +73,10 @@ function OrganizerCreateEventClient({ organizer }: { organizer: string }) {
         throw new Error("Add at least one ticket type before creating the event.");
       }
 
+      if (!posterFile && !form.posterUrl.trim()) {
+        throw new Error("Add an event poster by upload or poster URL before creating the event.");
+      }
+
       for (const ticket of validTicketTypes) {
         if (!ticket.name.trim()) {
           throw new Error("Each ticket type needs a name.");
@@ -91,7 +96,8 @@ function OrganizerCreateEventClient({ organizer }: { organizer: string }) {
         description: form.description.trim(),
         date: new Date(form.date).toISOString(),
         location: form.location.trim(),
-        posterUrl: form.posterUrl.trim(),
+        posterUrl: form.posterUrl.trim() || undefined,
+        posterFile,
         dressCode: form.dressCode.trim() || undefined,
         policies: form.policies.trim() || undefined,
       });
@@ -241,10 +247,23 @@ function OrganizerCreateEventClient({ organizer }: { organizer: string }) {
 
                 <div className="space-y-2 md:col-span-2">
                   <label className="block text-sm font-semibold text-slate-900 dark:text-white">
-                    Poster URL
+                    Poster Upload
                   </label>
                   <input
-                    required
+                    type="file"
+                    accept="image/*"
+                    onChange={(event) =>
+                      setPosterFile(event.target.files?.[0] ?? null)
+                    }
+                    className={inputStyles}
+                  />
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <label className="block text-sm font-semibold text-slate-900 dark:text-white">
+                    Poster URL Fallback
+                  </label>
+                  <input
                     type="url"
                     value={form.posterUrl}
                     onChange={(event) => updateField("posterUrl", event.target.value)}

@@ -8,6 +8,7 @@ import {
   LuBuilding2,
   LuCalendarDays,
   LuCreditCard,
+  LuSettings2,
   LuTicket,
   LuTrendingUp,
   LuUsers,
@@ -15,14 +16,29 @@ import {
 import { useQuery } from "@tanstack/react-query";
 
 import Card from "@/components/Card";
-import DashboardHeader from "@/components/DashboardHeader";
 import DashboardStatsGrid from "@/components/DashboardStatsGrid";
 import FullPageLoader from "@/components/FullPageLoader";
 import { clearAdminAuthToken, setAdminAuthUser } from "@/helpers/admin-auth";
 import { useAdminAuthSession } from "@/helpers/admin-auth-client";
 import { isAuthIssue } from "@/helpers/auth-redirect";
 import { formatCurrency } from "@/helpers/format";
-import { getAdminAnalytics, getAdminProfile } from "@/helpers/organizer-api";
+import {
+  getAdminAnalytics,
+  getAdminPlatformFeeSettings,
+  getAdminProfile,
+} from "@/helpers/organizer-api";
+
+function formatDateTime(value?: string | null) {
+  if (!value) return "Not updated yet";
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "Not updated yet";
+
+  return parsed.toLocaleString("en-NG", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
 
 function InsightCard({
   label,
@@ -66,6 +82,13 @@ function AdminDashboardClient() {
     retry: false,
   });
 
+  const platformFeeSettingsQuery = useQuery({
+    queryKey: ["admin-platform-fee-settings"],
+    queryFn: getAdminPlatformFeeSettings,
+    enabled: Boolean(token) && Boolean(profileQuery.data?.admin),
+    retry: false,
+  });
+
   useEffect(() => {
     if (!token) {
       router.replace("/admin/login?next=/dashboard/admin&reason=auth-required");
@@ -94,7 +117,12 @@ function AdminDashboardClient() {
     );
   }
 
-  if (profileQuery.isLoading || profileQuery.isFetching || analyticsQuery.isLoading) {
+  if (
+    profileQuery.isLoading ||
+    profileQuery.isFetching ||
+    analyticsQuery.isLoading ||
+    platformFeeSettingsQuery.isLoading
+  ) {
     return (
       <FullPageLoader
         title="Opening admin dashboard"
@@ -103,10 +131,18 @@ function AdminDashboardClient() {
     );
   }
 
-  if (profileQuery.error || analyticsQuery.error || !profileQuery.data?.admin || !analyticsQuery.data) {
+  if (
+    profileQuery.error ||
+    analyticsQuery.error ||
+    platformFeeSettingsQuery.error ||
+    !profileQuery.data?.admin ||
+    !analyticsQuery.data
+  ) {
     const message =
       profileQuery.error instanceof Error
         ? profileQuery.error.message
+        : platformFeeSettingsQuery.error instanceof Error
+          ? platformFeeSettingsQuery.error.message
         : analyticsQuery.error instanceof Error
           ? analyticsQuery.error.message
           : "We couldn't load the admin dashboard right now.";
@@ -143,6 +179,7 @@ function AdminDashboardClient() {
     0,
     analytics.tickets.totalIssued - analytics.tickets.totalCheckedIn,
   );
+  const platformFeeSettings = platformFeeSettingsQuery.data;
 
   const stats = [
     {
@@ -169,12 +206,7 @@ function AdminDashboardClient() {
 
   return (
     <main className="min-h-screen bg-purple-100 dark:bg-slate-950/90">
-      <DashboardHeader
-        role="admin"
-        email={profileQuery.data.admin.email || user?.email || "Platform workspace"}
-      />
-
-      <section className="border-b border-purple-200/70 bg-white/80 pt-28 pb-12 dark:border-white/10 dark:bg-slate-950/90">
+      <section className="border-b border-purple-200/70 bg-white/80 pt-10 pb-12 dark:border-white/10 dark:bg-slate-950/90">
         <div className="mx-auto max-w-7xl px-6">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
@@ -208,12 +240,6 @@ function AdminDashboardClient() {
                 className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
               >
                 Create Organizer
-              </Link>
-              <Link
-                href="/dashboard/admin/organizer-requests"
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
-              >
-                Review Requests
               </Link>
             </div>
           </div>
@@ -313,6 +339,92 @@ function AdminDashboardClient() {
           </div>
 
           <div className="mt-8 grid gap-8 lg:grid-cols-3">
+            <Card className="border-slate-200/80 bg-white/90 dark:border-white/10 dark:bg-white/5 lg:col-span-3">
+              <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                <div className="max-w-2xl">
+                  <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
+                    <LuSettings2 className="text-xl" />
+                  </div>
+                  <h3 className="mt-5 text-xl font-bold text-slate-950 dark:text-white">
+                    Platform fee settings
+                  </h3>
+                  <p className="mt-3 text-sm leading-7 text-slate-600 dark:text-slate-300">
+                    Control the flat fee, threshold amount, and percentage used for new ticket purchases. Existing orders are not recalculated.
+                  </p>
+                  {platformFeeSettings ? (
+                    <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-4 dark:border-white/10 dark:bg-white/[0.04]">
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                          Flat below threshold
+                        </p>
+                        <p className="mt-2 text-lg font-bold text-slate-950 dark:text-white">
+                          {formatCurrency(platformFeeSettings.flatFeeBelowThreshold)}
+                        </p>
+                      </div>
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-4 dark:border-white/10 dark:bg-white/[0.04]">
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                          Threshold amount
+                        </p>
+                        <p className="mt-2 text-lg font-bold text-slate-950 dark:text-white">
+                          {formatCurrency(platformFeeSettings.thresholdAmount)}
+                        </p>
+                      </div>
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-4 dark:border-white/10 dark:bg-white/[0.04]">
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                          Percent above threshold
+                        </p>
+                        <p className="mt-2 text-lg font-bold text-slate-950 dark:text-white">
+                          {(platformFeeSettings.percentAboveThreshold * 100).toFixed(2)}%
+                        </p>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="w-full max-w-xl space-y-4 rounded-3xl border border-slate-200 bg-slate-50/90 p-5 dark:border-white/10 dark:bg-white/[0.04]">
+                  <p className="text-sm leading-7 text-slate-600 dark:text-slate-300">
+                    Global platform-fee settings are now the fallback only. Custom platform rates should be managed inside each organizer&apos;s admin page.
+                  </p>
+
+                  {platformFeeSettings ? (
+                    <>
+                      <div className="grid gap-4 sm:grid-cols-3">
+                        <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-slate-900/60">
+                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                            Default flat fee
+                          </p>
+                          <p className="mt-2 text-lg font-bold text-slate-950 dark:text-white">
+                            {formatCurrency(platformFeeSettings.flatFeeBelowThreshold)}
+                          </p>
+                        </div>
+                        <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-slate-900/60">
+                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                            Default threshold
+                          </p>
+                          <p className="mt-2 text-lg font-bold text-slate-950 dark:text-white">
+                            {formatCurrency(platformFeeSettings.thresholdAmount)}
+                          </p>
+                        </div>
+                        <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-slate-900/60">
+                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                            Default rate
+                          </p>
+                          <p className="mt-2 text-lg font-bold text-slate-950 dark:text-white">
+                            {(platformFeeSettings.percentAboveThreshold * 100).toFixed(2)}%
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-xs text-slate-600 dark:border-white/10 dark:bg-slate-900/60 dark:text-slate-300">
+                        <p>Last updated: {formatDateTime(platformFeeSettings.updatedAt)}</p>
+                        <p>These values apply only when an organizer has no custom override.</p>
+                      </div>
+                    </>
+                  ) : null}
+                </div>
+              </div>
+            </Card>
+
             <Card className="border-slate-200/80 bg-white/90 dark:border-white/10 dark:bg-white/5">
               <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300">
                 <LuBuilding2 className="text-xl" />
@@ -362,13 +474,6 @@ function AdminDashboardClient() {
                 Create new organizers and dashboard users directly from admin territory, then continue into the operations pages for monitoring and drilldown.
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
-                <Link
-                  href="/dashboard/admin/organizer-requests"
-                  className="inline-flex items-center gap-2 text-sm font-semibold text-purple-700 transition hover:text-purple-800 dark:text-purple-300 dark:hover:text-purple-200"
-                >
-                  Review requests
-                  <LuArrowUpRight className="text-base" />
-                </Link>
                 <Link
                   href="/dashboard/admin/organizers/create"
                   className="inline-flex items-center gap-2 text-sm font-semibold text-purple-700 transition hover:text-purple-800 dark:text-purple-300 dark:hover:text-purple-200"

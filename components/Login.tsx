@@ -1,9 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FiEye, FiEyeOff } from "react-icons/fi";
-import { setAuthToken, setAuthUser } from "@/helpers/auth";
+import { clearAuthToken, setAuthToken, setAuthUser } from "@/helpers/auth";
+import { useAuthSession } from "@/helpers/auth-client";
+import { resolveUrl } from "@/helpers/api";
+import { isJwtExpired } from "@/helpers/jwt";
 import { loginDashboardUser } from "@/helpers/organizer-api";
 
 interface Props {
@@ -14,11 +17,59 @@ interface Props {
 function Login(props: Props) {
   const { redirectTo, notice } = props;
   const router = useRouter();
+  const { token, user } = useAuthSession();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!token || !user) return;
+
+    if (isJwtExpired(token)) {
+      clearAuthToken();
+      return;
+    }
+
+    const fallbackRoute =
+      user.role === "staff"
+        ? `/${user.organizerSlug}/staff`
+        : `/${user.organizerSlug}/dashboard`;
+
+    let cancelled = false;
+
+    async function maybeValidateThenRedirect() {
+      try {
+        const response = await fetch(resolveUrl("/organizer/dashboard/profile"), {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          cache: "no-store",
+        });
+
+        if (cancelled) return;
+
+        if (response.status === 401) {
+          clearAuthToken();
+          return;
+        }
+
+        router.replace(redirectTo || fallbackRoute);
+      } catch {
+        if (cancelled) return;
+        router.replace(redirectTo || fallbackRoute);
+      }
+    }
+
+    void maybeValidateThenRedirect();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [redirectTo, router, token, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,9 +85,10 @@ function Login(props: Props) {
         email,
         password,
         deviceName: resolvedDeviceName,
+        rememberMe,
       });
-      setAuthToken(response.token);
-      setAuthUser(response.data.user);
+      setAuthToken(response.token, { persist: rememberMe });
+      setAuthUser(response.data.user, { persist: rememberMe });
 
       const fallbackRoute =
         response.data.user.role === "staff"
@@ -48,7 +100,7 @@ function Login(props: Props) {
       setError(
         submitError instanceof Error
           ? submitError.message
-          : "Unable to sign in.",
+          : "We couldn't sign you in. Please try again.",
       );
     } finally {
       setIsSubmitting(false);
@@ -125,6 +177,16 @@ function Login(props: Props) {
                 </button>
               </div>
             </div>
+
+            <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(event) => setRememberMe(event.target.checked)}
+                className="h-4 w-4 rounded border-purple-200 text-purple-600 focus:ring-purple-600/30 dark:border-white/20 dark:bg-slate-900"
+              />
+              Remember me
+            </label>
 
             {error ? (
               <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-200">
