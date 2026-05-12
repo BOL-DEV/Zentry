@@ -241,12 +241,6 @@ function AdminDashboardClient() {
               >
                 Create Organizer
               </Link>
-              <Link
-                href="/dashboard/admin/organizer-requests"
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
-              >
-                Review Requests
-              </Link>
             </div>
           </div>
         </div>
@@ -480,13 +474,6 @@ function AdminDashboardClient() {
                 Create new organizers and dashboard users directly from admin territory, then continue into the operations pages for monitoring and drilldown.
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
-                <Link
-                  href="/dashboard/admin/organizer-requests"
-                  className="inline-flex items-center gap-2 text-sm font-semibold text-purple-700 transition hover:text-purple-800 dark:text-purple-300 dark:hover:text-purple-200"
-                >
-                  Review requests
-                  <LuArrowUpRight className="text-base" />
-                </Link>
                 <Link
                   href="/dashboard/admin/organizers/create"
                   className="inline-flex items-center gap-2 text-sm font-semibold text-purple-700 transition hover:text-purple-800 dark:text-purple-300 dark:hover:text-purple-200"

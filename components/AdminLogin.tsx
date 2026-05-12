@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 
 import { setAdminAuthToken, setAdminAuthUser } from "@/helpers/admin-auth";
+import { useAdminAuthSession } from "@/helpers/admin-auth-client";
 import { loginAdminUser } from "@/helpers/organizer-api";
 
 interface Props {
@@ -16,11 +17,18 @@ interface Props {
 function AdminLogin({ redirectTo, notice }: Props) {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { token } = useAdminAuthSession();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!token) return;
+    router.replace(redirectTo || "/dashboard/admin");
+  }, [redirectTo, router, token]);
 
   const inputStyles =
     "h-12 w-full rounded-lg border border-purple-200 bg-white px-4 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-purple-600 focus:ring-4 focus:ring-purple-600/15 dark:border-white/10 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-500 dark:focus:border-purple-400 dark:focus:ring-purple-400/20";
@@ -45,8 +53,8 @@ function AdminLogin({ redirectTo, notice }: Props) {
       queryClient.removeQueries({ queryKey: ["admin-analytics"] });
       queryClient.removeQueries({ queryKey: ["admin-organizers"] });
       queryClient.removeQueries({ queryKey: ["admin-orders"] });
-      setAdminAuthToken(response.token);
-      setAdminAuthUser(response.data.admin);
+      setAdminAuthToken(response.token, { persist: rememberMe });
+      setAdminAuthUser(response.data.admin, { persist: rememberMe });
       router.replace(redirectTo || "/dashboard/admin");
     } catch (submitError) {
       setError(
@@ -127,6 +135,16 @@ function AdminLogin({ redirectTo, notice }: Props) {
                 </button>
               </div>
             </div>
+
+            <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(event) => setRememberMe(event.target.checked)}
+                className="h-4 w-4 rounded border-purple-200 text-purple-600 focus:ring-purple-600/30 dark:border-white/20 dark:bg-slate-900"
+              />
+              Remember me
+            </label>
 
             {error ? (
               <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-200">
