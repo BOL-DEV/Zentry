@@ -73,10 +73,14 @@ function TicketCard({
 }) {
   const sold = getSoldCount(ticket.remaining, ticket.total);
   const soldPercent = getSoldPercent(ticket.remaining, ticket.total);
+  const isSoldOut = ticket.remaining <= 0;
   const buyHref =
-    buyHrefOverride && ticket.id
+    !isSoldOut && buyHrefOverride && ticket.id
       ? `${buyHrefOverride}?ticketTypeId=${ticket.id}`
-      : buyHrefOverride ?? ticket.buyHref;
+      : !isSoldOut
+        ? buyHrefOverride ?? ticket.buyHref
+        : undefined;
+  const buttonLabel = isSoldOut ? "Sold Out" : ticket.buttonLabel ?? "Buy Ticket";
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm dark:border-white/10 dark:bg-white/5">
@@ -121,7 +125,7 @@ function TicketCard({
             href={buyHref}
             className="flex h-12 w-full items-center justify-center rounded-xl bg-purple-600 px-4 text-sm font-semibold text-white transition hover:bg-purple-700"
           >
-            {ticket.buttonLabel ?? "Buy Ticket"}
+            {buttonLabel}
           </Link>
         ) : (
           <button
@@ -129,7 +133,7 @@ function TicketCard({
             disabled
             className="h-12 w-full cursor-not-allowed rounded-xl bg-purple-600/60 px-4 text-sm font-semibold text-white"
           >
-            {ticket.buttonLabel ?? "Buy Ticket"}
+            {buttonLabel}
           </button>
         )}
       </div>
