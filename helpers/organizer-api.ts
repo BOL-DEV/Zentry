@@ -250,6 +250,12 @@ function mapTicketType(
     typeof ticketType.quantityReserved === "number"
       ? ticketType.quantityReserved
       : 0;
+  const remaining = Math.max(
+    0,
+    ticketType.quantityAvailable -
+      ticketType.quantitySold -
+      quantityReserved,
+  );
 
   return {
     id: ticketType._id,
@@ -257,15 +263,13 @@ function mapTicketType(
     description: ticketType.description || undefined,
     price: ticketType.price,
     sold: ticketType.quantitySold,
-    remaining: Math.max(
-      0,
-      ticketType.quantityAvailable -
-        ticketType.quantitySold -
-        quantityReserved,
-    ),
+    remaining,
     total: ticketType.quantityAvailable,
     isActive: ticketType.isActive,
-    buyHref: buildBuyHref(slug, eventId, ticketType),
+    buyHref:
+      ticketType.isActive && remaining > 0
+        ? buildBuyHref(slug, eventId, ticketType)
+        : undefined,
   };
 }
 

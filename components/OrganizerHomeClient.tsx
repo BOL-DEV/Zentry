@@ -90,6 +90,11 @@ function OrganizerHomeClient({ organizer }: { organizer: string }) {
   const upcomingEvents = data.upcomingEvents
     .filter((event) => event.id !== featuredEvent?.id)
     .slice(0, 3);
+  const featuredEventHasAvailableTickets = featuredEvent
+    ? featuredEvent.ticketTypes.some(
+        (ticket) => ticket.isActive !== false && ticket.remaining > 0,
+      )
+    : false;
   const heroImage = data.bannerUrl || featuredEvent?.imageUrl || data.pastEvents[0]?.imageUrl;
   const joinedDate = data.id ? new Date().getFullYear().toString() : "Recently";
 
@@ -325,12 +330,22 @@ function OrganizerHomeClient({ organizer }: { organizer: string }) {
                 ) : null}
 
                 <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-                  <Link
-                    href={`/${organizer}/events/${featuredEvent.id}/checkout`}
-                    className="inline-flex h-11 items-center justify-center rounded-lg bg-[var(--primary-color)] px-5 text-sm font-semibold text-white transition hover:opacity-90 focus:outline-none focus-visible:ring-4 focus-visible:ring-[var(--primary-color)]/30"
-                  >
-                    Get Tickets
-                  </Link>
+                  {featuredEventHasAvailableTickets ? (
+                    <Link
+                      href={`/${organizer}/events/${featuredEvent.id}/checkout`}
+                      className="inline-flex h-11 items-center justify-center rounded-lg bg-[var(--primary-color)] px-5 text-sm font-semibold text-white transition hover:opacity-90 focus:outline-none focus-visible:ring-4 focus-visible:ring-[var(--primary-color)]/30"
+                    >
+                      Get Tickets
+                    </Link>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled
+                      className="inline-flex h-11 items-center justify-center rounded-lg bg-slate-300 px-5 text-sm font-semibold text-slate-600"
+                    >
+                      Sold Out
+                    </button>
+                  )}
                   <Link
                     href={`/${organizer}/events/${featuredEvent.id}`}
                     className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-purple-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"

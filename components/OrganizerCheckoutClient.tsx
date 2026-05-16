@@ -170,6 +170,9 @@ function OrganizerCheckoutClient({
   }
 
   const event = data.event;
+  const hasAvailableTickets = event.ticketTypes.some(
+    (ticket) => ticket.isActive !== false && ticket.remaining > 0,
+  );
 
   return (
     <main className="min-h-screen bg-purple-100 dark:bg-slate-950/90">
@@ -302,6 +305,9 @@ function OrganizerCheckoutClient({
                     {selectableTicketTypes.map((ticket) => {
                       const disabled =
                         ticket.isActive === false || ticket.maxQuantity < 1;
+                      const availabilityLabel = disabled
+                        ? "Sold Out"
+                        : `${ticket.remaining} available`;
 
                       return (
                         <div
@@ -317,7 +323,7 @@ function OrganizerCheckoutClient({
                                 {formatCurrency(ticket.price)}
                               </p>
                               <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                                {ticket.remaining} available
+                                {availabilityLabel}
                               </p>
                             </div>
 
@@ -363,6 +369,12 @@ function OrganizerCheckoutClient({
                 {formError ? (
                   <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-200">
                     {formError}
+                  </div>
+                ) : null}
+
+                {!hasAvailableTickets ? (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-200">
+                    This event is sold out. Checkout is disabled until tickets become available again.
                   </div>
                 ) : null}
               </form>
@@ -427,12 +439,18 @@ function OrganizerCheckoutClient({
               <button
                 type="submit"
                 form="organizer-checkout-form"
-                disabled={checkoutMutation.isPending || !selectedItems.length}
+                disabled={
+                  checkoutMutation.isPending ||
+                  !selectedItems.length ||
+                  !hasAvailableTickets
+                }
                 className="mt-6 inline-flex h-12 w-full items-center justify-center rounded-xl bg-purple-600 px-4 text-sm font-semibold text-white transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {checkoutMutation.isPending
                   ? "Creating Order..."
-                  : "Continue to Squad Checkout"}
+                  : hasAvailableTickets
+                    ? "Continue to Squad Checkout"
+                    : "Sold Out"}
               </button>
             </Card>
           </section>
