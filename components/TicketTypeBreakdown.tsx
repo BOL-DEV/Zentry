@@ -13,10 +13,11 @@ import {
   createOrganizerDashboardTicketType,
   getOrganizerEventAttendees,
   getOrganizerDashboardTicketTypesForEdit,
+  getOrganizerEventWaitlist,
   updateOrganizerDashboardTicketType,
   updateOrganizerDashboardTicketTypeQuantity,
 } from "@/helpers/organizer-api";
-import type { TicketTypeBreak } from "@/helpers/type";
+import type { ApiWaitlistEntry, TicketTypeBreak } from "@/helpers/type";
 
 interface Props {
   ticketTypes: TicketTypeBreak[];
@@ -44,6 +45,7 @@ function TicketTypeBreakdown(props: Props) {
     | null
   >(null);
   const [editingTicketId, setEditingTicketId] = useState<string | null>(null);
+  const [expandedWaitlistId, setExpandedWaitlistId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({
     name: "",
     description: "",
@@ -58,6 +60,19 @@ function TicketTypeBreakdown(props: Props) {
     queryKey: ["dashboard-event-attendees", eventId],
     queryFn: () => getOrganizerEventAttendees(eventId),
   });
+  const waitlistQuery = useQuery({
+    queryKey: ["dashboard-event-waitlist", eventId],
+    queryFn: () => getOrganizerEventWaitlist(eventId),
+  });
+  const waitlistByTicketTypeId = useMemo(() => {
+    const map = new Map<string, ApiWaitlistEntry[]>();
+    for (const entry of waitlistQuery.data?.entries ?? []) {
+      const existing = map.get(entry.ticketTypeId) ?? [];
+      existing.push(entry);
+      map.set(entry.ticketTypeId, existing);
+    }
+    return map;
+  }, [waitlistQuery.data]);
   const ticketTypesQuery = useQuery({
     queryKey: ["dashboard-event-ticket-types", organizer, eventId],
     queryFn: () => getOrganizerDashboardTicketTypesForEdit(organizer || "", eventId),
@@ -243,6 +258,45 @@ function TicketTypeBreakdown(props: Props) {
                   aria-label={`${t.pct}% sold`}
                 />
               </div>
+
+              {t.remaining <= 0 && (waitlistByTicketTypeId.get(t.id)?.length ?? 0) > 0 ? (
+                <div className="mt-4">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setExpandedWaitlistId((current) =>
+                        current === t.id ? null : t.id,
+                      )
+                    }
+                    className="text-xs font-semibold text-purple-700 hover:text-purple-900 dark:text-purple-300 dark:hover:text-purple-200"
+                  >
+                    Waitlist ({waitlistByTicketTypeId.get(t.id)?.length ?? 0})
+                    {expandedWaitlistId === t.id ? " — Hide" : " — View"}
+                  </button>
+
+                  {expandedWaitlistId === t.id ? (
+                    <div className="mt-2 space-y-2 rounded-xl border border-slate-200 bg-slate-50/70 p-3 dark:border-white/10 dark:bg-white/4">
+                      {waitlistByTicketTypeId.get(t.id)?.map((entry) => (
+                        <div
+                          key={entry._id}
+                          className="flex flex-col gap-0.5 border-b border-slate-200 pb-2 text-xs last:border-0 last:pb-0 dark:border-white/10"
+                        >
+                          <span className="font-semibold text-slate-900 dark:text-white">
+                            {entry.name}
+                          </span>
+                          <span className="text-slate-600 dark:text-slate-300">
+                            {entry.email}
+                            {entry.phone ? ` • ${entry.phone}` : ""}
+                          </span>
+                          <span className="text-slate-500 dark:text-slate-400">
+                            {entry.status === "notified" ? "Notified" : "Waiting"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
 
               {editingTicketId === t.id ? (
                 <form

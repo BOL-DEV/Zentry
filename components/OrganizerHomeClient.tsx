@@ -2,13 +2,16 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   LuArrowUpRight,
   LuCalendar,
+  LuChevronLeft,
+  LuChevronRight,
   LuCircleCheck,
   LuClock,
+  LuImage,
   LuMapPin,
   LuSparkles,
   LuTicket,
@@ -461,44 +464,7 @@ function OrganizerHomeClient({ organizer }: { organizer: string }) {
         </div>
 
         {data.pastEvents.length > 0 ? (
-          <div className="mt-8 flex gap-4 overflow-x-auto pb-2">
-            {data.pastEvents.map((event) => (
-              <div key={event.id} className="min-w-[280px]">
-                <Card className="overflow-hidden p-0">
-                  <Link
-                    href={`/${organizer}/gallery`}
-                    aria-label={`View ${event.title} images`}
-                    className="group block"
-                  >
-                    <div className="relative h-36 w-full">
-                      <Image
-                        src={event.imageUrl}
-                        alt={event.title}
-                        fill
-                        className="object-cover transition group-hover:scale-[1.02]"
-                        sizes="280px"
-                      />
-                      <div className="absolute inset-0 bg-slate-950/0 transition group-hover:bg-slate-950/10" />
-                      <div className="absolute bottom-3 left-3 rounded-lg bg-[var(--primary-color)] px-3 py-1 text-xs font-semibold text-white shadow-sm">
-                        View gallery
-                      </div>
-                    </div>
-                  </Link>
-                  <div className="p-6">
-                    <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-600 dark:text-slate-300">
-                      {event.dateText}
-                    </p>
-                    <p className="mt-3 text-lg font-bold text-slate-900 dark:text-white">
-                      {event.title}
-                    </p>
-                    <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                      {formatNumber(event.ticketsSold)} tickets sold
-                    </p>
-                  </div>
-                </Card>
-              </div>
-            ))}
-          </div>
+          <PastEventsSlider events={data.pastEvents} organizer={organizer} />
         ) : (
           <div className="mt-8">
             <OrganizerLandingEmptyState
@@ -509,6 +475,188 @@ function OrganizerHomeClient({ organizer }: { organizer: string }) {
         )}
       </section>
     </main>
+  );
+}
+
+function PastEventCardItem({
+  event,
+  organizer,
+}: {
+  event: {
+    id: string;
+    title: string;
+    imageUrl: string;
+    dateText: string;
+    ticketsSold: number;
+  };
+  organizer: string;
+}) {
+  const [imageError, setImageError] = useState(false);
+
+  return (
+    <div className="w-[280px] sm:w-[320px] shrink-0 snap-start">
+      <Card className="group h-full overflow-hidden p-0 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl dark:border-white/10 dark:bg-slate-900/60">
+        <Link
+          href={`/${organizer}/gallery`}
+          aria-label={`View ${event.title} images`}
+          className="relative block h-40 w-full overflow-hidden bg-slate-100 dark:bg-slate-800"
+        >
+          {event.imageUrl && !imageError ? (
+            <Image
+              src={event.imageUrl}
+              alt={event.title}
+              fill
+              className="object-cover transition-transform duration-500 group-hover:scale-105"
+              sizes="(max-width: 640px) 280px, 320px"
+              onError={() => setImageError(true)}
+            />
+          ) : (
+            <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-purple-900/30 to-indigo-950/40 text-purple-400 dark:text-purple-300">
+              <LuImage className="text-3xl opacity-70" />
+              <span className="mt-1 text-xs font-medium text-slate-400">
+                {event.title}
+              </span>
+            </div>
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-70 transition-opacity group-hover:opacity-50" />
+          <div className="absolute bottom-3 left-3 flex items-center gap-1.5 rounded-lg bg-[var(--primary-color)]/95 px-3 py-1.5 text-xs font-semibold text-white shadow-md backdrop-blur-xs transition-transform group-hover:scale-105">
+            <span>View gallery</span>
+            <LuArrowUpRight className="text-xs" />
+          </div>
+        </Link>
+        <div className="flex flex-col justify-between p-5">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-purple-700/80 dark:text-purple-300/80">
+              {event.dateText}
+            </p>
+            <h3 className="mt-2.5 text-lg font-bold tracking-tight text-slate-900 transition-colors group-hover:text-[var(--primary-color)] dark:text-white">
+              {event.title}
+            </h3>
+          </div>
+          <p className="mt-3 flex items-center gap-1.5 text-sm font-medium text-slate-600 dark:text-slate-400">
+            <LuTicket className="text-sm text-[var(--primary-color)]" />
+            <span>{formatNumber(event.ticketsSold)} tickets sold</span>
+          </p>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function PastEventsSlider({
+  events,
+  organizer,
+}: {
+  events: {
+    id: string;
+    title: string;
+    imageUrl: string;
+    dateText: string;
+    ticketsSold: number;
+  }[];
+  organizer: string;
+}) {
+  const sliderRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
+
+  const checkScroll = useCallback(() => {
+    const el = sliderRef.current;
+    if (!el) return;
+    const { scrollLeft, scrollWidth, clientWidth } = el;
+    setCanScrollLeft(scrollLeft > 10);
+    setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
+
+    const maxScroll = scrollWidth - clientWidth;
+    if (maxScroll > 0) {
+      setScrollProgress(Math.min(1, Math.max(0, scrollLeft / maxScroll)));
+    } else {
+      setScrollProgress(1);
+    }
+  }, []);
+
+  useEffect(() => {
+    checkScroll();
+    const el = sliderRef.current;
+    if (!el) return;
+    el.addEventListener("scroll", checkScroll, { passive: true });
+    window.addEventListener("resize", checkScroll);
+    return () => {
+      el.removeEventListener("scroll", checkScroll);
+      window.removeEventListener("resize", checkScroll);
+    };
+  }, [checkScroll, events]);
+
+  const handleScroll = (direction: "left" | "right") => {
+    const el = sliderRef.current;
+    if (!el) return;
+    const cardWidth = 340;
+    el.scrollBy({
+      left: direction === "left" ? -cardWidth : cardWidth,
+      behavior: "smooth",
+    });
+  };
+
+  return (
+    <div className="relative mt-8">
+      {/* Scrollable track without native scrollbar */}
+      <div
+        ref={sliderRef}
+        className="no-scrollbar flex gap-5 overflow-x-auto scroll-smooth snap-x snap-mandatory py-2 pb-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        {events.map((event) => (
+          <PastEventCardItem
+            key={event.id}
+            event={event}
+            organizer={organizer}
+          />
+        ))}
+      </div>
+
+      {/* Thoughtful slider control footer */}
+      {events.length > 1 && (
+        <div className="mt-4 flex items-center justify-between gap-4">
+          {/* Visual progress track */}
+          <div className="flex items-center gap-3">
+            <div className="relative h-1.5 w-28 sm:w-44 overflow-hidden rounded-full bg-purple-200/80 dark:bg-white/10">
+              <div
+                className="absolute top-0 bottom-0 rounded-full bg-[var(--primary-color)] transition-all duration-150 ease-out"
+                style={{
+                  width: `${Math.max(20, (1 / Math.max(1, events.length)) * 100)}%`,
+                  left: `${scrollProgress * (100 - Math.max(20, (1 / Math.max(1, events.length)) * 100))}%`,
+                }}
+              />
+            </div>
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+              {events.length} editions
+            </span>
+          </div>
+
+          {/* Navigation Chevron Buttons */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => handleScroll("left")}
+              disabled={!canScrollLeft}
+              aria-label="Previous events"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition-all hover:bg-purple-50 hover:text-[var(--primary-color)] active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
+            >
+              <LuChevronLeft className="text-lg" />
+            </button>
+            <button
+              type="button"
+              onClick={() => handleScroll("right")}
+              disabled={!canScrollRight}
+              aria-label="Next events"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition-all hover:bg-purple-50 hover:text-[var(--primary-color)] active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
+            >
+              <LuChevronRight className="text-lg" />
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
