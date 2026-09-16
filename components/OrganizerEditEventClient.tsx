@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 import Card from "@/components/Card";
 import WorkspaceTopbar from "@/components/WorkspaceTopbar";
+import EventAiCopyAssist from "@/components/EventAiCopyAssist";
 import {
   getOrganizerDashboardEventForEdit,
   updateOrganizerDashboardEvent,
@@ -173,6 +174,26 @@ function OrganizerEditEventClient({ organizer, eventId }: Props) {
                         }))
                       }
                       className={inputStyles}
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <EventAiCopyAssist
+                      title={form.title}
+                      location={form.location}
+                      onGenerated={(copy) => {
+                        if (
+                          !form.description.trim() ||
+                          window.confirm(
+                            "Replace the current description with the AI-generated one?",
+                          )
+                        ) {
+                          setForm((current) => ({
+                            ...current,
+                            description: copy.description,
+                          }));
+                        }
+                      }}
                     />
                   </div>
 

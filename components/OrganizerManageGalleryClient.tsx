@@ -2,12 +2,106 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { LuCheck, LuX } from "react-icons/lu";
 
 import Card from "@/components/Card";
 import FullPageLoader from "@/components/FullPageLoader";
 import WorkspaceTopbar from "@/components/WorkspaceTopbar";
-import { getOrganizerGalleryItemsForEdit } from "@/helpers/organizer-api";
+import {
+  getOrganizerGalleryItemsForEdit,
+  getPendingGalleryItems,
+  moderateGalleryItem,
+} from "@/helpers/organizer-api";
+
+function PendingSubmissions({ organizer }: { organizer: string }) {
+  const queryClient = useQueryClient();
+  const pendingQuery = useQuery({
+    queryKey: ["organizer-gallery-pending", organizer],
+    queryFn: () => getPendingGalleryItems(),
+  });
+
+  const moderateMutation = useMutation({
+    mutationFn: (input: { galleryItemId: string; action: "approve" | "reject" }) =>
+      moderateGalleryItem(input.galleryItemId, input.action),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: ["organizer-gallery-pending", organizer],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ["organizer-gallery-manage", organizer],
+      });
+    },
+  });
+
+  if (pendingQuery.isLoading || !pendingQuery.data?.length) {
+    return null;
+  }
+
+  return (
+    <section className="mt-8">
+      <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+        Pending Submissions ({pendingQuery.data.length})
+      </h2>
+      <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+        Photos submitted by attendees, awaiting your review.
+      </p>
+
+      <div className="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
+        {pendingQuery.data.map((item) => (
+          <article
+            key={item._id}
+            className="overflow-hidden rounded-2xl border border-amber-200 bg-amber-50/40 shadow-sm dark:border-amber-500/20 dark:bg-amber-500/5"
+          >
+            <div className="relative h-56 w-full">
+              <Image
+                src={item.imageUrl}
+                alt={item.altText || item.caption || "Submitted photo"}
+                fill
+                className="object-cover"
+                sizes="(min-width: 1280px) 33vw, (min-width: 640px) 50vw, 100vw"
+              />
+            </div>
+
+            <div className="p-5">
+              <p className="text-sm text-slate-700 dark:text-slate-200">
+                {item.caption || "No caption provided"}
+              </p>
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                Submitted by {item.submittedByName || "Anonymous"}
+              </p>
+
+              <div className="mt-4 flex gap-3">
+                <button
+                  type="button"
+                  disabled={moderateMutation.isPending}
+                  onClick={() =>
+                    moderateMutation.mutate({ galleryItemId: item._id, action: "approve" })
+                  }
+                  className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-emerald-600 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  <LuCheck className="text-base" />
+                  Approve
+                </button>
+                <button
+                  type="button"
+                  disabled={moderateMutation.isPending}
+                  onClick={() =>
+                    moderateMutation.mutate({ galleryItemId: item._id, action: "reject" })
+                  }
+                  className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-lg border border-rose-200 bg-white text-sm font-semibold text-rose-700 transition hover:bg-rose-50 dark:border-rose-500/20 dark:bg-white/5 dark:text-rose-300 dark:hover:bg-rose-500/10"
+                >
+                  <LuX className="text-base" />
+                  Reject
+                </button>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
 
 function OrganizerManageGalleryClient({ organizer }: { organizer: string }) {
   const { data, isLoading, error } = useQuery({
@@ -36,6 +130,8 @@ function OrganizerManageGalleryClient({ organizer }: { organizer: string }) {
             Add Gallery Image
           </Link>
         </div>
+
+        <PendingSubmissions organizer={organizer} />
 
         {isLoading ? (
           <section className="mt-8">

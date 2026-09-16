@@ -11,6 +11,7 @@ import {
   createOrganizerDashboardTicketType,
 } from "@/helpers/organizer-api";
 import WorkspaceTopbar from "@/components/WorkspaceTopbar";
+import EventAiCopyAssist from "@/components/EventAiCopyAssist";
 
 type TicketDraft = {
   id: string;
@@ -203,6 +204,23 @@ function OrganizerCreateEventClient({ organizer }: { organizer: string }) {
                     onChange={(event) => updateField("title", event.target.value)}
                     className={inputStyles}
                     placeholder="Product Design Meetup"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <EventAiCopyAssist
+                    title={form.title}
+                    location={form.location}
+                    onGenerated={(copy) => {
+                      if (
+                        !form.description.trim() ||
+                        window.confirm(
+                          "Replace the current description with the AI-generated one?",
+                        )
+                      ) {
+                        updateField("description", copy.description);
+                      }
+                    }}
                   />
                 </div>
 

@@ -8,7 +8,6 @@ function fallbackBanner(name: string) {
   const encodedName = encodeURIComponent(name);
   return `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="%230f172a"/><stop offset="55%" stop-color="%235b21b6"/><stop offset="100%" stop-color="%2306b6d4"/></linearGradient></defs><rect width="1200" height="700" fill="url(%23bg)"/><circle cx="220" cy="120" r="180" fill="%23ffffff12"/><circle cx="980" cy="540" r="220" fill="%23ffffff10"/><text x="90" y="560" font-family="Arial, sans-serif" font-size="64" font-weight="700" fill="%23ffffff">${encodedName}</text></svg>`;
 }
-
 function fallbackLogo(name: string) {
   const initials = name
     .split(/\s+/)

@@ -1,69 +1,91 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import { LuX } from "react-icons/lu";
 
 import Card from "@/components/Card";
-import { createOrganizerGalleryItem } from "@/helpers/organizer-api";
+import { createOrganizerGalleryItemsBulk } from "@/helpers/organizer-api";
 import WorkspaceTopbar from "@/components/WorkspaceTopbar";
+
+function useObjectUrls(files: File[]) {
+  const [urls, setUrls] = useState<string[]>([]);
+
+  useEffect(() => {
+    const nextUrls = files.map((file) => URL.createObjectURL(file));
+    setUrls(nextUrls);
+
+    return () => {
+      nextUrls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [files]);
+
+  return urls;
+}
 
 function OrganizerCreateGalleryClient({ organizer }: { organizer: string }) {
   const router = useRouter();
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [form, setForm] = useState({
-    imageUrl: "",
-    caption: "",
-    displayOrder: "0",
-  });
+  const [files, setFiles] = useState<File[]>([]);
+  const [caption, setCaption] = useState("");
   const [message, setMessage] = useState<
     | { type: "success"; text: string }
     | { type: "error"; text: string }
     | null
   >(null);
 
+  const previewUrls = useObjectUrls(files);
+
   const inputStyles =
     "h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-purple-600 focus:ring-4 focus:ring-purple-600/15 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:border-purple-400 dark:focus:ring-purple-400/20";
 
   const createMutation = useMutation({
     mutationFn: () => {
-      if (!imageFile && !form.imageUrl.trim()) {
-        throw new Error("Add a gallery image by upload or image URL before publishing it.");
+      if (!files.length) {
+        throw new Error("Choose at least one image to upload.");
       }
 
-      return createOrganizerGalleryItem({
-        imageUrl: form.imageUrl.trim() || undefined,
-        caption: form.caption.trim() || undefined,
-        displayOrder: form.displayOrder ? Number(form.displayOrder) : 0,
-        imageFile,
+      return createOrganizerGalleryItemsBulk({
+        imageFiles: files,
+        caption: caption.trim() || undefined,
       });
     },
-    onSuccess: () => {
-      setMessage({
-        type: "success",
-        text: "Gallery image created successfully.",
-      });
-      router.push(`/${organizer}/gallery`);
-      router.refresh();
+    onSuccess: (result) => {
+      const successText = `${result.created.length} image${result.created.length === 1 ? "" : "s"} uploaded successfully.`;
+      const failureText = result.failed.length
+        ? ` ${result.failed.length} failed: ${result.failed.map((item) => item.filename).join(", ")}.`
+        : "";
+
+      if (result.created.length) {
+        setMessage({ type: "success", text: successText + failureText });
+        router.push(`/${organizer}/gallery`);
+        router.refresh();
+      } else {
+        setMessage({
+          type: "error",
+          text: "All uploads failed. " + result.failed.map((item) => item.reason).join(", "),
+        });
+      }
     },
     onError: (error) => {
       setMessage({
         type: "error",
-        text:
-          error instanceof Error
-            ? error.message
-            : "We couldn't create the gallery item.",
+        text: error instanceof Error ? error.message : "We couldn't upload the images.",
       });
     },
   });
+
+  function removeFileAt(index: number) {
+    setFiles((current) => current.filter((_, i) => i !== index));
+  }
 
   return (
     <main className="min-h-screen bg-purple-100 dark:bg-slate-950/90">
       <div className="mx-auto max-w-3xl px-6 pt-28 pb-16">
         <WorkspaceTopbar
           eyebrow="Organizer Workspace"
-          title="Add Gallery Image"
-          description="Publish a new gallery image for this organizer."
+          title="Add Gallery Images"
+          description="Publish new gallery images for this organizer. Select multiple photos to upload them all at once."
           backHref={`/${organizer}/dashboard`}
           backLabel="Back to Dashboard"
           showLogoutButton={false}
@@ -81,69 +103,57 @@ function OrganizerCreateGalleryClient({ organizer }: { organizer: string }) {
           >
             <div className="space-y-2">
               <label className="block text-sm font-semibold text-slate-900 dark:text-white">
-                Image Upload
+                Images
               </label>
               <input
                 type="file"
                 accept="image/*"
+                multiple
                 onChange={(event) =>
-                  setImageFile(event.target.files?.[0] ?? null)
+                  setFiles(Array.from(event.target.files ?? []))
                 }
                 className={inputStyles}
               />
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Select multiple images to upload them together (up to 20 at a time).
+              </p>
             </div>
+
+            {previewUrls.length ? (
+              <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+                {previewUrls.map((url, index) => (
+                  <div
+                    key={url}
+                    className="group relative aspect-square overflow-hidden rounded-xl border border-slate-200 dark:border-white/10"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={url}
+                      alt={files[index]?.name ?? "Selected image"}
+                      className="h-full w-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeFileAt(index)}
+                      className="absolute right-1 top-1 inline-flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-black/80"
+                      aria-label={`Remove ${files[index]?.name ?? "image"}`}
+                    >
+                      <LuX className="text-xs" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : null}
 
             <div className="space-y-2">
               <label className="block text-sm font-semibold text-slate-900 dark:text-white">
-                Image URL Fallback
+                Caption (applied to all images)
               </label>
               <input
-                type="url"
-                value={form.imageUrl}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    imageUrl: event.target.value,
-                  }))
-                }
-                className={inputStyles}
-                placeholder="https://example.com/gallery-image.jpg"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-slate-900 dark:text-white">
-                Caption
-              </label>
-              <input
-                value={form.caption}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    caption: event.target.value,
-                  }))
-                }
+                value={caption}
+                onChange={(event) => setCaption(event.target.value)}
                 className={inputStyles}
                 placeholder="Opening moments from the event"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-slate-900 dark:text-white">
-                Display Order
-              </label>
-              <input
-                type="number"
-                min="0"
-                value={form.displayOrder}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    displayOrder: event.target.value,
-                  }))
-                }
-                className={inputStyles}
-                placeholder="0"
               />
             </div>
 
@@ -161,10 +171,14 @@ function OrganizerCreateGalleryClient({ organizer }: { organizer: string }) {
 
             <button
               type="submit"
-              disabled={createMutation.isPending}
+              disabled={createMutation.isPending || !files.length}
               className="inline-flex h-12 items-center justify-center rounded-xl bg-purple-700 px-5 text-sm font-semibold text-white transition hover:bg-purple-800 disabled:cursor-not-allowed disabled:opacity-70"
             >
-              {createMutation.isPending ? "Uploading Image..." : "Upload Image"}
+              {createMutation.isPending
+                ? "Uploading Images..."
+                : files.length > 1
+                  ? `Upload ${files.length} Images`
+                  : "Upload Image"}
             </button>
           </form>
         </Card>

@@ -58,6 +58,7 @@ import type {
   PublicLandingPastEvent,
   TicketType,
   TicketTypeBreak,
+  ApiWaitlistEntry,
 } from "@/helpers/type";
 
 type ApiListEnvelope<T> = {
@@ -360,6 +361,8 @@ function mapGalleryItem(item: ApiGalleryItem): OrganizerGalleryItem {
     description: item.caption || "Captured from one of our organizer experiences.",
     altText: item.altText || item.caption || "Organizer gallery image",
     dateText: formatDateText(new Date(item.createdAt)),
+    likeCount: item.likeCount ?? 0,
+    hasLiked: item.hasLiked ?? false,
   };
 }
 
@@ -944,6 +947,23 @@ export async function createPurchase(
   return response.data;
 }
 
+export async function joinEventWaitlist(
+  slug: string,
+  eventId: string,
+  ticketTypeId: string,
+  input: { name: string; email: string; phone?: string },
+): Promise<{ message: string }> {
+  const response = await apiFetch<{ message: string }>(
+    `/organizer/${slug}/events/${eventId}/ticket-types/${ticketTypeId}/waitlist`,
+    {
+      method: "POST",
+      body: JSON.stringify(input),
+    },
+  );
+
+  return response.data;
+}
+
 export async function getOrderTickets(
   orderId: string,
   access?: OrderAccessContext,
@@ -1097,6 +1117,91 @@ export async function updateOrganizerGalleryItem(
   });
 
   return response.data.galleryItem;
+}
+
+export async function createOrganizerGalleryItemsBulk(input: {
+  imageFiles: File[];
+  caption?: string;
+}): Promise<{
+  created: ApiGalleryItem[];
+  failed: { filename: string; reason: string }[];
+}> {
+  const formData = new FormData();
+  appendDefinedFormValue(formData, "caption", input.caption);
+  for (const file of input.imageFiles) {
+    formData.append("images", file);
+  }
+
+  const response = await apiFetch<{
+    created: ApiGalleryItem[];
+    failed: { filename: string; reason: string }[];
+  }>(`/organizer/dashboard/gallery/bulk`, {
+    method: "POST",
+    body: formData,
+    auth: true,
+  });
+
+  return response.data;
+}
+
+export async function likeGalleryPhoto(
+  slug: string,
+  galleryItemId: string,
+): Promise<{ likeCount: number; hasLiked: boolean }> {
+  const response = await apiFetch<{ likeCount: number; hasLiked: boolean }>(
+    `/organizer/${slug}/gallery/${galleryItemId}/like`,
+    {
+      method: "POST",
+    },
+  );
+
+  return response.data;
+}
+
+export async function submitGalleryPhoto(
+  slug: string,
+  input: { imageFile: File; caption?: string; submittedByName?: string },
+): Promise<{ message: string }> {
+  const formData = new FormData();
+  appendDefinedFormValue(formData, "caption", input.caption);
+  appendDefinedFormValue(formData, "submittedByName", input.submittedByName);
+  formData.append("image", input.imageFile);
+
+  const response = await apiFetch<{
+    galleryItem: ApiGalleryItem;
+    message: string;
+  }>(`/organizer/${slug}/gallery/submit`, {
+    method: "POST",
+    body: formData,
+  });
+
+  return { message: response.data.message };
+}
+
+export async function getPendingGalleryItems(): Promise<ApiGalleryItem[]> {
+  const response = await apiFetch<{
+    galleryItems: ApiGalleryItem[];
+  }>(`/organizer/dashboard/gallery/pending`, {
+    auth: true,
+  });
+
+  return response.data.galleryItems;
+}
+
+export async function moderateGalleryItem(
+  galleryItemId: string,
+  action: "approve" | "reject",
+) {
+  const response = await apiFetch<{
+    galleryItem?: ApiGalleryItem;
+    message?: string;
+  }>(`/organizer/dashboard/gallery/${galleryItemId}/moderate`, {
+    method: "PATCH",
+    body: JSON.stringify({ action }),
+    auth: true,
+  });
+
+  return response.data;
 }
 
 export async function getOrganizerProfileForEdit(): Promise<{
@@ -2313,6 +2418,16 @@ export async function getOrganizerEventAttendees(eventId: string) {
   return response.data;
 }
 
+export async function getOrganizerEventWaitlist(eventId: string) {
+  const response = await apiFetch<{
+    entries: ApiWaitlistEntry[];
+  }>(`/organizer/dashboard/events/${eventId}/waitlist`, {
+    auth: true,
+  });
+
+  return response.data;
+}
+
 export async function createOrganizerDashboardEvent(input: {
   title: string;
   description: string;
@@ -2355,6 +2470,29 @@ export async function createOrganizerDashboardEvent(input: {
   });
 
   return response.data.event;
+}
+
+export async function generateEventCopy(input: {
+  title: string;
+  highlights?: string;
+  tone?: string;
+  location?: string;
+}): Promise<{
+  description: string;
+  tagline: string;
+  socialCaption: string;
+}> {
+  const response = await apiFetch<{
+    description: string;
+    tagline: string;
+    socialCaption: string;
+  }>(`/organizer/dashboard/ai/event-copy`, {
+    method: "POST",
+    body: JSON.stringify(input),
+    auth: true,
+  });
+
+  return response.data;
 }
 
 export async function updateOrganizerDashboardEvent(

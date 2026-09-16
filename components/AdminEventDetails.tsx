@@ -3,8 +3,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { LuArrowLeft, LuCalendar, LuClock, LuMapPin, LuUser } from "react-icons/lu";
 import { formatCurrency } from "@/helpers/format";
+import { joinEventWaitlist } from "@/helpers/organizer-api";
 import type { EventCardProps, TicketType } from "@/helpers/type";
 
 type OrganizerInfo = {
@@ -64,12 +66,111 @@ function splitDateAndTime(dateTimeText?: string) {
   return { dateText: trimmed, timeText: "" };
 }
 
+function WaitlistForm({
+  organizerSlug,
+  eventId,
+  ticketTypeId,
+}: {
+  organizerSlug: string;
+  eventId: string;
+  ticketTypeId: string;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [confirmation, setConfirmation] = useState<string | null>(null);
+
+  const joinMutation = useMutation({
+    mutationFn: () =>
+      joinEventWaitlist(organizerSlug, eventId, ticketTypeId, {
+        name: name.trim(),
+        email: email.trim(),
+        phone: phone.trim() || undefined,
+      }),
+    onSuccess: (result) => {
+      setConfirmation(result.message);
+    },
+  });
+
+  if (confirmation) {
+    return (
+      <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-center text-sm text-emerald-900 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-200">
+        {confirmation}
+      </p>
+    );
+  }
+
+  if (!expanded) {
+    return (
+      <button
+        type="button"
+        onClick={() => setExpanded(true)}
+        className="h-12 w-full rounded-xl border border-purple-200 bg-white px-4 text-sm font-semibold text-purple-700 transition hover:bg-purple-50 dark:border-purple-400/30 dark:bg-white/5 dark:text-purple-300 dark:hover:bg-white/10"
+      >
+        Join Waitlist
+      </button>
+    );
+  }
+
+  return (
+    <form
+      className="space-y-2 rounded-xl border border-purple-200 bg-purple-50/50 p-4 dark:border-purple-400/20 dark:bg-purple-500/6"
+      onSubmit={(event) => {
+        event.preventDefault();
+        joinMutation.mutate();
+      }}
+    >
+      <input
+        required
+        placeholder="Full name"
+        value={name}
+        onChange={(event) => setName(event.target.value)}
+        className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-purple-600 dark:border-white/10 dark:bg-white/5 dark:text-white"
+      />
+      <input
+        required
+        type="email"
+        placeholder="Email address"
+        value={email}
+        onChange={(event) => setEmail(event.target.value)}
+        className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-purple-600 dark:border-white/10 dark:bg-white/5 dark:text-white"
+      />
+      <input
+        type="tel"
+        placeholder="Phone (optional)"
+        value={phone}
+        onChange={(event) => setPhone(event.target.value)}
+        className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-purple-600 dark:border-white/10 dark:bg-white/5 dark:text-white"
+      />
+      {joinMutation.isError ? (
+        <p className="text-xs text-rose-600 dark:text-rose-300">
+          {joinMutation.error instanceof Error
+            ? joinMutation.error.message
+            : "We couldn't add you to the waitlist."}
+        </p>
+      ) : null}
+      <button
+        type="submit"
+        disabled={joinMutation.isPending}
+        className="h-10 w-full rounded-lg bg-purple-700 text-sm font-semibold text-white transition hover:bg-purple-800 disabled:cursor-not-allowed disabled:opacity-70"
+      >
+        {joinMutation.isPending ? "Joining..." : "Notify Me"}
+      </button>
+    </form>
+  );
+}
+
 function TicketCard({
   ticket,
   buyHrefOverride,
+  organizerSlug,
+  eventId,
 }: {
   ticket: TicketType;
   buyHrefOverride?: string;
+  organizerSlug?: string;
+  eventId?: string;
 }) {
   const sold = getSoldCount(ticket.remaining, ticket.total);
   const soldPercent = getSoldPercent(ticket.remaining, ticket.total);
@@ -127,6 +228,12 @@ function TicketCard({
           >
             {buttonLabel}
           </Link>
+        ) : isSoldOut && organizerSlug && eventId && ticket.id ? (
+          <WaitlistForm
+            organizerSlug={organizerSlug}
+            eventId={eventId}
+            ticketTypeId={ticket.id}
+          />
         ) : (
           <button
             type="button"
@@ -304,6 +411,8 @@ function AdminEventDetails({
                 key={ticket.name}
                 ticket={ticket}
                 buyHrefOverride={ticket.buyHref ? organizerCheckoutHref : undefined}
+                organizerSlug={organizerSlug}
+                eventId={event.id}
               />
             ))}
           </div>

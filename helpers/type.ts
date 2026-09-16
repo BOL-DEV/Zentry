@@ -539,6 +539,10 @@ export type ApiGalleryItem = {
   caption: string;
   altText: string;
   displayOrder: number;
+  status?: "published" | "pending";
+  submittedByName?: string | null;
+  likeCount?: number;
+  hasLiked?: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -694,6 +698,19 @@ export type ApiEventAttendee = {
   purchasedAt: string;
 };
 
+export type ApiWaitlistEntry = {
+  _id: string;
+  eventId: string;
+  ticketTypeId: string;
+  ticketTypeName: string;
+  name: string;
+  email: string;
+  phone?: string;
+  status: "waiting" | "notified";
+  notifiedAt?: string;
+  createdAt: string;
+};
+
 export type ApiStaffSession = {
   id: string;
   deviceName?: string;
@@ -840,6 +857,8 @@ export type OrganizerGalleryItem = {
   description: string;
   altText: string;
   dateText: string;
+  likeCount: number;
+  hasLiked: boolean;
 };
 
 export type AdminEventListItem = {
