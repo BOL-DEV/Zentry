@@ -121,10 +121,18 @@ export async function apiFetch<T>(
   }
 
   if (!response.ok) {
+    let cleanFallback = responseText.trim();
+    if (cleanFallback.startsWith("<") || cleanFallback.includes("<!DOCTYPE")) {
+      cleanFallback =
+        response.status === 404
+          ? "This endpoint is not available on the current server. If connected to live, the latest backend branch needs to be deployed."
+          : `Server error (${response.status}). Please try again.`;
+    }
+
     const fallbackMessage =
       response.status >= 500
         ? "The server is having trouble right now. Please try again shortly."
-        : responseText.trim();
+        : cleanFallback;
     throw new Error(
       getApiErrorMessage(
         payload,

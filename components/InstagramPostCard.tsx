@@ -30,6 +30,27 @@ export default function InstagramPostCard({ item, organizer }: Props) {
 
   const likeMutation = useMutation({
     mutationFn: () => likeGalleryPhoto(organizer, item.id),
+    onMutate: async () => {
+      await queryClient.cancelQueries({
+        queryKey: ["organizer-gallery", organizer],
+      });
+
+      const prevLiked = hasLiked;
+      const prevCount = likeCount;
+      const nextLiked = !prevLiked;
+      const nextCount = nextLiked ? prevCount + 1 : Math.max(0, prevCount - 1);
+
+      setHasLiked(nextLiked);
+      setLikeCount(nextCount);
+
+      return { prevLiked, prevCount };
+    },
+    onError: (_err, _vars, context) => {
+      if (context) {
+        setHasLiked(context.prevLiked);
+        setLikeCount(context.prevCount);
+      }
+    },
     onSuccess: (result) => {
       setLikeCount(result.likeCount);
       setHasLiked(result.hasLiked);
@@ -115,7 +136,6 @@ export default function InstagramPostCard({ item, organizer }: Props) {
             <button
               type="button"
               onClick={() => likeMutation.mutate()}
-              disabled={likeMutation.isPending}
               aria-label={hasLiked ? "Unlike" : "Like"}
               className="inline-flex items-center gap-1.5 transition transform active:scale-125 focus:outline-none"
             >

@@ -40,10 +40,11 @@ export default function GalleryCommentsModal({
   const [commentText, setCommentText] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
-  const { data: comments = [], isLoading } = useQuery({
+  const { data: comments = [], isLoading, isError } = useQuery({
     queryKey: ["gallery-comments", organizer, item.id],
     queryFn: () => getGalleryComments(organizer, item.id),
     enabled: isOpen,
+    retry: 1,
   });
 
   const commentMutation = useMutation({
@@ -124,6 +125,15 @@ export default function GalleryCommentsModal({
           {isLoading ? (
             <div className="flex h-40 items-center justify-center text-sm text-slate-400">
               Loading comments...
+            </div>
+          ) : isError ? (
+            <div className="flex h-44 flex-col items-center justify-center text-center p-4">
+              <p className="text-sm font-semibold text-rose-500">
+                Could not load comments
+              </p>
+              <p className="text-xs text-slate-400 mt-1 max-w-xs">
+                Please ensure you are connected to the updated backend server.
+              </p>
             </div>
           ) : comments.length === 0 ? (
             <div className="flex h-52 flex-col items-center justify-center text-center p-6">

@@ -388,7 +388,10 @@ function OrganizerGalleryClient({ organizer }: { organizer: string }) {
             >
               <LuX className="text-2xl" />
             </button>
-            <InstagramPostCard item={selectedPost} organizer={organizer} />
+            <InstagramPostCard
+              item={data?.find((p) => p.id === selectedPost.id) || selectedPost}
+              organizer={organizer}
+            />
           </div>
         </div>
       )}
