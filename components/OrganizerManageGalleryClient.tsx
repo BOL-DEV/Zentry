@@ -58,6 +58,7 @@ function PendingSubmissions({ organizer }: { organizer: string }) {
                 src={item.imageUrl}
                 alt={item.altText || item.caption || "Submitted photo"}
                 fill
+                unoptimized
                 className="object-cover"
                 sizes="(min-width: 1280px) 33vw, (min-width: 640px) 50vw, 100vw"
               />
@@ -170,6 +171,7 @@ function OrganizerManageGalleryClient({ organizer }: { organizer: string }) {
                     src={item.imageUrl}
                     alt={item.altText || item.caption || "Gallery image"}
                     fill
+                unoptimized
                     className="object-cover"
                     sizes="(min-width: 1280px) 33vw, (min-width: 640px) 50vw, 100vw"
                   />

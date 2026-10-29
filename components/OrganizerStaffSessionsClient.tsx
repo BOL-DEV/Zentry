@@ -6,7 +6,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   LuLaptop,
   LuLogOut,
+  LuMail,
   LuRefreshCw,
+  LuSearch,
   LuShieldCheck,
   LuSmartphone,
   LuUserRound,
@@ -54,8 +56,9 @@ function OrganizerStaffSessionsClient({ organizer }: { organizer: string }) {
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const { token, user: authUser } = useAuthSession();
-  const [staffIdInput, setStaffIdInput] = useState(searchParams.get("staffId") || "");
-  const [activeStaffId, setActiveStaffId] = useState(searchParams.get("staffId") || "");
+
+  const [activeStaffId, setActiveStaffId] = useState("");
+  const [emailQuery, setEmailQuery] = useState("");
   const [message, setMessage] = useState<
     | { type: "success"; text: string }
     | { type: "error"; text: string }
@@ -65,22 +68,6 @@ function OrganizerStaffSessionsClient({ organizer }: { organizer: string }) {
     newPassword: "",
     confirmPassword: "",
   });
-
-  function applyStaffSelection(nextStaffId: string) {
-    const trimmedStaffId = nextStaffId.trim();
-    setMessage(null);
-    setPasswordForm({
-      newPassword: "",
-      confirmPassword: "",
-    });
-    setStaffIdInput(trimmedStaffId);
-    setActiveStaffId(trimmedStaffId);
-    router.replace(
-      trimmedStaffId
-        ? `/${organizer}/dashboard/staff-sessions?staffId=${encodeURIComponent(trimmedStaffId)}`
-        : `/${organizer}/dashboard/staff-sessions`,
-    );
-  }
 
   useEffect(() => {
     if (!token) {
@@ -96,6 +83,64 @@ function OrganizerStaffSessionsClient({ organizer }: { organizer: string }) {
     enabled: Boolean(token) && authUser?.role !== "staff",
     retry: false,
   });
+
+  const staffMembers = useMemo(
+    () => staffQuery.data?.staff ?? [],
+    [staffQuery.data?.staff],
+  );
+
+  const filteredStaffMembers = useMemo(() => {
+    const query = emailQuery.trim().toLowerCase();
+    if (!query) return staffMembers;
+    return staffMembers.filter(
+      (staff) =>
+        staff.email.toLowerCase().includes(query) ||
+        staff.fullName.toLowerCase().includes(query),
+    );
+  }, [staffMembers, emailQuery]);
+
+  // Handle URL query selection (support ?email= or legacy ?staffId=)
+  useEffect(() => {
+    if (staffMembers.length === 0) return;
+
+    const emailParam = searchParams.get("email")?.trim().toLowerCase();
+    const staffIdParam = searchParams.get("staffId")?.trim();
+
+    if (emailParam) {
+      const matched = staffMembers.find(
+        (s) => s.email.toLowerCase() === emailParam,
+      );
+      if (matched) {
+        setActiveStaffId(matched.id);
+        return;
+      }
+    }
+
+    if (staffIdParam) {
+      const matched = staffMembers.find((s) => s.id === staffIdParam);
+      if (matched) {
+        setActiveStaffId(matched.id);
+        return;
+      }
+    }
+
+    // Default to the first staff member if none is currently selected
+    if (!activeStaffId && staffMembers.length > 0) {
+      setActiveStaffId(staffMembers[0].id);
+    }
+  }, [searchParams, staffMembers, activeStaffId]);
+
+  function applyStaffSelection(staff: (typeof staffMembers)[number]) {
+    setMessage(null);
+    setPasswordForm({
+      newPassword: "",
+      confirmPassword: "",
+    });
+    setActiveStaffId(staff.id);
+    router.replace(
+      `/${organizer}/dashboard/staff-sessions?email=${encodeURIComponent(staff.email)}`,
+    );
+  }
 
   const sessionsQuery = useQuery({
     queryKey: ["organizer-staff-sessions", organizer, activeStaffId],
@@ -191,10 +236,7 @@ function OrganizerStaffSessionsClient({ organizer }: { organizer: string }) {
     () => sessionsQuery.data?.sessions ?? [],
     [sessionsQuery.data?.sessions],
   );
-  const staffMembers = useMemo(
-    () => staffQuery.data?.staff ?? [],
-    [staffQuery.data?.staff],
-  );
+
   const activeStaff = useMemo(
     () => staffMembers.find((staff) => staff.id === activeStaffId) ?? null,
     [activeStaffId, staffMembers],
@@ -244,7 +286,7 @@ function OrganizerStaffSessionsClient({ organizer }: { organizer: string }) {
                   Staff directory
                 </h2>
                 <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                  Select a staff member from the organizer dashboard users returned by the backend to open their dedicated security view.
+                  Select a staff member by email to open their dedicated security view.
                 </p>
               </div>
 
@@ -264,6 +306,24 @@ function OrganizerStaffSessionsClient({ organizer }: { organizer: string }) {
               </button>
             </div>
 
+            {staffMembers.length > 0 && (
+              <div className="relative">
+                <LuSearch className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-base text-slate-400" />
+                <input
+                  type="text"
+                  value={emailQuery}
+                  onChange={(e) => setEmailQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && filteredStaffMembers.length > 0) {
+                      applyStaffSelection(filteredStaffMembers[0]);
+                    }
+                  }}
+                  placeholder="Search staff by email or name..."
+                  className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-11 pr-4 text-sm text-slate-900 outline-none transition focus:border-purple-600 focus:ring-4 focus:ring-purple-600/15 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:border-purple-400"
+                />
+              </div>
+            )}
+
             {staffQuery.isLoading ? (
               <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-600 dark:border-white/10 dark:bg-slate-900/40 dark:text-slate-300">
                 Loading staff accounts...
@@ -274,16 +334,16 @@ function OrganizerStaffSessionsClient({ organizer }: { organizer: string }) {
                   ? staffQuery.error.message
                   : "We couldn't load staff accounts right now."}
               </div>
-            ) : staffMembers.length ? (
+            ) : filteredStaffMembers.length ? (
               <div className="grid gap-3 lg:grid-cols-2">
-                {staffMembers.map((staff) => {
+                {filteredStaffMembers.map((staff) => {
                   const isSelected = staff.id === activeStaffId;
 
                   return (
                     <button
                       key={staff.id}
                       type="button"
-                      onClick={() => applyStaffSelection(staff.id)}
+                      onClick={() => applyStaffSelection(staff)}
                       className={`rounded-2xl border p-4 text-left transition ${
                         isSelected
                           ? "border-purple-500 bg-purple-50 shadow-sm dark:border-purple-400 dark:bg-purple-500/10"
@@ -296,11 +356,9 @@ function OrganizerStaffSessionsClient({ organizer }: { organizer: string }) {
                             <LuUserRound className="text-base" />
                             <p className="truncate font-semibold">{staff.fullName}</p>
                           </div>
-                          <p className="mt-1 truncate text-sm text-slate-600 dark:text-slate-300">
+                          <p className="mt-1 flex items-center gap-1.5 truncate text-sm text-slate-600 dark:text-slate-300">
+                            <LuMail className="shrink-0 text-xs text-purple-600 dark:text-purple-400" />
                             {staff.email}
-                          </p>
-                          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                            Staff ID: {staff.id}
                           </p>
                         </div>
 
@@ -318,32 +376,16 @@ function OrganizerStaffSessionsClient({ organizer }: { organizer: string }) {
                   );
                 })}
               </div>
+            ) : staffMembers.length ? (
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-600 dark:border-white/10 dark:bg-slate-900/40 dark:text-slate-300">
+                No staff members matched "{emailQuery}". Try another email or name.
+              </div>
             ) : (
               <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-600 dark:border-white/10 dark:bg-slate-900/40 dark:text-slate-300">
                 No staff accounts have been created yet. Create one from the admin user flow, then return here to manage active devices.
               </div>
             )}
-
-            <div className="grid gap-3 border-t border-slate-200 pt-4 dark:border-white/10 md:grid-cols-[1fr_auto]">
-              <input
-                value={staffIdInput}
-                onChange={(event) => setStaffIdInput(event.target.value)}
-                placeholder="Or paste a staff ID"
-                className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-purple-600 focus:ring-4 focus:ring-purple-600/15 dark:border-white/10 dark:bg-white/5 dark:text-white"
-              />
-              <button
-                type="button"
-                onClick={() => applyStaffSelection(staffIdInput)}
-                className="inline-flex h-12 items-center justify-center rounded-xl bg-purple-600 px-5 text-sm font-semibold text-white transition hover:bg-purple-700"
-              >
-                Load by ID
-              </button>
-            </div>
           </div>
-
-          <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
-            Direct links with `staffId` still work, so you can bookmark or share a specific staff security view when needed.
-          </p>
 
           {message ? (
             <div
@@ -395,11 +437,9 @@ function OrganizerStaffSessionsClient({ organizer }: { organizer: string }) {
                     <h2 className="mt-3 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
                       {activeStaff?.fullName || "Staff member"}
                     </h2>
-                    <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                    <p className="mt-2 flex items-center gap-1.5 text-sm font-medium text-slate-600 dark:text-slate-300">
+                      <LuMail className="shrink-0 text-sm text-purple-600 dark:text-purple-400" />
                       {activeStaff?.email || "No email available"}
-                    </p>
-                    <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                      Staff ID: {activeStaffId}
                     </p>
                   </div>
 

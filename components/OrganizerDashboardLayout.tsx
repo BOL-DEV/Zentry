@@ -23,6 +23,7 @@ import {
 } from "react-icons/lu";
 
 import ThemeToggle from "@/components/ThemeToggle";
+import FullPageLoader from "@/components/FullPageLoader";
 import { clearAuthToken } from "@/helpers/auth";
 import { useAuthSession } from "@/helpers/auth-client";
 import { isJwtExpired } from "@/helpers/jwt";
@@ -165,6 +166,23 @@ function OrganizerDashboardLayout({ children }: Props) {
       document.body.style.overflow = "";
     };
   }, [isMobileSidebarOpen]);
+
+  const isVerifyPage = pathname.endsWith("/verify");
+
+  useEffect(() => {
+    if (user?.role === "staff" && !isVerifyPage && organizer) {
+      router.replace(`/${organizer}/staff`);
+    }
+  }, [isVerifyPage, organizer, router, user?.role]);
+
+  if (user?.role === "staff" && !isVerifyPage) {
+    return (
+      <FullPageLoader
+        title="Opening check-in area"
+        description="Taking you straight to your check-in workspace."
+      />
+    );
+  }
 
   if (user?.role === "staff") {
     return <>{children}</>;

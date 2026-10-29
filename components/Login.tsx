@@ -14,6 +14,33 @@ interface Props {
   notice?: string;
 }
 
+function getResolvedDestination(
+  role: string | undefined,
+  organizerSlug: string | undefined,
+  redirectTo?: string,
+): string {
+  const next = redirectTo?.trim() || "";
+  const slug = organizerSlug || "";
+
+  if (role === "staff") {
+    // Staff are only allowed to follow redirectTo if it explicitly points to a ticket scanner verify page
+    if (next.includes("/verify")) {
+      return next;
+    }
+    return `/${slug}/staff`;
+  }
+
+  if (role === "organizer") {
+    // If next points to the staff portal or staff routes, ignore it! Organizers belong in /dashboard
+    if (!next || next.endsWith("/staff") || next.includes("/staff?") || next.includes("/staff/")) {
+      return `/${slug}/dashboard`;
+    }
+    return next;
+  }
+
+  return next || "/";
+}
+
 function Login(props: Props) {
   const { redirectTo, notice } = props;
   const router = useRouter();
@@ -38,6 +65,11 @@ function Login(props: Props) {
         ? `/${user.organizerSlug}/staff`
         : `/${user.organizerSlug}/dashboard`;
 
+    const targetRoute =
+      user.role === "staff" && (!redirectTo || !redirectTo.includes("/verify"))
+        ? `/${user.organizerSlug}/staff`
+        : redirectTo || fallbackRoute;
+
     let cancelled = false;
 
     async function maybeValidateThenRedirect() {
@@ -57,10 +89,10 @@ function Login(props: Props) {
           return;
         }
 
-        router.replace(redirectTo || fallbackRoute);
+        router.replace(targetRoute);
       } catch {
         if (cancelled) return;
-        router.replace(redirectTo || fallbackRoute);
+        router.replace(targetRoute);
       }
     }
 
@@ -95,7 +127,12 @@ function Login(props: Props) {
           ? `/${response.data.user.organizerSlug}/staff`
           : `/${response.data.user.organizerSlug}/dashboard`;
 
-      router.push(redirectTo || fallbackRoute);
+      const targetRoute =
+        response.data.user.role === "staff" && (!redirectTo || !redirectTo.includes("/verify"))
+          ? `/${response.data.user.organizerSlug}/staff`
+          : redirectTo || fallbackRoute;
+
+      router.push(targetRoute);
     } catch (submitError) {
       setError(
         submitError instanceof Error

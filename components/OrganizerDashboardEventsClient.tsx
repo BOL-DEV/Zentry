@@ -40,23 +40,18 @@ function OrganizerDashboardEventsClient({ organizer }: { organizer: string }) {
     return <FullPageLoader title="Redirecting to login" description="Taking you back to sign in." />;
   }
 
+  useEffect(() => {
+    if (authUser?.role === "staff") {
+      router.replace(`/${organizer}/staff`);
+    }
+  }, [authUser?.role, organizer, router]);
+
   if (authUser?.role === "staff") {
     return (
-      <main className="bg-purple-100 dark:bg-slate-950/90">
-        <div className="mx-auto lg:max-w-7xl px-6 pt-28 pb-10">
-          <Card>
-            <p className="text-sm text-slate-600 dark:text-slate-300">
-              This account is set up for guest check-in, so we are sending you to the check-in area.
-            </p>
-            <Link
-              href={`/${organizer}/staff`}
-              className="mt-4 inline-flex h-11 items-center justify-center rounded-lg bg-purple-600 px-5 text-sm font-semibold text-white transition hover:bg-purple-700"
-            >
-              Open Check-in Area
-            </Link>
-          </Card>
-        </div>
-      </main>
+      <FullPageLoader
+        title="Opening check-in area"
+        description="Taking you straight to your check-in workspace."
+      />
     );
   }
 
