@@ -35,6 +35,7 @@ import type {
   ApiDashboardSummary,
   ApiEvent,
   ApiEventAttendee,
+  ApiGalleryComment,
   ApiGalleryItem,
   ApiOrganizer,
   ApiOrder,
@@ -354,15 +355,31 @@ function mapTicketBreak(ticketType: ApiTicketType): TicketTypeBreak {
 }
 
 function mapGalleryItem(item: ApiGalleryItem): OrganizerGalleryItem {
+  const media =
+    Array.isArray(item.media) && item.media.length > 0
+      ? item.media
+      : [
+          {
+            url: item.imageUrl,
+            mediaType: (/\.(mp4|webm|mov|ogg)$/i.test(item.imageUrl) ? "video" : "image") as "image" | "video",
+            thumbnailUrl: item.imageUrl,
+            displayOrder: 0,
+          },
+        ];
+
   return {
     id: item._id,
-    imageUrl: item.imageUrl,
+    media,
+    imageUrl: media[0]?.url || item.imageUrl,
     title: item.caption || "Event moment",
     description: item.caption || "Captured from one of our organizer experiences.",
-    altText: item.altText || item.caption || "Organizer gallery image",
+    altText: item.altText || item.caption || "Organizer gallery moment",
     dateText: formatDateText(new Date(item.createdAt)),
     likeCount: item.likeCount ?? 0,
     hasLiked: item.hasLiked ?? false,
+    commentCount: item.commentCount ?? 0,
+    recentComments: item.recentComments ?? [],
+    submittedByName: item.submittedByName ?? null,
   };
 }
 
@@ -1158,32 +1175,86 @@ export async function likeGalleryPhoto(
   return response.data;
 }
 
+export async function getGalleryComments(
+  slug: string,
+  galleryItemId: string,
+): Promise<ApiGalleryComment[]> {
+  const response = await apiFetch<{ comments: ApiGalleryComment[] }>(
+    `/organizer/${slug}/gallery/${galleryItemId}/comments`,
+  );
+  return response.data.comments;
+}
+
+export async function createGalleryComment(
+  slug: string,
+  galleryItemId: string,
+  input: { authorName: string; text: string; authorEmail?: string },
+): Promise<ApiGalleryComment> {
+  const response = await apiFetch<{ comment: ApiGalleryComment }>(
+    `/organizer/${slug}/gallery/${galleryItemId}/comments`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    },
+  );
+  return response.data.comment;
+}
+
+export async function deleteGalleryComment(
+  galleryItemId: string,
+  commentId: string,
+): Promise<void> {
+  await apiFetch(
+    `/organizer/dashboard/gallery/${galleryItemId}/comments/${commentId}`,
+    {
+      method: "DELETE",
+      auth: true,
+    },
+  );
+}
+
 export async function submitGalleryPhoto(
   slug: string,
-  input: { imageFile: File; caption?: string; submittedByName?: string },
+  input: {
+    imageFile?: File | null;
+    mediaFiles?: File[];
+    caption?: string;
+    submittedByName?: string;
+  },
 ): Promise<{ message: string }> {
   const formData = new FormData();
   appendDefinedFormValue(formData, "caption", input.caption);
   appendDefinedFormValue(formData, "submittedByName", input.submittedByName);
-  formData.append("image", input.imageFile);
 
-  const response = await apiFetch<{
-    galleryItem: ApiGalleryItem;
-    message: string;
-  }>(`/organizer/${slug}/gallery/submit`, {
-    method: "POST",
-    body: formData,
-  });
+  if (input.mediaFiles && input.mediaFiles.length > 0) {
+    for (const file of input.mediaFiles) {
+      formData.append("media", file);
+    }
+  } else if (input.imageFile) {
+    formData.append("image", input.imageFile);
+  }
 
-  return { message: response.data.message };
+  const response = await apiFetch<{ message?: string }>(
+    `/organizer/${slug}/gallery/submit`,
+    {
+      method: "POST",
+      body: formData,
+    },
+  );
+
+  return {
+    message: response.data.message || "Thanks! Your moment is pending review.",
+  };
 }
 
 export async function getPendingGalleryItems(): Promise<ApiGalleryItem[]> {
-  const response = await apiFetch<{
-    galleryItems: ApiGalleryItem[];
-  }>(`/organizer/dashboard/gallery/pending`, {
-    auth: true,
-  });
+  const response = await apiFetch<{ galleryItems: ApiGalleryItem[] }>(
+    `/organizer/dashboard/gallery/pending`,
+    {
+      auth: true,
+    },
+  );
 
   return response.data.galleryItems;
 }

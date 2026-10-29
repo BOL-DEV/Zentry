@@ -532,9 +532,28 @@ export type ApiTicketType = {
   updatedAt: string;
 };
 
+export type ApiGalleryMediaItem = {
+  url: string;
+  publicId?: string | null;
+  mediaType: "image" | "video";
+  thumbnailUrl?: string | null;
+  displayOrder?: number;
+};
+
+export type ApiGalleryComment = {
+  _id: string;
+  galleryItemId: string;
+  authorName: string;
+  text: string;
+  isOrganizer: boolean;
+  createdAt: string;
+  updatedAt?: string;
+};
+
 export type ApiGalleryItem = {
   _id: string;
   organizerId: string;
+  media?: ApiGalleryMediaItem[];
   imageUrl: string;
   caption: string;
   altText: string;
@@ -543,6 +562,8 @@ export type ApiGalleryItem = {
   submittedByName?: string | null;
   likeCount?: number;
   hasLiked?: boolean;
+  commentCount?: number;
+  recentComments?: ApiGalleryComment[];
   createdAt: string;
   updatedAt: string;
 };
@@ -852,6 +873,7 @@ export type OrganizerEventDetailsData = {
 
 export type OrganizerGalleryItem = {
   id: string;
+  media: ApiGalleryMediaItem[];
   imageUrl: string;
   title: string;
   description: string;
@@ -859,6 +881,9 @@ export type OrganizerGalleryItem = {
   dateText: string;
   likeCount: number;
   hasLiked: boolean;
+  commentCount: number;
+  recentComments: ApiGalleryComment[];
+  submittedByName?: string | null;
 };
 
 export type AdminEventListItem = {
