@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FaHeart, FaRegHeart } from "react-icons/fa6";
+import { LuImage } from "react-icons/lu";
 
 import Card from "@/components/Card";
 import FullPageLoader from "@/components/FullPageLoader";
@@ -23,6 +24,7 @@ function GalleryCard({
   organizer: string;
 }) {
   const queryClient = useQueryClient();
+  const [imageError, setImageError] = useState(false);
   const [likeCount, setLikeCount] = useState(item.likeCount);
   const [hasLiked, setHasLiked] = useState(item.hasLiked);
 
@@ -42,15 +44,24 @@ function GalleryCard({
 
   return (
     <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/5">
-      <div className="relative h-80 w-full">
-        <Image
-          src={item.imageUrl}
-          alt={item.altText}
-          fill
-          sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-          className="object-cover"
-          priority={false}
-        />
+      <div className="relative h-80 w-full bg-slate-100 dark:bg-slate-850">
+        {!imageError ? (
+          <Image
+            src={item.imageUrl}
+            alt={item.altText}
+            fill
+            unoptimized
+            sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+            className="object-cover"
+            priority={false}
+            onError={() => setImageError(true)}
+          />
+        ) : (
+          <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-slate-100 p-6 text-center text-slate-400 dark:bg-slate-800 dark:text-slate-500">
+            <LuImage className="text-3xl text-slate-400 dark:text-slate-500" />
+            <p className="text-xs font-medium">Image preview unavailable</p>
+          </div>
+        )}
       </div>
 
       <div className="p-5">

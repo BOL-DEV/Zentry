@@ -252,7 +252,7 @@ function OrganizerStaffManagementClient({ organizer }: { organizer: string }) {
                       <div className="flex w-full shrink-0 flex-col gap-3 lg:w-auto lg:min-w-[230px]">
                         {isStaff ? (
                           <Link
-                            href={`/${organizer}/dashboard/staff-sessions?staffId=${encodeURIComponent(entry.id)}`}
+                            href={`/${organizer}/dashboard/staff-sessions?email=${encodeURIComponent(entry.email)}`}
                             className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-purple-600 px-5 text-sm font-semibold text-white transition hover:bg-purple-700"
                           >
                             <LuLaptop className="text-base" />
