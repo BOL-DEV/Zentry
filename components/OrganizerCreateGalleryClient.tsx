@@ -103,11 +103,11 @@ function OrganizerCreateGalleryClient({ organizer }: { organizer: string }) {
           >
             <div className="space-y-2">
               <label className="block text-sm font-semibold text-slate-900 dark:text-white">
-                Images
+                Photos & Videos
               </label>
               <input
                 type="file"
-                accept="image/*"
+                accept="image/*,video/*"
                 multiple
                 onChange={(event) =>
                   setFiles(Array.from(event.target.files ?? []))
@@ -115,7 +115,7 @@ function OrganizerCreateGalleryClient({ organizer }: { organizer: string }) {
                 className={inputStyles}
               />
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Select multiple images to upload them together (up to 20 at a time).
+                Select multiple photos and videos to upload them together (up to 20 at a time).
               </p>
             </div>
 
@@ -124,14 +124,22 @@ function OrganizerCreateGalleryClient({ organizer }: { organizer: string }) {
                 {previewUrls.map((url, index) => (
                   <div
                     key={url}
-                    className="group relative aspect-square overflow-hidden rounded-xl border border-slate-200 dark:border-white/10"
+                    className="group relative aspect-square overflow-hidden rounded-xl border border-slate-200 dark:border-white/10 bg-black"
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={url}
-                      alt={files[index]?.name ?? "Selected image"}
-                      className="h-full w-full object-cover"
-                    />
+                    {files[index]?.type.startsWith("video/") ? (
+                      <video
+                        src={url}
+                        className="h-full w-full object-cover"
+                        muted
+                      />
+                    ) : (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        src={url}
+                        alt={files[index]?.name ?? "Selected media"}
+                        className="h-full w-full object-cover"
+                      />
+                    )}
                     <button
                       type="button"
                       onClick={() => removeFileAt(index)}

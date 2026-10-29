@@ -8,6 +8,7 @@ import { LuCheck, LuX } from "react-icons/lu";
 import Card from "@/components/Card";
 import FullPageLoader from "@/components/FullPageLoader";
 import WorkspaceTopbar from "@/components/WorkspaceTopbar";
+import type { ApiGalleryItem } from "@/helpers/type";
 import {
   getOrganizerGalleryItemsForEdit,
   getPendingGalleryItems,
@@ -48,20 +49,24 @@ function PendingSubmissions({ organizer }: { organizer: string }) {
       </p>
 
       <div className="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
-        {pendingQuery.data.map((item) => (
+        {pendingQuery.data.map((item: ApiGalleryItem) => (
           <article
             key={item._id}
             className="overflow-hidden rounded-2xl border border-amber-200 bg-amber-50/40 shadow-sm dark:border-amber-500/20 dark:bg-amber-500/5"
           >
-            <div className="relative h-56 w-full">
-              <Image
-                src={item.imageUrl}
-                alt={item.altText || item.caption || "Submitted photo"}
-                fill
-                unoptimized
-                className="object-cover"
-                sizes="(min-width: 1280px) 33vw, (min-width: 640px) 50vw, 100vw"
-              />
+            <div className="relative h-56 w-full bg-black">
+              {/\.(mp4|webm|mov)$/i.test(item.imageUrl) ? (
+                <video src={item.imageUrl} className="h-full w-full object-cover" muted playsInline />
+              ) : (
+                <Image
+                  src={item.imageUrl}
+                  alt={item.altText || item.caption || "Submitted photo"}
+                  fill
+                  unoptimized
+                  className="object-cover"
+                  sizes="(min-width: 1280px) 33vw, (min-width: 640px) 50vw, 100vw"
+                />
+              )}
             </div>
 
             <div className="p-5">
@@ -166,15 +171,19 @@ function OrganizerManageGalleryClient({ organizer }: { organizer: string }) {
                 key={item._id}
                 className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/5"
               >
-                <div className="relative h-72 w-full">
-                  <Image
-                    src={item.imageUrl}
-                    alt={item.altText || item.caption || "Gallery image"}
-                    fill
-                unoptimized
-                    className="object-cover"
-                    sizes="(min-width: 1280px) 33vw, (min-width: 640px) 50vw, 100vw"
-                  />
+                <div className="relative h-72 w-full bg-black">
+                  {/\.(mp4|webm|mov)$/i.test(item.imageUrl) ? (
+                    <video src={item.imageUrl} className="h-full w-full object-cover" muted playsInline />
+                  ) : (
+                    <Image
+                      src={item.imageUrl}
+                      alt={item.altText || item.caption || "Gallery image"}
+                      fill
+                      unoptimized
+                      className="object-cover"
+                      sizes="(min-width: 1280px) 33vw, (min-width: 640px) 50vw, 100vw"
+                    />
+                  )}
                 </div>
 
                 <div className="p-5">

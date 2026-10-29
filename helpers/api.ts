@@ -15,6 +15,21 @@ function normalizeApiBaseUrl(value?: string) {
   return `${trimmed}/api/v1`;
 }
 
+
+export function getClientDeviceId(): string {
+  if (typeof window === "undefined") return "";
+  try {
+    let id = localStorage.getItem("zentra_device_id");
+    if (!id) {
+      id = "dev_" + Math.random().toString(36).substring(2) + Date.now().toString(36);
+      localStorage.setItem("zentra_device_id", id);
+    }
+    return id;
+  } catch {
+    return "";
+  }
+}
+
 export const API_BASE_URL = normalizeApiBaseUrl(configuredApiBaseUrl);
 
 export function resolveUrl(path: string) {
@@ -86,6 +101,7 @@ export async function apiFetch<T>(
       headers: {
         ...(isFormDataBody ? {} : { "Content-Type": "application/json" }),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(typeof window !== "undefined" ? { "x-client-id": getClientDeviceId() } : {}),
         ...(init?.headers ?? {}),
       },
     });
