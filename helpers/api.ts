@@ -53,9 +53,9 @@ export function getApiErrorMessage(
   const firstValidationMessage = payload?.errors?.find((item) => item.message)?.message;
   const nestedMessage =
     payload?.data &&
-    typeof payload.data === "object" &&
-    "message" in payload.data &&
-    typeof payload.data.message === "string"
+      typeof payload.data === "object" &&
+      "message" in payload.data &&
+      typeof payload.data.message === "string"
       ? payload.data.message
       : undefined;
 
